@@ -2,7 +2,7 @@
   <name>simulated_gas_sensor</name>
   <version>1.0.0</version>
   <description>Pkg for the simulation of the response of a gas sensor (MOX, EQ, PID, etc) to different gases.</description>
-  <maintainer email="jgmonroy@uma.es">Javier G Monroy</maintainer>
+  <maintainer email="jgmonroy@uma.es">Javier Monroy</maintainer>
 
   <license>GPLv3</license>
 

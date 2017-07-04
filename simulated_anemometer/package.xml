@@ -9,7 +9,7 @@
   <url type="website">http://ros.org/wiki/simulated_anemometer</url>
   <!-- <url type="bugtracker"></url> -->
 
-  <author>Javier G Monroy</author>
+  <author>Javier Monroy</author>
 
   <!-- Dependencies which this package needs to build itself. -->
   <buildtool_depend>catkin</buildtool_depend>
