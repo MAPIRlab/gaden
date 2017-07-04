@@ -6,9 +6,8 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <visualization_msgs/Marker.h>
 
-
-#include <msgs_and_srvs/GasPosition.h>
-#include <msgs_and_srvs/WindPosition.h>
+#include <gaden_player/GasPosition.h>
+#include <gaden_player/WindPosition.h>
 
 #include <cstdlib>
 #include <math.h>

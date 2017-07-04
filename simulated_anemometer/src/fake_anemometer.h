@@ -6,7 +6,7 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <visualization_msgs/Marker.h>
 #include <olfaction_msgs/anemometer.h>
-#include <msgs_and_srvs/WindPosition.h>
+#include <gaden_player/WindPosition.h>
 #include <angles/angles.h>
 
 #include <cstdlib>

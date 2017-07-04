@@ -8,7 +8,7 @@
 #include "simulation_player.h"
 
 //--------------- SERVICES CALLBACKS----------------------//
-bool get_gas_value_srv(msgs_and_srvs::GasPosition::Request  &req, msgs_and_srvs::GasPosition::Response &res)
+bool get_gas_value_srv(gaden_player::GasPosition::Request  &req, gaden_player::GasPosition::Response &res)
 {
     //ROS_INFO("[Player] Request for gas concentration at location [%.2f, %.2f, %.2f]m",req.x, req.y, req.z);
 
@@ -40,7 +40,7 @@ bool get_gas_value_srv(msgs_and_srvs::GasPosition::Request  &req, msgs_and_srvs:
 }
 
 
-bool get_wind_value_srv(msgs_and_srvs::WindPosition::Request  &req, msgs_and_srvs::WindPosition::Response &res)
+bool get_wind_value_srv(gaden_player::WindPosition::Request  &req, gaden_player::WindPosition::Response &res)
 {
     //Since the wind fields are identical among different instances, return just the information from instance[0]
     player_instances[0].get_wind_value(req.x, req.y, req.z, res.u, res.v, res.w);
