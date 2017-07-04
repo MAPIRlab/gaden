@@ -1,0 +1,31 @@
+<package>
+  <name>filament_simulator</name>
+  <version>1.0.0</version>
+  <description>Implements the filament-based gas dispersal simulation. Gases with different densities are simulated such as: ethanol, methane and hydrogen etc.</description>
+  <maintainer email="jgmonroy@uma.com">Javier G Monroy</maintainer>
+
+  <license>GPLv3</license>
+
+  <url type="website">http://ros.org/wiki/dispersion_simulation</url>
+  
+  <author>Javier G. Monroy</author>
+
+ 
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>roscpp</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>msgs_and_srvs</build_depend>
+
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>roscpp</run_depend>
+  <run_depend>visualization_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>msgs_and_srvs</run_depend>
+
+</package>

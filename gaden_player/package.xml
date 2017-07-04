@@ -1,0 +1,30 @@
+<package>
+  <name>gaden_player</name>
+  <version>1.0.0</version>
+  <description> This package loads the log files (results) from the gaden_simulator pkg, and provides services to evaluate the gas concentration and wind vector at a given location. The goal is to provide a fast (real time) service for the simulated MOX and Anemometer sensors.</description>
+  <maintainer email="jgmonroy@uma.es">Javier Monroy</maintainer>
+
+  <license>GPLv3</license>
+  <url type="website">http://ros.org/wiki/gaden_player</url>
+  <author>Javier Monroy</author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>roscpp</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>msgs_and_srvs</build_depend>
+  <build_depend>tf</build_depend>
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>roscpp</run_depend>
+  <run_depend>visualization_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>msgs_and_srvs</run_depend>
+
+</package>
