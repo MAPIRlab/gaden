@@ -1,6 +1,6 @@
 
 cmake_minimum_required(VERSION 2.8.3)
-project(filament_simulator)
+project(gaden_filament_simulator)
 
 find_package(catkin REQUIRED COMPONENTS
 	roscpp

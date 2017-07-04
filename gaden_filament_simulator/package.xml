@@ -1,14 +1,12 @@
 <package>
-  <name>filament_simulator</name>
+  <name>gaden_filament_simulator</name>
   <version>1.0.0</version>
   <description>Implements the filament-based gas dispersal simulation. Gases with different densities are simulated such as: ethanol, methane and hydrogen etc.</description>
-  <maintainer email="jgmonroy@uma.com">Javier G Monroy</maintainer>
+  <maintainer email="jgmonroy@uma.com">Javier Monroy</maintainer>
 
   <license>GPLv3</license>
 
-  <url type="website">http://ros.org/wiki/dispersion_simulation</url>
-  
-  <author>Javier G. Monroy</author>
+  <author>Javier Monroy</author>
 
  
   <buildtool_depend>catkin</buildtool_depend>
