@@ -1,15 +1,10 @@
 <package>
-  <name>environment</name>
+  <name>gaden_environment</name>
   <version>1.0.0</version>
   <description>Package for visualizing on RVIZ the simulation environment (walls, obstacles and gas source).</description>
-  <maintainer email="Ali-Abdul.Khaliq@oru.se">ali_abdul_khaliq</maintainer>
+  <maintainer email="jgmonroy@uma.es">Javier Monroy</maintainer>
 
-  <license>BSD</license>
-
-  <url type="website">http://ros.org/wiki/environment</url>
-  <!-- <url type="bugtracker"></url> -->
-
-  <author>ali_abdul_khaliq</author>
+  <license>GPLv3</license>
 
   <!-- Dependencies which this package needs to build itself. -->
   <buildtool_depend>catkin</buildtool_depend>
@@ -25,10 +20,5 @@
   <run_depend>msgs_and_srvs</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>roscpp</run_depend>
-
-  <!-- Dependencies needed only for running tests. -->
-  <!-- <test_depend>visualization_msgs</test_depend> -->
-  <!-- <test_depend>msgs_and_srvs</test_depend> -->
-  <!-- <test_depend>tf</test_depend> -->
-
+  
 </package>
