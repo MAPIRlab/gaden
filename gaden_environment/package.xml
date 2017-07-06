@@ -11,13 +11,11 @@
 
   <!-- Dependencies needed to compile this package. -->
   <build_depend>visualization_msgs</build_depend>
-  <build_depend>msgs_and_srvs</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>roscpp</build_depend>
 
   <!-- Dependencies needed after this package is compiled. -->
   <run_depend>visualization_msgs</run_depend>
-  <run_depend>msgs_and_srvs</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>roscpp</run_depend>
   

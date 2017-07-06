@@ -25,7 +25,7 @@ generate_messages(
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
 
 catkin_package(
-    DEPENDS roscpp visualization_msgs std_msgs nav_msgs msgs_and_srvs tf
+    DEPENDS roscpp visualization_msgs std_msgs nav_msgs tf
 )
 
 include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})

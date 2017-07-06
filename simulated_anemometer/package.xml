@@ -1,14 +1,10 @@
 <package>
   <name>simulated_anemometer</name>
   <version>1.0.0</version>
-  <description> This package simulates the response of a digital anemometer deployed whitin the gas_dispersion_simulation pkg.</description>
-  <maintainer email="jgmonroy@uma.es">Javier G Monroy</maintainer>
+  <description> This package simulates the response of a digital anemometer deployed within the gas_dispersion_simulation pkg.</description>
+  <maintainer email="jgmonroy@uma.es">Javier Monroy</maintainer>
 
   <license>GPLv3</license>
-
-  <url type="website">http://ros.org/wiki/simulated_anemometer</url>
-  <!-- <url type="bugtracker"></url> -->
-
   <author>Javier Monroy</author>
 
   <!-- Dependencies which this package needs to build itself. -->
@@ -19,22 +15,15 @@
   <build_depend>visualization_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>nav_msgs</build_depend>
-  <build_depend>msgs_and_srvs</build_depend>
+  <build_depend>olfaction_msgs</build_depend>
   <build_depend>tf</build_depend>
 
   <!-- Dependencies needed after this package is compiled. -->
   <run_depend>roscpp</run_depend>
   <run_depend>visualization_msgs</run_depend>
   <run_depend>std_msgs</run_depend>
-  <run_depend>tf</run_depend>
   <run_depend>nav_msgs</run_depend>
-  <run_depend>msgs_and_srvs</run_depend>
-
-  <!-- Dependencies needed only for running tests. -->
-  <!-- <test_depend>roscpp</test_depend> -->
-  <!-- <test_depend>visualization_msgs</test_depend> -->
-  <!-- <test_depend>std_msgs</test_depend> -->
-  <!-- <test_depend>nav_msgs</test_depend> -->
-  <!-- <test_depend>msgs_and_srvs</test_depend> -->
+  <run_depend>olfaction_msgs</run_depend>
+  <run_depend>tf</run_depend>
 
 </package>

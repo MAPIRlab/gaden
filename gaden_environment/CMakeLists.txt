@@ -3,12 +3,12 @@ project(gaden_environment)
 
 find_package(catkin REQUIRED COMPONENTS 
     roscpp
-    visualization_msgs
-    msgs_and_srvs
-    tf)
+    visualization_msgs    
+    tf
+)
     
 catkin_package(
-	DEPENDS roscpp visualization_msgs msgs_and_srvs tf
+	DEPENDS roscpp visualization_msgs tf
 )
 
 include_directories(include)

@@ -7,14 +7,14 @@ find_package(catkin REQUIRED COMPONENTS
 	visualization_msgs
 	std_msgs
 	nav_msgs
-	msgs_and_srvs
-	pcl_ros)
+	pcl_ros
+)
 
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
 
 catkin_package(
-    DEPENDS roscpp visualization_msgs std_msgs nav_msgs msgs_and_srvs
+    DEPENDS roscpp visualization_msgs std_msgs nav_msgs
 )
 
 include_directories(include)
@@ -25,7 +25,6 @@ MESSAGE("PCL ARE: ${PCL_INCLUDE_DIRS}")
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
 add_executable(filament_simulator ${MYFILES_CPP})
 
-add_dependencies(filament_simulator msgs_and_srvs_generate_msgs_cpp)
 target_link_libraries(filament_simulator
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
