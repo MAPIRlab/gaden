@@ -5,7 +5,6 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <tf/transform_listener.h>
 #include <olfaction_msgs/gas_sensor.h>
-
 #include <gaden_player/GasPosition.h>
 
 #include <cstdlib>

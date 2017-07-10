@@ -14,7 +14,6 @@
   <build_depend>visualization_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>nav_msgs</build_depend>
-  <build_depend>msgs_and_srvs</build_depend>
   <build_depend>olfaction_msgs</build_depend>
   <build_depend>tf</build_depend>
 
@@ -24,7 +23,6 @@
   <run_depend>std_msgs</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>nav_msgs</run_depend>
-  <run_depend>msgs_and_srvs</run_depend>
   <run_depend>olfaction_msgs</run_depend>
 
 </package>

@@ -9,7 +9,6 @@ find_package(catkin REQUIRED COMPONENTS
     visualization_msgs
     std_msgs
     nav_msgs
-    msgs_and_srvs
     olfaction_msgs
     tf
     pcl_ros)
@@ -17,13 +16,13 @@ find_package(catkin REQUIRED COMPONENTS
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
 
 catkin_package(
-        DEPENDS roscpp visualization_msgs std_msgs olfaction_msgs nav_msgs msgs_and_srvs tf
+        DEPENDS roscpp visualization_msgs std_msgs olfaction_msgs nav_msgs tf
 )
 
 include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 
 add_executable(simulated_gas_sensor  ${MYFILES_CPP})
-add_dependencies(simulated_gas_sensor msgs_and_srvs_generate_messages_cpp)
+#add_dependencies(simulated_gas_sensor msgs_and_srvs_generate_messages_cpp)
 target_link_libraries(simulated_gas_sensor
    ${catkin_LIBRARIES}
  )
