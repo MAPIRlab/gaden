@@ -15,3 +15,6 @@ In this demo we simulate withing a 3D environment a single gas source at a given
 
 2. **gaden_player_demo.launch**:
 After the simulation of the gas dispersal is done, we can run the gaden_player pkg in order to visualize the gas dispersion (we use a point cloud proportional to the gas concentration at each cell of the 3D environment). We also provide examples for some  gas sensors and an anemometer, which will provide the readings (visulized for example with rqt_plot tool).
+
+## olfaction_msgs
+Although GADEN is a self contained pkg, the also included "simulated_sensor_pkgs" (anemometer and gas sensors) depends on an external pkg defining some "olfaction" related msgs. This pkg is available in a different repository [olfaction_msgs](https://github.com/MAPIRlab/olfaction_msgs)
