@@ -38,6 +38,7 @@
     ### NODE PLAYER ###
     #-------------------
     <node pkg="gaden_player" type="gaden_player" name="gaden_player" output="screen">
+        <param name="/verbose" value="false" />
 	    <param name="/player_freq" value="20" />        ###(Hz) Freq for loading the simulation log_files	    	    
 	    <param name="/num_simulators" value="1" />      ### Number of simulations to load [1-inf] (useful for multiple sources and gases)
     

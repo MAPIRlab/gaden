@@ -92,7 +92,8 @@ int main( int argc, char** argv )
     {        
         if( (ros::Time::now() - time_last_loaded_file).toSec() >= 1/player_freq )
         {
-            ROS_INFO("[Player] Playing simulation iteration %i", iteration_counter);
+            if (verbose)
+                ROS_INFO("[Player] Playing simulation iteration %i", iteration_counter);
             //Read Gas and Wind data from log_files
             load_all_data_from_logfiles(iteration_counter); //On the first time, we configure gas type, source pos, etc.
             display_current_gas_distribution();    //Rviz visualization
@@ -112,13 +113,19 @@ int main( int argc, char** argv )
 void loadNodeParameters(ros::NodeHandle private_nh)
 {
     //player_freq
+    private_nh.param<bool>("verbose", verbose, false);
+    
+    //player_freq
     private_nh.param<double>("player_freq", player_freq, 1);  //Hz
 
     //Number of simulators to load (For simulating multiple gases and multiple sources)
     private_nh.param<int>("num_simulators", num_simulators, 1);
 
-    ROS_INFO("[Player] player_freq %.2f", player_freq);
-    ROS_INFO("[Player] num_simulators:  %i", num_simulators);
+    if (verbose)
+    {
+        ROS_INFO("[Player] player_freq %.2f", player_freq);
+        ROS_INFO("[Player] num_simulators:  %i", num_simulators);
+    }
 
 
     //FilePath for simulated data
@@ -128,7 +135,8 @@ void loadNodeParameters(ros::NodeHandle private_nh)
         //Get location of simulation data for instance (i)
         std::string paramName = boost::str( boost::format("simulation_data_%i") % i);
         private_nh.param<std::string>(paramName.c_str(),simulation_data[i], "");
-        ROS_INFO("[Player] simulation_data_%i:  %s", i, simulation_data[i].c_str());
+        if (verbose)
+            ROS_INFO("[Player] simulation_data_%i:  %s", i, simulation_data[i].c_str());
     }
     
     // Initial iteration
@@ -164,7 +172,8 @@ void load_all_data_from_logfiles(int sim_iteration)
     //Load corresponding data for each instance (i.e for every gas source)
     for (int i=0;i<num_simulators;i++)
     {
-        ROS_INFO("[Player] Loading new data to instance %i (iteration %i)",i,sim_iteration);
+        if (verbose)
+            ROS_INFO("[Player] Loading new data to instance %i (iteration %i)",i,sim_iteration);
         player_instances[i].load_data_from_logfile(sim_iteration);
     }
 }
@@ -335,7 +344,10 @@ void sim_obj::load_data_from_logfile(int sim_iteration)
             first_reading = false;
     }
     else
-        ROS_ERROR("[Player]Unable to open log_file");
+    {
+        if (verbose)
+            ROS_ERROR("[Player]Unable to open log_file");
+    }
 }
 
 
@@ -370,7 +382,10 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
         w = W[xx][yy][zz];
     }
     else
-        ROS_WARN("[Plyer] Request to provide Wind information when No Wind data is available!!");
+    {
+        if (verbose)
+            ROS_WARN("[Plyer] Request to provide Wind information when No Wind data is available!!");
+    }
 }
 
 
@@ -498,7 +513,7 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_point
                     }
                     else
                     {
-                        ROS_INFO("Defatul COlor");
+                        ROS_INFO("[player] Setting Defatul Color");
                         color.r = 0.9; color.g = 0;color.b = 0;
                     }
 
