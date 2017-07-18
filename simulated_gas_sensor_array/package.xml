@@ -1,0 +1,28 @@
+<package>
+  <name>simulated_gas_sensor_array</name>
+  <version>1.0.0</version>
+  <description>Pkg for the simulation of the response of a gas sensor array composed of N gas_sensors (MOX, EQ, PID, etc) </description>
+  <maintainer email="jgmonroy@uma.es">Javier Monroy</maintainer>
+
+  <license>GPLv3</license>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>roscpp</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>olfaction_msgs</build_depend>
+  <build_depend>tf</build_depend>
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>roscpp</run_depend>
+  <run_depend>visualization_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>olfaction_msgs</run_depend>
+
+</package>
