@@ -1,0 +1,1 @@
+This is a placedholder file for the gas dispersion simulator results folder. I kept on getting an error, so I guess this dir is not created in the script.
