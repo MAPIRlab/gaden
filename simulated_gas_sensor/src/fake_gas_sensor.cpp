@@ -22,44 +22,44 @@ int main( int argc, char** argv )
 	
     //Publishers
     ros::Publisher sensor_read_pub = n.advertise<olfaction_msgs::gas_sensor>("Sensor_reading", 500);
-	ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("Sensor_display", 100);
+    ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("Sensor_display", 100);
 	
     //Service to request gas concentration
-    ros::ServiceClient client = n.serviceClient<gaden_player::GasPosition>("/odor_value");
+    ros::ServiceClient client = n.serviceClient<gaden_msgs::GasPosition>("/odor_value");
 	
 
     //Init Visualization data (marker)
     //---------------------------------
     // sensor = sphere
     // conector = stick from the floor to the sensor
-	visualization_msgs::Marker sensor,connector;
-	sensor.header.frame_id = input_fixed_frame.c_str();
-	sensor.ns = "sensor_visualization";	
+    visualization_msgs::Marker sensor,connector;
+    sensor.header.frame_id = input_fixed_frame.c_str();
+    sensor.ns = "sensor_visualization";	
     sensor.action = visualization_msgs::Marker::ADD;
-	sensor.type = visualization_msgs::Marker::SPHERE;
+    sensor.type = visualization_msgs::Marker::SPHERE;
     sensor.id = 0;
     sensor.scale.x = 0.1;
     sensor.scale.y = 0.1;
     sensor.scale.z = 0.1;
     sensor.color.r = 2.0f;
-	sensor.color.g = 1.0f;
+    sensor.color.g = 1.0f;
     sensor.color.a = 1.0;
 	
-	connector.header.frame_id = input_fixed_frame.c_str();
-	connector.ns  = "sensor_visualization";
-	connector.action = visualization_msgs::Marker::ADD;
+    connector.header.frame_id = input_fixed_frame.c_str();
+    connector.ns  = "sensor_visualization";
+    connector.action = visualization_msgs::Marker::ADD;
     connector.type = visualization_msgs::Marker::CYLINDER;
     connector.id = 1;
-	connector.scale.x = 0.1;
-	connector.scale.y = 0.1;
-	connector.color.a  = 1.0;
-	connector.color.r = 1.0f;
-	connector.color.b = 1.0f;
-	connector.color.g = 1.0f;
+    connector.scale.x = 0.1;
+    connector.scale.y = 0.1;
+    connector.color.a  = 1.0;
+    connector.color.r = 1.0f;
+    connector.color.b = 1.0f;
+    connector.color.g = 1.0f;
 
 
     // Loop
-	tf::TransformListener listener;
+    tf::TransformListener listener;
     node_rate = 5;  //Hz
     ros::Rate r(node_rate);
     first_reading = true;
@@ -92,7 +92,7 @@ int main( int argc, char** argv )
 
             // Get Gas concentration at current position (of each gas present)
             // Service request to the simulator
-            gaden_player::GasPosition srv;
+            gaden_msgs::GasPosition srv;
             srv.request.x = x_pos;
             srv.request.y = y_pos;
             srv.request.z = z_pos;            
@@ -216,7 +216,7 @@ int main( int argc, char** argv )
 // Simulate MOX response: Sensitivity + Dynamic response
 // RS = R0*( A * conc^B )
 // This method employes a curve fitting based on a line in the loglog scale to set the sensitivity
-float simulate_mox_as_line_loglog(gaden_player::GasPositionResponse GT_gas_concentrations)
+float simulate_mox_as_line_loglog(gaden_msgs::GasPositionResponse GT_gas_concentrations)
 {
     if (first_reading)
     {
@@ -314,7 +314,7 @@ float simulate_mox_as_line_loglog(gaden_player::GasPositionResponse GT_gas_conce
 
 
 // Simulate PID response : Weighted Sum of all gases
-float simulate_pid(gaden_player::GasPositionResponse GT_gas_concentrations)
+float simulate_pid(gaden_msgs::GasPositionResponse GT_gas_concentrations)
 {
     //Handle multiple gases
     float accumulated_conc = 0.0;

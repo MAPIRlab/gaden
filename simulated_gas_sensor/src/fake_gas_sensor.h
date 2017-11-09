@@ -5,7 +5,7 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <tf/transform_listener.h>
 #include <olfaction_msgs/gas_sensor.h>
-#include <gaden_player/GasPosition.h>
+#include <gaden_msgs/GasPosition.h>
 
 #include <cstdlib>
 #include <math.h>
@@ -62,8 +62,8 @@ int ch_id;                          //Chemical ID
 
 //functions:
 void  loadNodeParameters(ros::NodeHandle private_nh);
-float simulate_mox_as_line_loglog(gaden_player::GasPositionResponse GT_gas_concentrations);
-float simulate_pid(gaden_player::GasPositionResponse GT_gas_concentrations);
+float simulate_mox_as_line_loglog(gaden_msgs::GasPositionResponse GT_gas_concentrations);
+float simulate_pid(gaden_msgs::GasPositionResponse GT_gas_concentrations);
 
 
 

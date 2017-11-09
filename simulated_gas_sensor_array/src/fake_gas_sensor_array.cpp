@@ -24,7 +24,7 @@ int main( int argc, char** argv )
     ros::Publisher enose_pub = n.advertise<olfaction_msgs::gas_sensor_array>(topic_id, 500);
 	
     //Service to request gas concentration
-    ros::ServiceClient client = n.serviceClient<gaden_player::GasPosition>("/odor_value");
+    ros::ServiceClient client = n.serviceClient<gaden_msgs::GasPosition>("/odor_value");
 
 
     //Configure sensor_array
@@ -66,7 +66,7 @@ int main( int argc, char** argv )
 
             // Get Gas concentration at current position (for each gas present)
             // Service request to the simulator
-            gaden_player::GasPosition srv;
+            gaden_msgs::GasPosition srv;
             srv.request.x = x_pos;
             srv.request.y = y_pos;
             srv.request.z = z_pos;            
@@ -187,7 +187,7 @@ int main( int argc, char** argv )
 // Simulate MOX response: Sensitivity + Dynamic response
 // RS = R0*( A * conc^B )
 // This method employes a curve fitting based on a line in the loglog scale to set the sensitivity
-float simulate_mox_as_line_loglog(gaden_player::GasPositionResponse GT_gas_concentrations, int s_idx)
+float simulate_mox_as_line_loglog(gaden_msgs::GasPositionResponse GT_gas_concentrations, int s_idx)
 {
     if (sensor_array[s_idx].first_reading)
     {
@@ -285,7 +285,7 @@ float simulate_mox_as_line_loglog(gaden_player::GasPositionResponse GT_gas_conce
 
 
 // Simulate PID response : Weighted Sum of all gases
-float simulate_pid(gaden_player::GasPositionResponse GT_gas_concentrations)
+float simulate_pid(gaden_msgs::GasPositionResponse GT_gas_concentrations)
 {
     //Handle multiple gases
     float accumulated_conc = 0.0;

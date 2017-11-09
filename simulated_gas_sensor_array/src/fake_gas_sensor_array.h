@@ -5,7 +5,7 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <tf/transform_listener.h>
 #include <olfaction_msgs/gas_sensor_array.h>
-#include <gaden_player/GasPosition.h>
+#include <gaden_msgs/GasPosition.h>
 
 #include <cstdlib>
 #include <math.h>
@@ -61,8 +61,8 @@ bool    notified;                      //to notifiy about erros just once
 
 //functions:
 void  loadNodeParameters(ros::NodeHandle private_nh);
-float simulate_mox_as_line_loglog(gaden_player::GasPositionResponse GT_gas_concentrations, int s_idx);
-float simulate_pid(gaden_player::GasPositionResponse GT_gas_concentrations);
+float simulate_mox_as_line_loglog(gaden_msgs::GasPositionResponse GT_gas_concentrations, int s_idx);
+float simulate_pid(gaden_msgs::GasPositionResponse GT_gas_concentrations);
 
 
 

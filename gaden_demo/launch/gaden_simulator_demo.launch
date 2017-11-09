@@ -37,12 +37,13 @@
     ### NODE Filament Simulator ###
     <node pkg="gaden_filament_simulator" type="filament_simulator" name="filament_simulator1" output="screen">	    
 	    <param name="/sim_time" value="300" />                    ### [sec] Total time of the gas dispersion simulation
+	    <param name="/single_stepping" value="yes" />
 	    <param name="/time_step" value="0.1" />                   ### [sec] Time increment between snapshots. Set aprox = cell_size/max_wind_speed.
 	    <param name="/num_filaments_sec" value="10" />            ### Num of filaments released each second	   
-        <param name="/ppm_filament_center" value="10"/>           ### [ppm] Gas concentration at the center of the 3D gaussian (filament)
-        <param name="/filament_initial_std" value="10"/>          ### [cm] Sigma of the filament at t=0-> 3DGaussian shape
-        <param name="/filament_growth_gamma" value="10"/>         ### [cm²/s] Growth ratio of the filament_std
-        <param name="/filament_noise_std" value="0.02"/>          ### [m] Range of the white noise added on each iteration
+            <param name="/ppm_filament_center" value="10"/>           ### [ppm] Gas concentration at the center of the 3D gaussian (filament)
+            <param name="/filament_initial_std" value="10"/>          ### [cm] Sigma of the filament at t=0-> 3DGaussian shape
+            <param name="/filament_growth_gamma" value="10"/>         ### [cm²/s] Growth ratio of the filament_std
+            <param name="/filament_noise_std" value="0.02"/>          ### [m] Range of the white noise added on each iteration
 	    <param name="/gas_type" value="0" />                      ### 0=Ethanol, 1=Methane, 2=Hydrogen, 6=Acetone
 	    <param name="/temperature" value="298"/>                  ### [Kelvins]
 	    <param name="/pressure" value="1"/>                       ### [Atm]
