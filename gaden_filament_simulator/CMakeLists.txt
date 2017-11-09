@@ -8,13 +8,14 @@ find_package(catkin REQUIRED COMPONENTS
 	std_msgs
 	nav_msgs
 	pcl_ros
+	gaden_msgs
 )
 
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
 
 catkin_package(
-    DEPENDS roscpp visualization_msgs std_msgs nav_msgs
+    DEPENDS roscpp visualization_msgs std_msgs nav_msgs gaden_msgs
 )
 
 include_directories(include)

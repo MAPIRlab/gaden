@@ -43,11 +43,11 @@ CFilamentSimulator::CFilamentSimulator()
 
 	//Init variables
 	//-----------------
-    sim_time = 0.0;                      //Start at time = 0(sec)
-    current_wind_snapshot = 0;           //Start with wind_iter= 0;
-    current_simulation_step = 0;         //Start with iter= 0;
+        sim_time = 0.0;                      //Start at time = 0(sec)
+        current_wind_snapshot = 0;           //Start with wind_iter= 0;
+        current_simulation_step = 0;         //Start with iter= 0;
 	last_saved_step = -1;
-    wind_notified = false;               //To warm the user (only once) that no more wind data is found!
+        wind_notified = false;               //To warm the user (only once) that no more wind data is found!
 
 	//Init the Simulator
 	initSimulator();
@@ -87,7 +87,7 @@ CFilamentSimulator::CFilamentSimulator()
 	// Specific gravity is the ratio of the density of a substance to the density of a reference substance; equivalently,
 	// it is the ratio of the mass of a substance to the mass of a reference substance for the same given volume.
 	SpecificGravity[0] = 1.0378;	  //ethanol   (heavier than air)
-    SpecificGravity[1] = 0.5537;	  //methane   (lighter than air)
+        SpecificGravity[1] = 0.5537;	  //methane   (lighter than air)
 	SpecificGravity[2] = 0.0696;	  //hydrogen  (lighter than air)
 	SpecificGravity[6] = 1.4529;	  //acetone   (heavier than air)
 
@@ -240,6 +240,8 @@ void CFilamentSimulator::initSimulator()
 	//3. Initialize the filaments vector to its max value (to avoid increasing the size at runtime)
 	ROS_INFO("[filament] Initializing Filaments");
 	filaments.resize(total_number_filaments, CFilament(0.0, 0.0, 0.0, filament_initial_std));
+        
+        simulationIterationService = n.advertiseService("request_simulation_iteration", &CFilamentSimulator::requestSimulationStep, this);
 }
 
 
@@ -777,9 +779,11 @@ void CFilamentSimulator::save_state_to_file()
 	//open file
 	//---------
 	out = fopen( out_filemane.c_str(), "w" );
+        ROS_INFO("[filament] Trying to open final output file: %s\n", out_filemane.c_str());
 	if( out == NULL )
-		ROS_ERROR("Error in opening the final output files.\n");
-
+        {
+            ROS_ERROR("Error in opening the final output files.\n");
+        }
 	//Write header
 	//--------------
 	fprintf(out, "env_min(m) %.4f %.4f %.4f\n",env_min_x, env_min_y, env_min_z);
@@ -833,6 +837,76 @@ void CFilamentSimulator::save_state_to_file()
 	last_saved_step++;
 }
 
+bool CFilamentSimulator::requestSimulationStep(gaden_msgs::SimulationIterationRequest::Request& req, gaden_msgs::SimulationIterationRequest::Response& resp)
+{
+    ROS_INFO("Request for next simulation step received.\n");
+
+    ROS_INFO("[filament] Simulating step %i (sim_time = %.2f)", current_simulation_step, req.time_step);
+
+    //0. Load wind snapshot (if necessary and availabe)
+    if ( floor(sim_time / windTime_step) != current_wind_snapshot)
+       read_wind_snapshot(floor(sim_time / windTime_step));
+
+    //1. Create new filaments close to the source location
+    //   On each iteration num_filaments (See params) are created
+    add_new_filaments(cell_size);
+
+    //2. Update Gas Concentration field
+    update_gas_concentration_from_filaments();
+
+    //3. Publish markers for RVIZ
+    publish_markers();
+
+    //4. Update filament locations
+    update_filaments_location();
+
+    //5. Save data (if necessary)
+    if ( (save_results == 1) && (floor(req.time_step / restuls_time_step) != last_saved_step) )
+        save_state_to_file();
+
+    //4. Update Simulation state
+    sim_time = sim_time + req.time_step;	//sec
+    current_simulation_step++;
+
+    resp.current_simulation_step = current_simulation_step;
+
+    return true;
+}
+
+void CFilamentSimulator::initAsyncSpinner()
+{
+  asyncSpinner.reset(new ros::AsyncSpinner(2));
+
+  if (asyncSpinner->canStart())
+    asyncSpinner->start();
+
+  workerThread.reset(new boost::thread(boost::bind(&CFilamentSimulator::rosLoop, this)));
+}
+
+void CFilamentSimulator::shutdownAsyncSpinner()
+{
+  asyncSpinner->stop();
+}
+
+void CFilamentSimulator::rosLoop()
+{
+  //m_connectorThreadActive = true;
+  //m_runCondition.notify_all();
+
+  int iteration_counter = 0;
+  while (ros::ok())
+  {
+    iteration_counter++;
+
+    if (iteration_counter % 10 == 0)
+        std::cout << "rosLoop iteration = " << iteration_counter << std::endl;
+
+    ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0.01));
+  }
+
+  //m_connectorThreadActive = false;
+}
+
 //================================
 //
 //			M   A   I   N
@@ -843,47 +917,91 @@ int main(int argc, char **argv)
 	// Init ROS-NODE
 	ros::init(argc, argv, "new_filament_simulator");
 
+        ros::NodeHandle n;
+
+        std::string single_stepping;
+        ros::param::param<std::string>("~single_stepping", single_stepping, "no");
+        
 	//Create simulator obj and initialize it
 	CFilamentSimulator sim;
-
 
 	// Initiate Random Number generator with current time
 	srand(time(NULL));
 
-	//--------------
-	// LOOP
-	//--------------	
-	ros::Rate r(100);   //Go as faster as you can!
-	while (ros::ok() && (sim.current_simulation_step<sim.numSteps) )
-	{
-		//ROS_INFO("[filament] Simulating step %i (sim_time = %.2f)", sim.current_simulation_step, sim.sim_time);
+        ROS_INFO("Single stepping requested: %s\n", single_stepping.c_str());
+        
+        
+        if (single_stepping.compare("no") == 0)
+        {
+            //--------------
+            // LOOP
+            //--------------	
+            ros::Rate r(100);   //Go as faster as you can!
+            while (ros::ok() && (sim.current_simulation_step<sim.numSteps) )
+            {
+                    ROS_INFO("[filament] Simulating step %i (sim_time = %.2f)", sim.current_simulation_step, sim.sim_time);
 
-		//0. Load wind snapshot (if necessary and availabe)
-		if ( floor(sim.sim_time/sim.windTime_step) != sim.current_wind_snapshot)
-			sim.read_wind_snapshot(floor(sim.sim_time/sim.windTime_step));
+                    //0. Load wind snapshot (if necessary and availabe)
+                    if ( floor(sim.sim_time/sim.windTime_step) != sim.current_wind_snapshot)
+                            sim.read_wind_snapshot(floor(sim.sim_time/sim.windTime_step));
 
-		//1. Create new filaments close to the source location
-		//   On each iteration num_filaments (See params) are created
-		sim.add_new_filaments(sim.cell_size);
+                    //1. Create new filaments close to the source location
+                    //   On each iteration num_filaments (See params) are created
+                    sim.add_new_filaments(sim.cell_size);
 
-		//2. Update Gas Concentration field		
-		sim.update_gas_concentration_from_filaments();
+                    //2. Update Gas Concentration field		
+                    sim.update_gas_concentration_from_filaments();
 
-		//3. Publish markers for RVIZ
-		sim.publish_markers();
+                    //3. Publish markers for RVIZ
+                    sim.publish_markers();
 
-		//4. Update filament locations
-		sim.update_filaments_location();
+                    //4. Update filament locations
+                    sim.update_filaments_location();
 
-		//5. Save data (if necessary)
-		if ( (sim.save_results==1) && (floor(sim.sim_time/sim.restuls_time_step) != sim.last_saved_step) )
-			sim.save_state_to_file();
+                    //5. Save data (if necessary)
+                    if ( (sim.save_results==1) && (floor(sim.sim_time/sim.restuls_time_step) != sim.last_saved_step) )
+                            sim.save_state_to_file();
 
-		//4. Update Simulation state
-		sim.sim_time = sim.sim_time + sim.time_step;	//sec
-		sim.current_simulation_step++;
+                    //4. Update Simulation state
+                    sim.sim_time = sim.sim_time + sim.time_step;	//sec
+                    sim.current_simulation_step++;
 
-		r.sleep();
-		ros::spinOnce();
-	}
+                    r.sleep();
+                    ros::spinOnce();
+            }
+        }
+        else
+        {
+            ROS_INFO("Stepping simulation on request only.\n");
+
+            sim.initAsyncSpinner();
+
+            ros::Rate r(5);
+            while (ros::ok())
+            {
+                ROS_INFO("Idle loop in gaden_filament_simulator\n");
+                while (ros::ok() && (sim.current_simulation_step<sim.numSteps) )
+                {
+                  ROS_INFO("[filament in ROS service mode] Simulating step %i (sim_time = %.2f)", sim.current_simulation_step, sim.sim_time);
+
+                  ros::ServiceClient client = n.serviceClient<gaden_msgs::SimulationIterationRequest>("request_simulation_iteration");
+                  gaden_msgs::SimulationIterationRequest srv;
+                  srv.request.time_step = sim.sim_time;
+
+                  if (client.call(srv))
+                  {
+                    ROS_INFO("request_simulation_step answer: substeps = %ld",(long int) srv.response.num_sub_steps);
+                  }
+                  else
+                  {
+                    ROS_ERROR("Failed to call service request_simulation_step");
+                  }
+
+                  r.sleep();
+                }
+            }
+
+
+            sim.shutdownAsyncSpinner();
+        }
 }

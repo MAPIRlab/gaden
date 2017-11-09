@@ -1,27 +1,29 @@
 <package>
-  <name>gaden_filament_simulator</name>
+  <name>gaden_msgs</name>
   <version>1.0.0</version>
-  <description>Implements the filament-based gas dispersal simulation. Gases with different densities are simulated such as: ethanol, methane and hydrogen etc.</description>
-  <maintainer email="jgmonroy@uma.com">Javier Monroy</maintainer>
+  <description>ROS message and service definitions for Gaden.</description>
+  <maintainer email="aichele@truphysics.com">Fabian Aichele</maintainer>
 
   <license>GPLv3</license>
+  <author>Fabian Aichele</author>
 
-  <author>Javier Monroy</author>
-
- 
+  <!-- Dependencies which this package needs to build itself. -->
   <buildtool_depend>catkin</buildtool_depend>
 
   <!-- Dependencies needed to compile this package. -->
   <build_depend>roscpp</build_depend>
   <build_depend>visualization_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
-  <build_depend>nav_msgs</build_depend>  
-  <build_depend>gaden_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>message_generation</build_depend>
 
   <!-- Dependencies needed after this package is compiled. -->
   <run_depend>roscpp</run_depend>
   <run_depend>visualization_msgs</run_depend>
   <run_depend>std_msgs</run_depend>
+  <run_depend>tf</run_depend>
   <run_depend>nav_msgs</run_depend>
-  <run_depend>gaden_msgs</run_depend>
+  <run_depend>message_runtime</run_depend>
+
 </package>

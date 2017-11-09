@@ -33,7 +33,7 @@ int main( int argc, char** argv )
 
 	
 	//Service to request wind values to simulator
-    ros::ServiceClient client = n.serviceClient<gaden_player::WindPosition>("/wind_value");
+        ros::ServiceClient client = n.serviceClient<gaden_msgs::WindPosition>("/wind_value");
 	tf::TransformListener tf_;
 
 
@@ -117,7 +117,7 @@ int main( int argc, char** argv )
 
 			// Get Wind vectors (u,v,w) at current position
 			// Service request to the simulator
-            gaden_player::WindPosition srv;
+                        gaden_msgs::WindPosition srv;
 			srv.request.x = x_pos;
 			srv.request.y = y_pos;
 			srv.request.z = z_pos;

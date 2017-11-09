@@ -8,29 +8,18 @@ find_package(catkin REQUIRED COMPONENTS
     nav_msgs
     tf
     message_generation
+    gaden_msgs
+    olfaction_msgs
 )
 
-add_service_files(
-  FILES
-  GasPosition.srv
-  WindPosition.srv
-)
-
-generate_messages(
-    DEPENDENCIES
-    std_msgs
-)
-
-
-FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
 
 catkin_package(
-    DEPENDS roscpp visualization_msgs std_msgs nav_msgs tf
+    DEPENDS roscpp visualization_msgs std_msgs nav_msgs tf gaden_msgs olfaction_msgs
 )
 
 include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+set(MYFILES_CPP src/simulation_player.cpp)
 
-add_executable(gaden_player  ${MYFILES_CPP})
-#add_dependencies(gaden_player msgs_and_srvs_generate_messages_cpp)
+add_executable(gaden_player ${MYFILES_CPP})
 
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${catkin_LIBRARIES})

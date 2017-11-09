@@ -6,8 +6,9 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <visualization_msgs/Marker.h>
 
-#include <gaden_player/GasPosition.h>
-#include <gaden_player/WindPosition.h>
+#include <gaden_msgs/GasPosition.h>
+#include <gaden_msgs/WindPosition.h>
+#include <gaden_msgs/SimulationIterationRequest.h>
 
 #include <cstdlib>
 #include <math.h>
@@ -17,6 +18,9 @@
 #include <fstream>
 #include <string>
 #include <time.h>
+
+#include <ros/callback_queue.h>
+#include <boost/thread.hpp>
 
 // CLASS for every simulation to run. If two gas sources are needed, just create 2 instances!
 class sim_obj
@@ -64,6 +68,13 @@ std::vector<sim_obj>            player_instances;          //To handle N simulat
 std::vector<std::string>        srv_response_gas_types;
 std::vector<double>             srv_response_gas_concs;
 int                             initial_iteration;
+
+ros::Time time_last_loaded_file;
+
+bool requestSimulationStep(gaden_msgs::SimulationIterationRequest::Request&, gaden_msgs::SimulationIterationRequest::Response&);
+
+boost::shared_ptr<boost::thread> workerThread;
+void rosLoop();
 
 //Visualization
 ros::Publisher                  marker_pub;

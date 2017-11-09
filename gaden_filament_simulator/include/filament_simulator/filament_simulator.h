@@ -13,6 +13,10 @@
 #include <boost/random.hpp>
 #include <boost/random/normal_distribution.hpp>
 
+#include <gaden_msgs/SimulationIterationRequest.h>
+#include <ros/callback_queue.h>
+#include <boost/thread.hpp>
+
 //
 // Type definitions for a easier gaussian random number generation
 //
@@ -86,7 +90,8 @@ public:
     double      restuls_time_step;      //(sec) Time increment between saving results
 
 
-
+    void initAsyncSpinner();
+    void shutdownAsyncSpinner();
 
 protected:
     void loadNodeParameters();
@@ -96,12 +101,21 @@ protected:
     int check_pose_with_environment(double pose_x, double pose_y, double pose_z);
     bool check_environment_for_obstacle(double start_x, double start_y, double start_z, double end_x, double end_y, double end_z);
     double random_number(double min_val, double max_val);
+    
+    bool requestSimulationStep(gaden_msgs::SimulationIterationRequest::Request&, gaden_msgs::SimulationIterationRequest::Response&);
+
+    void rosLoop();
 
     //Subscriptions & Publishers
     ros::Publisher marker_pub;          //For visualization of the filaments!
 
     //Vars
     ros::NodeHandle n;
+    ros::ServiceServer simulationIterationService;
+
+    boost::shared_ptr<ros::AsyncSpinner> asyncSpinner;
+    boost::shared_ptr<boost::thread> workerThread;
+    
     std::vector< std::vector< std::vector<double> > > U, V, W, C, Env;
     std::vector<CFilament> filaments;
     visualization_msgs::Marker filament_marker;

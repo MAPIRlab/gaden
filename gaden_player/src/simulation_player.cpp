@@ -8,7 +8,7 @@
 #include "simulation_player.h"
 
 //--------------- SERVICES CALLBACKS----------------------//
-bool get_gas_value_srv(gaden_player::GasPosition::Request  &req, gaden_player::GasPosition::Response &res)
+bool get_gas_value_srv(gaden_msgs::GasPosition::Request  &req, gaden_msgs::GasPosition::Response &res)
 {
     //ROS_INFO("[Player] Request for gas concentration at location [%.2f, %.2f, %.2f]m",req.x, req.y, req.z);
 
@@ -40,26 +40,63 @@ bool get_gas_value_srv(gaden_player::GasPosition::Request  &req, gaden_player::G
 }
 
 
-bool get_wind_value_srv(gaden_player::WindPosition::Request  &req, gaden_player::WindPosition::Response &res)
+bool get_wind_value_srv(gaden_msgs::WindPosition::Request  &req, gaden_msgs::WindPosition::Response &res)
 {
     //Since the wind fields are identical among different instances, return just the information from instance[0]
     player_instances[0].get_wind_value(req.x, req.y, req.z, res.u, res.v, res.w);
     return true;
 }
 
+bool requestSimulationStep(gaden_msgs::SimulationIterationRequest::Request& req, gaden_msgs::SimulationIterationRequest::Response& resp)
+{
+    ROS_INFO("Single player iteration requested.\n");
 
+
+    //Read Gas and Wind data from log_files
+    load_all_data_from_logfiles(req.iteration_counter); //On the first time, we configure gas type, source pos, etc.
+    display_current_gas_distribution();    //Rviz visualization
+
+    time_last_loaded_file = ros::Time::now();
+
+    resp.num_sub_steps = 5;
+    resp.current_simulation_step = req.iteration_counter + 1;
+    resp.iteration_duration = 20.0;
+    return true;
+}
+
+void rosLoop()
+{
+  //m_connectorThreadActive = true;
+  //m_runCondition.notify_all();
+  int iteration_counter = 0;
+  while (ros::ok())
+  {
+    iteration_counter++;
+
+    if (iteration_counter % 10 == 0)
+      std::cout << "rosLoop iteration = " << iteration_counter << std::endl;
+
+    //std::cout << "Before callAvailable" << std::endl;
+    ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0.01));
+    //std::cout << "After  callAvailable" << std::endl;
+  }
+
+  //m_connectorThreadActive = false;
+}
 
 //------------------------ MAIN --------------------------//
 
 int main( int argc, char** argv )
 {
+    boost::shared_ptr<ros::AsyncSpinner> asyncSpinner;
+
     ros::init(argc, argv, "simulation_player");
-	ros::NodeHandle n;
+    ros::NodeHandle n;
     ros::NodeHandle pn("~");
 
     //Read Node Parameters
-    loadNodeParameters(pn);	
-	
+    loadNodeParameters(pn);
+    
     //Publishers
     marker_pub = n.advertise<visualization_msgs::Marker>("Gas_Distribution", 1);
 
@@ -69,7 +106,9 @@ int main( int argc, char** argv )
 
     //Init variables        
     init_all_simulation_instances();
-    ros::Time time_last_loaded_file = ros::Time::now();
+
+    time_last_loaded_file = ros::Time::now();
+
     srand(time(NULL));// initialize random seed
 
     //Init Markers for RVIZ visualization
@@ -84,28 +123,83 @@ int main( int argc, char** argv )
     mkr_gas_points.scale.z = 0.025;
     mkr_gas_points.pose.orientation.w = 1.0;
 
+    std::string single_stepping;
+    ros::param::param<std::string>("~single_stepping", single_stepping, "no");
 
-    // Loop	
-    ros::Rate r(100); //Set max rate at 100Hz (for handling services - Top Speed!!)
+    ROS_INFO("Single stepping requested: %s\n", single_stepping.c_str());
+    
     int iteration_counter = initial_iteration;
-    while (ros::ok())
-    {        
-        if( (ros::Time::now() - time_last_loaded_file).toSec() >= 1/player_freq )
+
+    if (single_stepping.compare("no") == 0)
+    {
+        // Loop	
+        ros::Rate r(100); //Set max rate at 100Hz (for handling services - Top Speed!!)
+        while (ros::ok())
+        {        
+            if( (ros::Time::now() - time_last_loaded_file).toSec() >= 1/player_freq )
+            {
+                if (verbose)
+                    ROS_INFO("[Player] Playing simulation iteration %i", iteration_counter);
+                //Read Gas and Wind data from log_files
+                load_all_data_from_logfiles(iteration_counter); //On the first time, we configure gas type, source pos, etc.
+                display_current_gas_distribution();    //Rviz visualization
+                iteration_counter++;
+                time_last_loaded_file = ros::Time::now();
+            }
+
+            //Attend service request at max rate!
+            //This allows sensors to have higher sampling rates than the simulation update
+            ros::spinOnce();
+            r.sleep();
+        }
+    }
+    else
+    {
+        ROS_INFO("Stepping player on request only.\n");
+        ros::ServiceServer simulationIterationService = n.advertiseService("request_simulation_step", requestSimulationStep);
+        
+        asyncSpinner.reset(new ros::AsyncSpinner(2));
+
+        if (asyncSpinner->canStart())
+          asyncSpinner->start();
+
+        workerThread.reset(new boost::thread(boost::bind(rosLoop)));
+
+        ros::Rate r(5);
+        while (ros::ok())
         {
-            if (verbose)
-                ROS_INFO("[Player] Playing simulation iteration %i", iteration_counter);
-            //Read Gas and Wind data from log_files
-            load_all_data_from_logfiles(iteration_counter); //On the first time, we configure gas type, source pos, etc.
-            display_current_gas_distribution();    //Rviz visualization
+            ROS_INFO("Idle loop in gaden_player\n");
             iteration_counter++;
-            time_last_loaded_file = ros::Time::now();
+
+            if( (ros::Time::now() - time_last_loaded_file).toSec() >= 1/player_freq )
+            {
+                // if (verbose)
+                ROS_INFO("[Player in ROS service mode] Playing simulation iteration %i", iteration_counter);
+                ros::ServiceClient client = n.serviceClient<gaden_msgs::SimulationIterationRequest>("request_simulation_step");
+                gaden_msgs::SimulationIterationRequest srv;
+                srv.request.time_step = 50.0;
+
+                if (client.call(srv))
+                {
+                  ROS_INFO("request_simulation_step answer: substeps = %ld",(long int) srv.response.num_sub_steps);
+                }
+                else
+                {
+                  ROS_ERROR("Failed to call service request_simulation_step");
+                }
+            }
+
+            r.sleep();
         }
 
-        //Attend service request at max rate!
-        //This allows sensors to have higher sampling rates than the simulation update
-        ros::spinOnce();
-        r.sleep();
+        std::cout << "Before stopping asyncSpinner" << std::endl;
+        if (asyncSpinner)
+          asyncSpinner->stop();
+
+        std::cout << "After stopping asyncSpinner" << std::endl;
     }
+
+    return 0;
 }
 
 
