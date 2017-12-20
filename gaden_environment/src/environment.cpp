@@ -26,17 +26,27 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     gas_source_pos_x.resize(number_of_sources);
     gas_source_pos_y.resize(number_of_sources);
     gas_source_pos_z.resize(number_of_sources);
+    gas_source_scale.resize(number_of_sources);
+    gas_source_color.resize(number_of_sources);
     for(int i=0;i<number_of_sources;i++)
     {
         //Get location of soruce for instance (i)
         std::string paramNameX = boost::str( boost::format("source_%i_position_x") % i);
         std::string paramNameY = boost::str( boost::format("source_%i_position_y") % i);
         std::string paramNameZ = boost::str( boost::format("source_%i_position_z") % i);
+        std::string scale = boost::str( boost::format("source_%i_scale") % i);
+        std::string color = boost::str( boost::format("source_%i_color") % i);
 
         private_nh.param<double>(paramNameX.c_str(), gas_source_pos_x[i], DEFAULT_SOURCE_POS_X);
         private_nh.param<double>(paramNameY.c_str(), gas_source_pos_y[i], DEFAULT_SOURCE_POS_Y);
         private_nh.param<double>(paramNameZ.c_str(), gas_source_pos_z[i], DEFAULT_SOURCE_POS_Z);
-        ROS_INFO("[env] Gas_source(%i): [%0.2f %0.2f %0.2f]", i, gas_source_pos_x[i], gas_source_pos_y[i], gas_source_pos_z[i]);
+        private_nh.param<double>(scale.c_str(), gas_source_scale[i], 0.1);
+        gas_source_color[i].resize(3);
+        private_nh.getParam(color.c_str(),gas_source_color[i]);
+        ROS_INFO("[env] Gas_source(%i): pos=[%0.2f %0.2f %0.2f] scale=%.2f color=[%0.2f %0.2f %0.2f]",
+                 i, gas_source_pos_x[i], gas_source_pos_y[i], gas_source_pos_z[i],
+                 gas_source_scale[i],
+                 gas_source_color[i][0],gas_source_color[i][1],gas_source_color[i][2]);
     }
 
     // CAD MODELS
@@ -280,13 +290,15 @@ int main( int argc, char** argv )
         source.id = i;
         source.ns = "gas_source_visualization";
         source.action = visualization_msgs::Marker::ADD;
-        source.type = visualization_msgs::Marker::CYLINDER;
+        //source.type = visualization_msgs::Marker::CYLINDER;
+        source.type = visualization_msgs::Marker::CUBE;
 
-        source.scale.x = 0.1;
-        source.scale.y = 0.1;
+        source.scale.x = gas_source_scale[i];
+        source.scale.y = gas_source_scale[i];
         source.scale.z = gas_source_pos_z[i];
-        source.color.g = 0.6f;
-        source.color.b = 0.4f;
+        source.color.r = gas_source_color[i][0];
+        source.color.g = gas_source_color[i][1];
+        source.color.b = gas_source_color[i][2];
         source.color.a = 1.0;
         source.pose.position.x = gas_source_pos_x[i];
         source.pose.position.y = gas_source_pos_y[i];

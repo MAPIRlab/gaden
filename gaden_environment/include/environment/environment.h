@@ -23,6 +23,8 @@ int                         number_of_sources;
 std::vector<double>         gas_source_pos_x;
 std::vector<double>         gas_source_pos_y;
 std::vector<double>         gas_source_pos_z;
+std::vector<double>         gas_source_scale;
+std::vector< std::vector<double> >         gas_source_color;
 
 //CAD models
 int                         number_of_CAD;
