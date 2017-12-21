@@ -22,7 +22,8 @@ catkin_package(
 include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 
 add_executable(simulated_gas_sensor  ${MYFILES_CPP})
-#add_dependencies(simulated_gas_sensor msgs_and_srvs_generate_messages_cpp)
+add_dependencies(simulated_gas_sensor ${olfaction_msgs_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(simulated_gas_sensor
    ${catkin_LIBRARIES}
  )
