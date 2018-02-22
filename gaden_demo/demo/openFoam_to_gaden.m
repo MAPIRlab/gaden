@@ -283,4 +283,4 @@ subplot(1,2,2);
 I2 = imresize(I,cell_resolution/final_res,'nearest');
 imshow(I2);
 % save to file
-imwrite(I2,'OccupancyMap2D.pgm');
+imwrite(I2,'MAPIRlab_furniture.pgm');
