@@ -93,10 +93,20 @@ end;
 %----------------------------------------------------------------------------
 % 2. Generate 3D Matrices (with regular cell size), for U,V,W and Occupancy3D
 %-----------------------------------------------------------------------------
+
+% Wind speed matrix (U,V,W)
 U = zeros(num_cells_x,num_cells_y,num_cells_z);
 V = zeros(num_cells_x,num_cells_y,num_cells_z);
 W = zeros(num_cells_x,num_cells_y,num_cells_z);
+
+% Cell counters (account for several wind speed measurements falling into the same U,V,W cell)
+U_cnt = zeros(num_cells_x,num_cells_y,num_cells_z);
+V_cnt = zeros(num_cells_x,num_cells_y,num_cells_z);
+W_cnt = zeros(num_cells_x,num_cells_y,num_cells_z);
+
+% Enviroment occupancy map
 Env = ones(num_cells_x,num_cells_y,num_cells_z);    %Initialize it as full occupied
+
 
 % For every point in the cell_centers.csv data, add it to its corresponding cell grid
 for idx=1:size(CSV,1)
@@ -106,14 +116,26 @@ for idx=1:size(CSV,1)
     y_idx = ceil( (point(2)-min_range(2))/cell_resolution );
     z_idx = ceil( (point(3)-min_range(3))/cell_resolution );
     
-    % Update wind matrices (ToDo: Improve for the case of multiple points falling at the same cell)
+    % Update wind matrices
     U(x_idx,y_idx,z_idx) = CSV(idx,1);
     V(x_idx,y_idx,z_idx) = CSV(idx,2);
     W(x_idx,y_idx,z_idx) = CSV(idx,3);
     
+    % Count how many measurents have fallen into a cell
+    U_cnt(x_idx,y_idx,z_idx) = U_cnt(x_idx,y_idx,z_idx)+1;
+    V_cnt(x_idx,y_idx,z_idx) = V_cnt(x_idx,y_idx,z_idx)+1;
+    W_cnt(x_idx,y_idx,z_idx) = W_cnt(x_idx,y_idx,z_idx)+1;
+    
     % Set occupancy as free (since there is wind info)
     Env(x_idx,y_idx,z_idx) = 0;
 end;
+
+
+% Average windspeed in U,V,W cells according to theirmeasurement count
+U = U./U_cnt;
+V = V./U_cnt;
+W = W./U_cnt;
+
 
 % Plot interpolated data in 3D
 if plot_data
