@@ -83,7 +83,8 @@ public:
     //Results
     int         save_results;           //True or false
     std::string results_location;       //Location for results logfiles
-    double      restuls_time_step;      //(sec) Time increment between saving results
+    double      results_time_step;      //(sec) Time increment between saving results
+    double      results_min_time;       //(sec) time after which start saving results
 
 
 

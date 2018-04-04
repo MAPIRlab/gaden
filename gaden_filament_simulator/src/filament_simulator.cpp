@@ -46,7 +46,8 @@ CFilamentSimulator::CFilamentSimulator()
     sim_time = 0.0;                      //Start at time = 0(sec)
     current_wind_snapshot = 0;           //Start with wind_iter= 0;
     current_simulation_step = 0;         //Start with iter= 0;
-	last_saved_step = -1;
+	//last_saved_step = -1;
+	last_saved_step = results_min_time/results_time_step;
     wind_notified = false;               //To warm the user (only once) that no more wind data is found!
 
 	//Init the Simulator
@@ -199,7 +200,8 @@ void CFilamentSimulator::loadNodeParameters()
 	// Simulation results.
 	private_nh.param<int>("save_results", save_results, 1);
 	private_nh.param<std::string>("results_location", results_location, "");
-	private_nh.param<double>("restuls_time_step", restuls_time_step, 1.0);
+    private_nh.param<double>("results_min_time", results_min_time, 120.0);
+    private_nh.param<double>("results_time_step", results_time_step, 1.0);
 
 
 	ROS_INFO("[filament] The data provided in the roslaunch file is:");
@@ -876,8 +878,11 @@ int main(int argc, char **argv)
 		sim.update_filaments_location();
 
 		//5. Save data (if necessary)
-		if ( (sim.save_results==1) && (floor(sim.sim_time/sim.restuls_time_step) != sim.last_saved_step) )
-			sim.save_state_to_file();
+        if ( (sim.save_results==1) && (sim.sim_time>=sim.results_min_time) )
+        {
+            if ( floor(sim.sim_time/sim.results_time_step) != sim.last_saved_step )
+			    sim.save_state_to_file();
+	    }
 
 		//4. Update Simulation state
 		sim.sim_time = sim.sim_time + sim.time_step;	//sec
