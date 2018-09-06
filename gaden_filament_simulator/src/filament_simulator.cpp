@@ -29,13 +29,19 @@
 
 
 #include "filament_simulator/filament_simulator.h"
-
+#include <boost/format.hpp>
+#include <boost/filesystem.hpp>
 
 
 CFilamentSimulator::CFilamentSimulator()
 {
 	//Read parameters
 	loadNodeParameters();
+
+    //Create directory to save results (if needed)
+    if (save_results && !boost::filesystem::exists(results_location))
+        if (!boost::filesystem::create_directories(results_location))
+            ROS_ERROR("Could not create result directory: %s", results_location.c_str());
 
 	//Set Publishers and Subscribers
 	//-------------------------------
@@ -203,18 +209,19 @@ void CFilamentSimulator::loadNodeParameters()
     private_nh.param<double>("results_min_time", results_min_time, 120.0);
     private_nh.param<double>("results_time_step", results_time_step, 1.0);
 
-
 	ROS_INFO("[filament] The data provided in the roslaunch file is:");
 	ROS_INFO("[filament] Simulation Time	  %f(s)",sim_time);
-	ROS_INFO("[filament] Gas Time Step:	   %f(s)",time_step);
-	ROS_INFO("[filament] Num_steps:		   %d",numSteps);
+    ROS_INFO("[filament] Gas Time Step:	      %f(s)",time_step);
+    ROS_INFO("[filament] Num_steps:		      %d",numSteps);
 	ROS_INFO("[filament] Number of filaments: %d",numFilaments_sec);
 	ROS_INFO("[filament] PPM filament center  %f",filament_ppm_center);
-	ROS_INFO("[filament] Gas type:			%d",gasType);
+    ROS_INFO("[filament] Gas type:			  %d",gasType);
 	ROS_INFO("[filament] Concentration unit:  %d",gasConc_unit);
 	ROS_INFO("[filament] Wind_time_step:	  %f(s)", windTime_step);
-	ROS_INFO("[filament] Fixed frame:		 %s",fixed_frame.c_str());
-	ROS_INFO("[filament] Source position:	 (%f,%f,%f)",gas_source_pos_x, gas_source_pos_y, gas_source_pos_z);
+    ROS_INFO("[filament] Fixed frame:		  %s",fixed_frame.c_str());
+    ROS_INFO("[filament] Source position:	  (%f,%f,%f)",gas_source_pos_x, gas_source_pos_y, gas_source_pos_z);
+    if (save_results)
+        ROS_INFO("[filament] Saving results to %s",results_location.c_str());
 }
 
 
@@ -772,15 +779,15 @@ double CFilamentSimulator::random_number(double min_val, double max_val)
 // These files will be later used in the "player" node.
 void CFilamentSimulator::save_state_to_file()
 {
-	//Configure file name for saving the current snapshot
+    //Configure file name for saving the current snapshot
 	FILE *out;
-	std::string out_filemane = boost::str( boost::format("%s/FilamentSimulation_gasType_%i_sourcePosition_%.2f_%.2f_%.2f_iteration_%i") % results_location % gasType % gas_source_pos_x % gas_source_pos_y % gas_source_pos_z % last_saved_step);
+    std::string out_filename = boost::str( boost::format("%s/FilamentSimulation_gasType_%i_sourcePosition_%.2f_%.2f_%.2f_iteration_%i") % results_location % gasType % gas_source_pos_x % gas_source_pos_y % gas_source_pos_z % last_saved_step);
 
 	//open file
 	//---------
-	out = fopen( out_filemane.c_str(), "w" );
+    out = fopen( out_filemane.c_str(), "w" );
 	if( out == NULL )
-		ROS_ERROR("Error in opening the final output files.\n");
+        ROS_ERROR("Error in opening the final output files: %s\n", out_filename.c_str());
 
 	//Write header
 	//--------------
