@@ -14,7 +14,7 @@ find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
 
 catkin_package(
-    DEPENDS roscpp visualization_msgs std_msgs nav_msgs
+    DEPENDS roscpp visualization_msgs std_msgs nav_msgs pcl_ros
 )
 
 include_directories(include)

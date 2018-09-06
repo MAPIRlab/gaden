@@ -15,7 +15,8 @@
   <build_depend>roscpp</build_depend>
   <build_depend>visualization_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
-  <build_depend>nav_msgs</build_depend>  
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>pcl_ros</build_depend>
 
 
   <!-- Dependencies needed after this package is compiled. -->
@@ -23,5 +24,6 @@
   <run_depend>visualization_msgs</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>nav_msgs</run_depend>
+  <run_depend>pcl_ros</run_depend>
 
 </package>
