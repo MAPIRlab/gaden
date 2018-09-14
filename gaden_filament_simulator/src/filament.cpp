@@ -12,28 +12,21 @@
 #include "filament_simulator/filament.h"
 
 //Default Constructor
-CFilament::CFilament()
+CFilament::CFilament() :
+    CFilament(0.0, 0.0, 0.0, 0.01) // set center pose to (0,0,0) m and sigma to 0.01 cm
 {
-    //Create a new filament!
-    pose_x = 0.0;               //[m] Filament center pose
-    pose_y = 0.0;               //[m] Filament center pose
-    pose_z = 0.0;               //[m] Filament center pose
-    sigma = 0.01;               //[cm] The sigma of a 3D gaussian (controlls the shape of the filament)
-    birth_time = 0.0;
-    valid = false;
+    //
 }
 
 
 //Overload Constructor
-CFilament::CFilament(double x, double y, double z, double sigma_filament)
+CFilament::CFilament(double x, double y, double z, double sigma_filament) : //Create a new filament!
+    pose_x(x), pose_y(y), pose_z(z), //[m] Filament center pose
+    sigma(sigma_filament), //[cm] The sigma of a 3D gaussian (controlls the shape of the filament)
+    birth_time(0.0),
+    valid(false)
 {
-    //Create a new filament!
-    pose_x = x;                 //[m] Filament center pose
-    pose_y = y;                 //[m] Filament center pose
-    pose_z = z;                 //[m] Filament center pose
-    sigma = sigma_filament;     //[cm] The sigma of a 3D gaussian (controlls the shape of the filament)
-    birth_time = 0.0;
-    valid = false;
+    //
 }
 
 CFilament::~CFilament()
