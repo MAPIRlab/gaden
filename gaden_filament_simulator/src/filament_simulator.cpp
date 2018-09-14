@@ -785,7 +785,7 @@ void CFilamentSimulator::save_state_to_file()
 
 	//open file
 	//---------
-    out = fopen( out_filemane.c_str(), "w" );
+    out = fopen( out_filename.c_str(), "w" );
 	if( out == NULL )
         ROS_ERROR("Error in opening the final output files: %s\n", out_filename.c_str());
 
