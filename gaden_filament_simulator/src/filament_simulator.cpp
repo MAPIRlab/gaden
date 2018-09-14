@@ -686,11 +686,10 @@ void CFilamentSimulator::update_filaments_location()
 				noise_std = filament_noise_std;// * time_step;
 				static RandomGenerator rng(static_cast<unsigned> (time(0)));
 				NormalDistribution gaussian_dist(0.0,noise_std);
-				GaussianGenerator generator(rng, gaussian_dist);
 
-				newpos_x = filaments[i].pose_x + generator();
-				newpos_y = filaments[i].pose_y + generator();
-				newpos_z = filaments[i].pose_z + generator();
+                newpos_x = filaments[i].pose_x + gaussian_dist(rng);
+                newpos_y = filaments[i].pose_y + gaussian_dist(rng);
+                newpos_z = filaments[i].pose_z + gaussian_dist(rng);
 
 				//Check filament location
 				if (check_pose_with_environment(newpos_x, newpos_y, newpos_z ) == 0)
