@@ -61,7 +61,8 @@
 	    <param name="/source_position_z" value="1.5"/>            ### (m)
 	    
 	    <param name="/save_results" value="1" />                  #1=true, 0=false
-	    <param name="/restuls_time_step" value="0.5" />           #(sec) Time increment between saving state to file
+	    <param name="/results_min_time" value="0" />              # [sec] Time at that saving starts
+	    <param name="/results_time_step" value="0.5" />           # [sec] Time increment between saving state to file
 	    <param name="/results_location" value="$(find gaden_demo)/demo/logs_gas_dipersion_simulator" />
     </node>
  

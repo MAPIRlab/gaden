@@ -6,6 +6,7 @@
  --------------------------------------------------------------------------------*/
 
 #include "simulation_player.h"
+#include <boost/format.hpp>
 
 //--------------- SERVICES CALLBACKS----------------------//
 bool get_gas_value_srv(gaden_player::GasPosition::Request  &req, gaden_player::GasPosition::Response &res)

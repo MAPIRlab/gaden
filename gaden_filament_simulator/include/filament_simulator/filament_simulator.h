@@ -3,23 +3,16 @@
 
 
 #include <ros/ros.h>
-#include <tf/transform_broadcaster.h>
-#include <tf/transform_listener.h>
 #include <visualization_msgs/Marker.h>
 
 #include "filament_simulator/filament.h"
-#include <stdlib.h>     /* srand, rand */
-#include <fstream>
-#include <boost/random.hpp>
-#include <boost/random/normal_distribution.hpp>
+#include <random>
 
 //
 // Type definitions for a easier gaussian random number generation
 //
-typedef boost::normal_distribution<double> NormalDistribution;
-typedef boost::mt19937 RandomGenerator;
-typedef boost::variate_generator<RandomGenerator&, \
-                       NormalDistribution> GaussianGenerator;
+typedef std::normal_distribution<double> NormalDistribution;
+typedef std::mt19937 RandomGenerator;
 
 class CFilamentSimulator
 {

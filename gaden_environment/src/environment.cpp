@@ -6,7 +6,7 @@
  */
 
 #include "environment/environment.h"
-
+#include <boost/format.hpp>
 
 
 //Load Node parameters
