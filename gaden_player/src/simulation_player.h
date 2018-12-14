@@ -63,7 +63,8 @@ std::vector<std::string>        simulation_data;
 std::vector<sim_obj>            player_instances;          //To handle N simulations at a time.
 std::vector<std::string>        srv_response_gas_types;
 std::vector<double>             srv_response_gas_concs;
-int                             initial_iteration;
+int                             initial_iteration, loop_from_iteration, loop_to_iteration;
+bool                            allow_looping;
 
 //Visualization
 ros::Publisher                  marker_pub;

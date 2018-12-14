@@ -200,7 +200,7 @@ void CFilamentSimulator::loadNodeParameters()
 	// Simulation results.
 	private_nh.param<int>("save_results", save_results, 1);
 	private_nh.param<std::string>("results_location", results_location, "");
-    private_nh.param<double>("results_min_time", results_min_time, 120.0);
+    private_nh.param<double>("results_min_time", results_min_time, 0.0);
     private_nh.param<double>("results_time_step", results_time_step, 1.0);
 
 

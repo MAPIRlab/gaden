@@ -98,6 +98,17 @@ int main( int argc, char** argv )
             load_all_data_from_logfiles(iteration_counter); //On the first time, we configure gas type, source pos, etc.
             display_current_gas_distribution();    //Rviz visualization
             iteration_counter++;
+
+            //Looping?
+            if (allow_looping)
+            {
+               if (iteration_counter >= loop_to_iteration)
+               {
+                   iteration_counter = loop_from_iteration;
+                   if (verbose)
+                       ROS_INFO("[Player] Looping");
+               }
+            }
             time_last_loaded_file = ros::Time::now();
         }
 
@@ -140,7 +151,11 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     }
     
     // Initial iteration
-     private_nh.param<int>("initial_iteration", initial_iteration, 1);
+    private_nh.param<int>("initial_iteration", initial_iteration, 1);
+    // Loop
+    private_nh.param<bool>("allow_looping", allow_looping, false);
+    private_nh.param<int>("loop_from_iteration", loop_from_iteration, 1);
+    private_nh.param<int>("loop_to_iteration", loop_to_iteration, 1);
 }
 
 

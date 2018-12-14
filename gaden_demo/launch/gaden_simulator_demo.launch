@@ -20,7 +20,7 @@
 	    
    	    <param name="/source_2_position_x" value="0.5"/>
 	    <param name="/source_2_position_y" value="-1.5"/>
-	    <param name="/source_2_position_z" value="1"/>	    
+	    <param name="/source_2_position_z" value="1"/>
    	    
 	    # Plot CAD models
 	    <param name="/occupancy3D_data" value="$(find gaden_demo)/demo/OccupancyGrid3D.csv" />
