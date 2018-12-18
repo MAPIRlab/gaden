@@ -88,7 +88,7 @@ int main( int argc, char** argv )
 	// LOOP
 	//----------------------------------------------------------------
 	tf::TransformListener listener;
-	ros::Rate r(15);
+    ros::Rate r(2);
 	while (ros::ok())
 	{
 		//Vars
@@ -125,60 +125,79 @@ int main( int argc, char** argv )
 			olfaction_msgs::anemometer anemo_msg;
 			if (client.call(srv))
 			{
+                double wind_speed;
+                double wind_direction;
+
 				//GT Wind vector Value (u,v,w)[m/s]
-				//From OpenFoam this is the DownWind direction
+                //From OpenFoam this is the DownWind direction in the map
 				u = (float)srv.response.u;
 				v = (float)srv.response.v;
 				w = (float)srv.response.w;
+                wind_speed = sqrt(pow(u,2)+pow(v,2));
 
-				// (IMPORTANT) Follow standards on wind measurement (real anemometers):
-				//return the upwind direction in the anemometer reference system
-				//range [-pi,pi]
-				//positive to the right, negative to the left (opposed to ROS poses :s)
-
-				float downWind_direction_map;
-				if (u !=0 || v!=0)
-					downWind_direction_map = atan2(v,u);
-				else
-					downWind_direction_map = 0.0;
-
-				float upWind_direction_map = angles::normalize_angle(downWind_direction_map + 3.14159);
-
-				//Transform from map ref_system to the anemometer ref_system using TF
-				geometry_msgs::PoseStamped anemometer_upWind_pose, map_upWind_pose;
-				try
-				{
-					map_upWind_pose.header.frame_id = input_fixed_frame.c_str();
-					map_upWind_pose.pose.position.x = 0.0;
-					map_upWind_pose.pose.position.y = 0.0;
-					map_upWind_pose.pose.position.z = 0.0;
-					map_upWind_pose.pose.orientation = tf::createQuaternionMsgFromYaw(upWind_direction_map);
-
-					tf_.transformPose(input_sensor_frame.c_str(), map_upWind_pose, anemometer_upWind_pose);
-				}
-				catch(tf::TransformException &ex)
-				{
-					ROS_ERROR("FakeAnemometer - %s - Error: %s", __FUNCTION__, ex.what());
-				}
-
-				double upwind_direction_anemo = tf::getYaw(anemometer_upWind_pose.pose.orientation);
+                float downWind_direction_map;
+                if (u !=0 || v!=0)
+                    downWind_direction_map = atan2(v,u);
+                else
+                    downWind_direction_map = 0.0;
 
 
-				//Publish 2D Anemometer readings
+                if (!use_map_ref_system)
+                {
+                    // (IMPORTANT) Follow standards on wind measurement (real anemometers):
+                    //return the upwind direction in the anemometer reference system
+                    //range [-pi,pi]
+                    //positive to the right, negative to the left (opposed to ROS poses :s)
+
+                    float upWind_direction_map = angles::normalize_angle(downWind_direction_map + 3.14159);
+
+                    //Transform from map ref_system to the anemometer ref_system using TF
+                    geometry_msgs::PoseStamped anemometer_upWind_pose, map_upWind_pose;
+                    try
+                    {
+                        map_upWind_pose.header.frame_id = input_fixed_frame.c_str();
+                        map_upWind_pose.pose.position.x = 0.0;
+                        map_upWind_pose.pose.position.y = 0.0;
+                        map_upWind_pose.pose.position.z = 0.0;
+                        map_upWind_pose.pose.orientation = tf::createQuaternionMsgFromYaw(upWind_direction_map);
+
+                        tf_.transformPose(input_sensor_frame.c_str(), map_upWind_pose, anemometer_upWind_pose);
+                    }
+                    catch(tf::TransformException &ex)
+                    {
+                        ROS_ERROR("FakeAnemometer - %s - Error: %s", __FUNCTION__, ex.what());
+                    }
+
+                    double upwind_direction_anemo = tf::getYaw(anemometer_upWind_pose.pose.orientation);
+                    wind_direction = upwind_direction_anemo;
+                }
+                else
+                {
+                    // for simulations
+                    wind_direction = downWind_direction_map;
+                }
+
+
+                // Adding Noise
+                static RandomGenerator rng(static_cast<unsigned> (time(0)));
+                NormalDistribution gaussian_dist(0.0,noise_std);
+                GaussianGenerator generator(rng, gaussian_dist);
+                wind_direction = wind_direction + generator();
+                wind_speed = wind_speed + generator();
+
+
+                //Publish 2D Anemometer readings
+                //------------------------------
 				anemo_msg.header.stamp = ros::Time::now();
-				anemo_msg.header.frame_id = input_sensor_frame.c_str();
+                if (use_map_ref_system)
+                    anemo_msg.header.frame_id = input_fixed_frame.c_str();
+                else
+                    anemo_msg.header.frame_id = input_sensor_frame.c_str();
 				anemo_msg.sensor_label = "Fake_Anemo";
-				anemo_msg.wind_direction = upwind_direction_anemo;  //rad
-				anemo_msg.wind_speed = sqrt(pow(u,2)+pow(v,2));	 //m/s
+                anemo_msg.wind_direction = wind_direction;  //rad
+                anemo_msg.wind_speed = wind_speed;	 //m/s
 				//Publish fake_anemometer reading (m/s)
 				sensor_read_pub.publish(anemo_msg);
-
-
-				// Add noise to wind direction
-				static RandomGenerator rng(static_cast<unsigned> (time(0)));
-				NormalDistribution gaussian_dist(0.0,noise_std);
-				GaussianGenerator generator(rng, gaussian_dist);
-				double wind_direction_with_noise = upwind_direction_anemo + generator();
 
 
 
@@ -208,7 +227,7 @@ int main( int argc, char** argv )
 				wind_point_inv.pose.position.x = 0.0;
 				wind_point_inv.pose.position.y = 0.0;
 				wind_point_inv.pose.position.z = 0.0;
-				wind_point_inv.pose.orientation = tf::createQuaternionMsgFromYaw(wind_direction_with_noise+3.1416);
+                wind_point_inv.pose.orientation = tf::createQuaternionMsgFromYaw(wind_direction+3.1416);
 				wind_point_inv.scale.x = 2*sqrt(pow(u,2)+pow(v,2));	  //arrow lenght
 				wind_point_inv.scale.y = 0.1;	  //arrow width
 				wind_point_inv.scale.z = 0.1;	  //arrow height
@@ -267,6 +286,9 @@ void loadNodeParameters(ros::NodeHandle private_nh)
 	
 	//Noise
 	private_nh.param<double>("noise_std", noise_std, 0.1);
+
+    //What ref system to use for publishing measurements
+    private_nh.param<bool>("use_map_ref_system", use_map_ref_system, false);
 	
 	ROS_INFO("[fake anemometer]: wind noise: %f", noise_std);
 	
