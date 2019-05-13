@@ -59,50 +59,15 @@ std::vector<Eigen::Vector3f> cubePoints(const Eigen::Vector3f &query_point){
     return points;
 }
 
-bool planeIntersects(Eigen::Vector3f n, float d, Eigen::Vector3f query_point){
-    
-    bool signo1 = n.dot(Eigen::Vector3f(query_point(0)-cell_size/2,
-                                        query_point(1)-cell_size/2,
-                                        query_point(2)-cell_size/2))
-                  +d>=0;
-    bool signo2 = n.dot(Eigen::Vector3f(query_point(0)+cell_size/2,
-                                        query_point(1)+cell_size/2,
-                                        query_point(2)+cell_size/2))
-                  +d>=0;
-    bool signo3 = n.dot(Eigen::Vector3f(query_point(0)+cell_size/2,
-                                        query_point(1)-cell_size/2,
-                                        query_point(2)-cell_size/2))
-                  +d>=0;
-    bool signo4 = n.dot(Eigen::Vector3f(query_point(0)-cell_size/2,
-                                        query_point(1)+cell_size/2,
-                                        query_point(2)+cell_size/2))
-                  +d>=0;
-    bool signo5 = n.dot(Eigen::Vector3f(query_point(0)-cell_size/2,
-                                        query_point(1)-cell_size/2,
-                                        query_point(2)+cell_size/2))
-                  +d>=0;
-    bool signo6 = n.dot(Eigen::Vector3f(query_point(0)+cell_size/2,
-                                        query_point(1)+cell_size/2,
-                                        query_point(2)-cell_size/2))
-                  +d>=0;
-    bool signo7 = n.dot(Eigen::Vector3f(query_point(0)-cell_size/2,
-                                        query_point(1)+cell_size/2,
-                                        query_point(2)-cell_size/2))
-                  +d>=0;
-    bool signo8 = n.dot(Eigen::Vector3f(query_point(0)+cell_size/2,
-                                        query_point(1)-cell_size/2,
-                                        query_point(2)+cell_size/2))
-                  +d>=0;
-    
-    return !(signo1&&signo2&&
-                signo3&&signo4&&
-                signo5&&signo6&&
-                signo7&&signo8) 
-            && 
-            !(!signo1&&!signo2&&
-                !signo3&&!signo4&&
-                !signo5&&!signo6&&
-                !signo7&&!signo8);
+bool planeIntersects(Eigen::Vector3f n, float d, Eigen::Vector3f query_point, std::vector<Eigen::Vector3f>& cube){
+    bool allPositive = true;
+    bool allNegative = true;
+    for (Eigen::Vector3f vec : cube){
+        float signo = n.dot(vec)+d;
+        allPositive = allPositive&&(signo>0);
+        allNegative = allNegative&&!(signo<0);
+    }    
+    return !allPositive&&!allNegative;
 }
 bool pointInTriangle(const Eigen::Vector3f& query_point,
                      const Eigen::Vector3f& triangle_vertex_0,
@@ -117,7 +82,8 @@ bool pointInTriangle(const Eigen::Vector3f& query_point,
     // n=u×v
     Eigen::Vector3f n = u.cross(v);
     bool anyProyectionInTriangle=false;
-    for(Eigen::Vector3f vec : cubePoints(query_point)){
+    std::vector<Eigen::Vector3f> cube= cubePoints(query_point);
+    for(Eigen::Vector3f vec : cube){
         // w=P−P1
         Eigen::Vector3f w = vec - triangle_vertex_0;
         // Barycentric coordinates of the projection P′of P onto T:
@@ -139,7 +105,7 @@ bool pointInTriangle(const Eigen::Vector3f& query_point,
     //we consider that the triangle goes through the cell if the proyection of the center 
     //is inside the triangle AND the plane of the triangle intersects the cube of the cell
 
-    return (anyProyectionInTriangle && planeIntersects(n,d, query_point));
+    return (anyProyectionInTriangle && planeIntersects(n,d, query_point,cube));
 }
 void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > > env, int scale)
 {
