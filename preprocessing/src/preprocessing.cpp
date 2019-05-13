@@ -1,112 +1,5 @@
 #include "preprocessing/preprocessing.h"
 
-double min_val(double x, double y, double z) {
-
-  double min = 99999;
-
-  if (x < min)
-    min=x;
-  if (y < min)
-    min=y;
-  if(z < min)
-    min=z;
-
-  return min;
-}
-double max_val(double x, double y, double z) {
-
-  double max = -99999;
-
-  if (x > max)
-    max=x;
-  if (y > max)
-    max=y;
-  if(z > max)
-    max=z;
-
-  return max;
-}
-bool eq(double x, double y){
-    return std::abs(x-y)<(cell_size/2);
-}
-std::vector<Eigen::Vector3f> cubePoints(const Eigen::Vector3f &query_point){
-    std::vector<Eigen::Vector3f> points(9);
-    points.push_back(query_point);
-    points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
-                                        query_point(1)-cell_size/2,
-                                        query_point(2)-cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)+cell_size/2,
-                                        query_point(1)+cell_size/2,
-                                        query_point(2)+cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)+cell_size/2,
-                                        query_point(1)-cell_size/2,
-                                        query_point(2)-cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
-                                        query_point(1)+cell_size/2,
-                                        query_point(2)+cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
-                                        query_point(1)-cell_size/2,
-                                        query_point(2)+cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)+cell_size/2,
-                                        query_point(1)+cell_size/2,
-                                        query_point(2)-cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
-                                        query_point(1)+cell_size/2,
-                                        query_point(2)-cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)+cell_size/2,
-                                        query_point(1)-cell_size/2,
-                                        query_point(2)+cell_size/2));
-    return points;
-}
-
-bool planeIntersects(Eigen::Vector3f n, float d, Eigen::Vector3f query_point, std::vector<Eigen::Vector3f>& cube){
-    bool allPositive = true;
-    bool allNegative = true;
-    for (Eigen::Vector3f vec : cube){
-        float signo = n.dot(vec)+d;
-        allPositive = allPositive&&(signo>0);
-        allNegative = allNegative&&!(signo<0);
-    }    
-    return !allPositive&&!allNegative;
-}
-bool pointInTriangle(const Eigen::Vector3f& query_point,
-                     const Eigen::Vector3f& triangle_vertex_0,
-                     const Eigen::Vector3f& triangle_vertex_1,
-                     const Eigen::Vector3f& triangle_vertex_2)
-{
-    std::vector<Eigen::Vector3f> points(9);
-    // u=P2−P1
-    Eigen::Vector3f u = triangle_vertex_1 - triangle_vertex_0;
-    // v=P3−P1
-    Eigen::Vector3f v = triangle_vertex_2 - triangle_vertex_0;
-    // n=u×v
-    Eigen::Vector3f n = u.cross(v);
-    bool anyProyectionInTriangle=false;
-    std::vector<Eigen::Vector3f> cube= cubePoints(query_point);
-    for(Eigen::Vector3f vec : cube){
-        // w=P−P1
-        Eigen::Vector3f w = vec - triangle_vertex_0;
-        // Barycentric coordinates of the projection P′of P onto T:
-        // γ=[(u×w)⋅n]/n²
-        float gamma = u.cross(w).dot(n) / n.dot(n);
-        // β=[(w×v)⋅n]/n²
-        float beta = w.cross(v).dot(n) / n.dot(n);
-        float alpha = 1 - gamma - beta;
-        // The point P′ lies inside T if:
-        bool proyectionInTriangle= ((0 <= alpha) && (alpha <= 1) &&
-                (0 <= beta)  && (beta  <= 1) &&
-                (0 <= gamma) && (gamma <= 1));
-        anyProyectionInTriangle=anyProyectionInTriangle||proyectionInTriangle;
-    }
-    
-    float d = -n.dot(triangle_vertex_0);
-
-    
-    //we consider that the triangle goes through the cell if the proyection of the center 
-    //is inside the triangle AND the plane of the triangle intersects the cube of the cell
-
-    return (anyProyectionInTriangle && planeIntersects(n,d, query_point,cube));
-}
 void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > > env, int scale)
 {
     std::ofstream outfile(filename.c_str());
@@ -183,6 +76,113 @@ void printWind(std::vector<std::vector<std::vector<double> > > U,
         fileW << ";\n";
     }
 }
+
+double min_val(double x, double y, double z) {
+
+  double min = 99999;
+
+  if (x < min)
+    min=x;
+  if (y < min)
+    min=y;
+  if(z < min)
+    min=z;
+
+  return min;
+}
+double max_val(double x, double y, double z) {
+
+  double max = -99999;
+
+  if (x > max)
+    max=x;
+  if (y > max)
+    max=y;
+  if(z > max)
+    max=z;
+
+  return max;
+}
+bool eq(double x, double y){
+    return std::abs(x-y)<(cell_size/2);
+}
+std::vector<Eigen::Vector3f> cubePoints(const Eigen::Vector3f &query_point){
+    std::vector<Eigen::Vector3f> points(9);
+    points.push_back(query_point);
+    points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
+                                        query_point(1)-cell_size/2,
+                                        query_point(2)-cell_size/2));
+    points.push_back(Eigen::Vector3f(query_point(0)+cell_size/2,
+                                        query_point(1)+cell_size/2,
+                                        query_point(2)+cell_size/2));
+    points.push_back(Eigen::Vector3f(query_point(0)+cell_size/2,
+                                        query_point(1)-cell_size/2,
+                                        query_point(2)-cell_size/2));
+    points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
+                                        query_point(1)+cell_size/2,
+                                        query_point(2)+cell_size/2));
+    points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
+                                        query_point(1)-cell_size/2,
+                                        query_point(2)+cell_size/2));
+    points.push_back(Eigen::Vector3f(query_point(0)+cell_size/2,
+                                        query_point(1)+cell_size/2,
+                                        query_point(2)-cell_size/2));
+    points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
+                                        query_point(1)+cell_size/2,
+                                        query_point(2)-cell_size/2));
+    points.push_back(Eigen::Vector3f(query_point(0)+cell_size/2,
+                                        query_point(1)-cell_size/2,
+                                        query_point(2)+cell_size/2));
+    return points;
+}
+
+bool planeIntersects(Eigen::Vector3f n, float d, Eigen::Vector3f query_point, std::vector<Eigen::Vector3f>& cube){
+    bool allPositive = true;
+    bool allNegative = true;
+    for (Eigen::Vector3f vec : cube){
+        float signo = n.dot(vec)+d;
+        allPositive = allPositive&&(signo>0);
+        allNegative = allNegative&&(signo<0);
+    }    
+    return !allPositive&&!allNegative;
+}
+bool pointInTriangle(const Eigen::Vector3f& query_point,
+                     const Eigen::Vector3f& triangle_vertex_0,
+                     const Eigen::Vector3f& triangle_vertex_1,
+                     const Eigen::Vector3f& triangle_vertex_2, bool parallel)
+{
+    // u=P2−P1
+    Eigen::Vector3f u = triangle_vertex_1 - triangle_vertex_0;
+    // v=P3−P1
+    Eigen::Vector3f v = triangle_vertex_2 - triangle_vertex_0;
+    // n=u×v
+    Eigen::Vector3f n = u.cross(v);
+    bool anyProyectionInTriangle=false;
+    std::vector<Eigen::Vector3f> cube= cubePoints(query_point);
+    for(Eigen::Vector3f vec : cube){
+        // w=P−P1
+        Eigen::Vector3f w = vec - triangle_vertex_0;
+        // Barycentric coordinates of the projection P′of P onto T:
+        // γ=[(u×w)⋅n]/n²
+        float gamma = u.cross(w).dot(n) / n.dot(n);
+        // β=[(w×v)⋅n]/n²
+        float beta = w.cross(v).dot(n) / n.dot(n);
+        float alpha = 1 - gamma - beta;
+        // The point P′ lies inside T if:
+        bool proyectionInTriangle= ((0 <= alpha) && (alpha <= 1) &&
+                (0 <= beta)  && (beta  <= 1) &&
+                (0 <= gamma) && (gamma <= 1));
+        anyProyectionInTriangle=anyProyectionInTriangle||proyectionInTriangle;
+    }
+    
+    float d = -n.dot(triangle_vertex_0);
+
+    
+    //we consider that the triangle goes through the cell if the proyection of the center 
+    //is inside the triangle AND the plane of the triangle intersects the cube of the cell
+
+    return (anyProyectionInTriangle && (planeIntersects(n,d, query_point,cube)||parallel));
+}
 bool parallel (std::vector<double> &vec){
     return (eq(abs(vec[0]),1)
                 &&eq(vec[1],0)
@@ -222,15 +222,13 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
             {
                 for (int height = min_z; height <= max_z && height < env[0][0].size(); height++)
                 {
-                    //if the triangle is parallel with the x or y axis, life is simple
-                    //if it isn't, we have to check, for each cell, wether the triangle actually goes through or not
-                    if (parallel(normals[i]) || 
-                    pointInTriangle(Eigen::Vector3f(row * cell_size + env_min_x,
-                                                                                col * cell_size + env_min_y,
-                                                                                height * cell_size + env_min_z),
-                                                                Eigen::Vector3f(x1, y1, z1),
-                                                                Eigen::Vector3f(x2, y2, z2),
-                                                                Eigen::Vector3f(x3, y3, z3)))
+                    //check if the triangle goes through this cell
+                    if (pointInTriangle(Eigen::Vector3f(row * cell_size + env_min_x,
+                                                        col * cell_size + env_min_y,
+                                                        height * cell_size + env_min_z),
+                                        Eigen::Vector3f(x1, y1, z1),
+                                        Eigen::Vector3f(x2, y2, z2),
+                                        Eigen::Vector3f(x3, y3, z3), parallel(normals[i])))
                     {
                         env[col][row][height] = val;
                     }
