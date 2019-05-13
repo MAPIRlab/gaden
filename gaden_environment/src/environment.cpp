@@ -73,15 +73,33 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     ROS_INFO("[env] Occupancy3D file location: %s",occupancy3D_data.c_str());
 }
 
-
+bool        preprocessing=false;
+void callback(const std_msgs::Bool& b)
+{
+	preprocessing=true;
+}
 
 /* Load environment from 3DOccupancy.csv GridMap
  * Loads the environment file containing a description of the simulated environment in the CFD (for the estimation of the wind flows), and displays it.
  * As a general rule, environment files set a "1" for a ocuppiedd cell, and "0" for a free cell
  * This function creates a cube marker for every occupied cell, with the corresponding dimensions
 */
+
 void loadEnvironment(visualization_msgs::MarkerArray &env_marker)
-{
+{   
+
+    ros::NodeHandle nh;
+    ros::NodeHandle private_nh("~");
+	bool wait_preprocessing;
+	private_nh.param<bool>("wait_preprocessing", wait_preprocessing, false);
+	if(wait_preprocessing){
+		ros::NodeHandle nh;
+		ros::Subscriber sub = nh.subscribe("preprocessing_done", 1, callback);
+
+		while(!preprocessing){
+			ros::spinOnce();
+		}
+	}
     //open file
     std::ifstream infile(occupancy3D_data.c_str());
     std::string line;
