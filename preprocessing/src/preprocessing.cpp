@@ -108,6 +108,7 @@ bool eq(double x, double y){
 }
 std::vector<Eigen::Vector3f> cubePoints(const Eigen::Vector3f &query_point){
     std::vector<Eigen::Vector3f> points;
+    points.push_back(query_point);
     points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
                                         query_point(1)-cell_size/2,
                                         query_point(2)-cell_size/2));
@@ -158,7 +159,6 @@ bool pointInTriangle(const Eigen::Vector3f& query_point,
     Eigen::Vector3f n = u.cross(v);
     bool anyProyectionInTriangle=false;
     std::vector<Eigen::Vector3f> cube= cubePoints(query_point);
-    Eigen::Vector3f vec=query_point;
     for(Eigen::Vector3f vec : cube){
         // w=P−P1
         Eigen::Vector3f w = vec - triangle_vertex_0;
@@ -183,13 +183,17 @@ bool pointInTriangle(const Eigen::Vector3f& query_point,
 
     return (anyProyectionInTriangle && (parallel||planeIntersects(n,d, query_point,cube)));
 }
+
 bool parallel (std::vector<double> &vec){
     return (eq(abs(vec[0]),1)
                 &&eq(vec[1],0)
                 &&eq(vec[2],0))||
            (eq(vec[0],0)
                 &&eq(abs(vec[1]),1)
-                &&eq(vec[2],0));
+                &&eq(vec[2],0))||
+           (eq(vec[0],0)
+                &&eq(abs(vec[1]),0)
+                &&eq(vec[2],1));
 }
 void occupy(std::vector<std::vector<std::vector<int> > >& env,
             std::vector<std::vector<std::vector<double> > > &points, 
