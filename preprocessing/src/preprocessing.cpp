@@ -107,8 +107,7 @@ bool eq(double x, double y){
     return std::abs(x-y)<(cell_size/2);
 }
 std::vector<Eigen::Vector3f> cubePoints(const Eigen::Vector3f &query_point){
-    std::vector<Eigen::Vector3f> points(9);
-    points.push_back(query_point);
+    std::vector<Eigen::Vector3f> points;
     points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
                                         query_point(1)-cell_size/2,
                                         query_point(2)-cell_size/2));
@@ -136,11 +135,11 @@ std::vector<Eigen::Vector3f> cubePoints(const Eigen::Vector3f &query_point){
     return points;
 }
 
-bool planeIntersects(Eigen::Vector3f n, float d, Eigen::Vector3f query_point, std::vector<Eigen::Vector3f>& cube){
+bool planeIntersects(Eigen::Vector3f n, float d, const Eigen::Vector3f& query_point,const std::vector<Eigen::Vector3f>& cube){
     bool allPositive = true;
     bool allNegative = true;
-    for (Eigen::Vector3f vec : cube){
-        float signo = n.dot(vec)+d;
+    for (int i=0;i<cube.size();i++){
+        float signo = n.dot(cube[i])+d;
         allPositive = allPositive&&(signo>0);
         allNegative = allNegative&&(signo<0);
     }    
@@ -159,6 +158,7 @@ bool pointInTriangle(const Eigen::Vector3f& query_point,
     Eigen::Vector3f n = u.cross(v);
     bool anyProyectionInTriangle=false;
     std::vector<Eigen::Vector3f> cube= cubePoints(query_point);
+    Eigen::Vector3f vec=query_point;
     for(Eigen::Vector3f vec : cube){
         // w=P−P1
         Eigen::Vector3f w = vec - triangle_vertex_0;
@@ -181,7 +181,7 @@ bool pointInTriangle(const Eigen::Vector3f& query_point,
     //we consider that the triangle goes through the cell if the proyection of the center 
     //is inside the triangle AND the plane of the triangle intersects the cube of the cell
 
-    return (anyProyectionInTriangle && (planeIntersects(n,d, query_point,cube)||parallel));
+    return (anyProyectionInTriangle && (parallel||planeIntersects(n,d, query_point,cube)));
 }
 bool parallel (std::vector<double> &vec){
     return (eq(abs(vec[0]),1)
@@ -228,7 +228,7 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
                                                         height * cell_size + env_min_z),
                                         Eigen::Vector3f(x1, y1, z1),
                                         Eigen::Vector3f(x2, y2, z2),
-                                        Eigen::Vector3f(x3, y3, z3), parallel(normals[i])))
+                                        Eigen::Vector3f(x3, y3, z3),parallel(normals[i])))
                     {
                         env[col][row][height] = val;
                     }
