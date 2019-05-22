@@ -11,6 +11,8 @@
 #include <iostream>
 #include <eigen3/Eigen/Dense>
 #include <boost/format.hpp>
+#include <queue>
+#include <stack>
 
 //dimensions of the enviroment [m]
 double env_min_x; 

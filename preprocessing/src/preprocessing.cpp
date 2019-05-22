@@ -3,20 +3,20 @@
 void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > > env, int scale)
 {
     std::ofstream outfile(filename.c_str());
-    if (filename.find(".pbm") != std::string::npos)
+    if (filename.find(".pgm") != std::string::npos)
     {
-        outfile << "P1\n\n"
-                << scale *  env.size() << " " << scale * env[0].size() << "\n";
+        outfile << "P2\n"
+                << scale *  env[0].size() << " " << scale * env.size() << "\n" <<"1\n";
         //things are repeated to scale them up (the image is too small!)
-        for (int col = 0; col < env[0].size(); col++)
+        for (int row = env.size()-1; row >= 0; row--)
         {
             for (int j = 0; j < scale; j++)
             {
-                for (int row = 0; row < env.size(); row++)
+                for (int col = 0; col <env[0].size() ; col++)
                 {
                     for (int i = 0; i < scale; i++)
                     {
-                        outfile << (env[row][col][0] == 0 ? 0 : 1) << " ";
+                        outfile << (env[row][col][0] == 3 ? 1 : 0) << " ";
                     }
                 }
                 outfile << "\n";
@@ -40,7 +40,10 @@ void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > >
                     {
                         for (int i = 0; i < scale; i++)
                         {
-                            outfile << env[row][col][height] << " ";
+                            outfile << (env[row][col][height]==0?1:
+                                            (env[row][col][height]==3?0:
+                                                env[row][col][height])) 
+                                    << " ";
                         }
                     }
                     outfile << "\n";
@@ -59,13 +62,13 @@ void printWind(std::vector<std::vector<std::vector<double> > > U,
     std::ofstream fileW(boost::str(boost::format("%s_W") % filename).c_str());
     for (int height = 0; height < U[0][0].size(); height++)
     {
-        for (int row = 0; row < U.size(); row++)
+        for (int col = 0; col < U.size(); col++)
         {
-            for (int col = 0; col < U[0].size(); col++)
+            for (int row = 0; row < U[0].size(); row++)
             {
-                fileU << U[row][col][height] << " ";
-                fileV << V[row][col][height] << " ";
-                fileW << W[row][col][height] << " ";
+                fileU << U[col][row][height] << " ";
+                fileV << V[col][row][height] << " ";
+                fileW << W[col][row][height] << " ";
             }
             fileU << "\n";
             fileV << "\n";
@@ -79,95 +82,95 @@ void printWind(std::vector<std::vector<std::vector<double> > > U,
 
 double min_val(double x, double y, double z) {
 
-  double min = 99999;
+    double min = 99999;
 
-  if (x < min)
-    min=x;
-  if (y < min)
-    min=y;
-  if(z < min)
-    min=z;
+    if (x < min)
+        min=x;
+    if (y < min)
+        min=y;
+    if(z < min)
+        min=z;
 
-  return min;
+    return min;
 }
 double max_val(double x, double y, double z) {
 
-  double max = -99999;
+    double max = -99999;
 
-  if (x > max)
-    max=x;
-  if (y > max)
-    max=y;
-  if(z > max)
-    max=z;
+    if (x > max)
+        max=x;
+    if (y > max)
+        max=y;
+    if(z > max)
+        max=z;
 
-  return max;
+    return max;
 }
 bool eq(double x, double y){
-    return std::abs(x-y)<(cell_size/2);
+    return std::abs(x-y)<(cell_size/10);
 }
-std::vector<Eigen::Vector3f> cubePoints(const Eigen::Vector3f &query_point){
-    std::vector<Eigen::Vector3f> points;
+std::vector<Eigen::Vector3d> cubePoints(const Eigen::Vector3d &query_point){
+    std::vector<Eigen::Vector3d> points;
     points.push_back(query_point);
-    points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
+    points.push_back(Eigen::Vector3d(query_point(0)-cell_size/2,
                                         query_point(1)-cell_size/2,
                                         query_point(2)-cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)+cell_size/2,
+    points.push_back(Eigen::Vector3d(query_point(0)+cell_size/2,
                                         query_point(1)+cell_size/2,
                                         query_point(2)+cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)+cell_size/2,
+    points.push_back(Eigen::Vector3d(query_point(0)+cell_size/2,
                                         query_point(1)-cell_size/2,
                                         query_point(2)-cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
+    points.push_back(Eigen::Vector3d(query_point(0)-cell_size/2,
                                         query_point(1)+cell_size/2,
                                         query_point(2)+cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
+    points.push_back(Eigen::Vector3d(query_point(0)-cell_size/2,
                                         query_point(1)-cell_size/2,
                                         query_point(2)+cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)+cell_size/2,
+    points.push_back(Eigen::Vector3d(query_point(0)+cell_size/2,
                                         query_point(1)+cell_size/2,
                                         query_point(2)-cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)-cell_size/2,
+    points.push_back(Eigen::Vector3d(query_point(0)-cell_size/2,
                                         query_point(1)+cell_size/2,
                                         query_point(2)-cell_size/2));
-    points.push_back(Eigen::Vector3f(query_point(0)+cell_size/2,
+    points.push_back(Eigen::Vector3d(query_point(0)+cell_size/2,
                                         query_point(1)-cell_size/2,
                                         query_point(2)+cell_size/2));
     return points;
 }
 
-bool planeIntersects(Eigen::Vector3f n, float d, const Eigen::Vector3f& query_point,const std::vector<Eigen::Vector3f>& cube){
+bool planeIntersects(Eigen::Vector3d n, double d, const Eigen::Vector3d& query_point,const std::vector<Eigen::Vector3d>& cube){
     bool allPositive = true;
     bool allNegative = true;
     for (int i=0;i<cube.size();i++){
-        float signo = n.dot(cube[i])+d;
+        double signo = n.dot(cube[i])+d;
         allPositive = allPositive&&(signo>0);
         allNegative = allNegative&&(signo<0);
     }    
     return !allPositive&&!allNegative;
 }
-bool pointInTriangle(const Eigen::Vector3f& query_point,
-                     const Eigen::Vector3f& triangle_vertex_0,
-                     const Eigen::Vector3f& triangle_vertex_1,
-                     const Eigen::Vector3f& triangle_vertex_2, bool parallel)
+bool pointInTriangle(const Eigen::Vector3d& query_point,
+                     const Eigen::Vector3d& triangle_vertex_0,
+                     const Eigen::Vector3d& triangle_vertex_1,
+                     const Eigen::Vector3d& triangle_vertex_2, bool parallel)
 {
     // u=P2−P1
-    Eigen::Vector3f u = triangle_vertex_1 - triangle_vertex_0;
+    Eigen::Vector3d u = triangle_vertex_1 - triangle_vertex_0;
     // v=P3−P1
-    Eigen::Vector3f v = triangle_vertex_2 - triangle_vertex_0;
+    Eigen::Vector3d v = triangle_vertex_2 - triangle_vertex_0;
     // n=u×v
-    Eigen::Vector3f n = u.cross(v);
+    Eigen::Vector3d n = u.cross(v);
     bool anyProyectionInTriangle=false;
-    std::vector<Eigen::Vector3f> cube= cubePoints(query_point);
-    for(Eigen::Vector3f vec : cube){
+    std::vector<Eigen::Vector3d> cube= cubePoints(query_point);
+    for(Eigen::Vector3d vec : cube){
         // w=P−P1
-        Eigen::Vector3f w = vec - triangle_vertex_0;
+        Eigen::Vector3d w = vec - triangle_vertex_0;
         // Barycentric coordinates of the projection P′of P onto T:
         // γ=[(u×w)⋅n]/n²
-        float gamma = u.cross(w).dot(n) / n.dot(n);
+        double gamma = u.cross(w).dot(n) / n.dot(n);
         // β=[(w×v)⋅n]/n²
-        float beta = w.cross(v).dot(n) / n.dot(n);
-        float alpha = 1 - gamma - beta;
+        double beta = w.cross(v).dot(n) / n.dot(n);
+        double alpha = 1 - gamma - beta;
         // The point P′ lies inside T if:
         bool proyectionInTriangle= ((0 <= alpha) && (alpha <= 1) &&
                 (0 <= beta)  && (beta  <= 1) &&
@@ -175,7 +178,7 @@ bool pointInTriangle(const Eigen::Vector3f& query_point,
         anyProyectionInTriangle=anyProyectionInTriangle||proyectionInTriangle;
     }
     
-    float d = -n.dot(triangle_vertex_0);
+    double d = -n.dot(triangle_vertex_0);
 
     
     //we consider that the triangle goes through the cell if the proyection of the center 
@@ -192,8 +195,8 @@ bool parallel (std::vector<double> &vec){
                 &&eq(abs(vec[1]),1)
                 &&eq(vec[2],0))||
            (eq(vec[0],0)
-                &&eq(abs(vec[1]),0)
-                &&eq(vec[2],1));
+                &&eq(vec[1],0)
+                &&eq(abs(vec[2]),1));
 }
 void occupy(std::vector<std::vector<std::vector<int> > >& env,
             std::vector<std::vector<std::vector<double> > > &points, 
@@ -220,6 +223,16 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
         int max_y = (max_val(y1,y2,y3)-env_min_y)/cell_size;
         int max_z = (max_val(z1,z2,z3)-env_min_z)/cell_size;
 
+        int value=val;
+        bool isParallel = parallel(normals[i]);
+        if(isParallel){
+            if(eq(std::fmod(min_val(x1,x2,x3)-env_min_x, cell_size),0)||
+                    eq(std::fmod(min_val(y1,y2,y3)-env_min_y, cell_size),0)||
+                    eq(std::fmod(min_val(z1,z2,z3)-env_min_z, cell_size),0))
+                {
+                    value=4;
+                }
+        }
         for (int row = min_x; row <= max_x && row < env[0].size(); row++)
         {
             for (int col = min_y; col <= max_y && col < env.size(); col++)
@@ -227,14 +240,14 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
                 for (int height = min_z; height <= max_z && height < env[0][0].size(); height++)
                 {
                     //check if the triangle goes through this cell
-                    if (pointInTriangle(Eigen::Vector3f(row * cell_size + env_min_x,
+                    if (pointInTriangle(Eigen::Vector3d(row * cell_size + env_min_x,
                                                         col * cell_size + env_min_y,
                                                         height * cell_size + env_min_z),
-                                        Eigen::Vector3f(x1, y1, z1),
-                                        Eigen::Vector3f(x2, y2, z2),
-                                        Eigen::Vector3f(x3, y3, z3),parallel(normals[i])))
+                                        Eigen::Vector3d(x1, y1, z1),
+                                        Eigen::Vector3d(x2, y2, z2),
+                                        Eigen::Vector3d(x3, y3, z3),isParallel))
                     {
-                        env[col][row][height] = val;
+                        env[col][row][height] = value;
                     }
                 }
             }
@@ -377,6 +390,82 @@ void openFoam_to_gaden(std::string filename, std::vector<std::vector<std::vector
 	}
     printWind(U,V,W,filename);
 }
+
+void fill(int x, int y, int z, std::vector<std::vector<std::vector<int> > >& env){
+    std::cout<<"Filling...\n";
+    std::queue<Eigen::Vector3i> q;
+    q.push(Eigen::Vector3i(x, y, z));
+    env[x][y][1]=3;
+    while(!q.empty()){
+        Eigen::Vector3i point = q.front();
+        q.pop();
+        if(point[0]+1<env.size()&&env[point[0]+1][point[1]][point[2]]==0){ // x+1, y, z
+            env[point[0]+1][point[1]][point[2]]=3;
+            q.push(Eigen::Vector3i(point[0]+1,point[1],point[2]));
+        }
+        if(point[0]>0&&env[point[0]-1][point[1]][point[2]]==0){ //x-1, y, z
+            env[point[0]-1][point[1]][point[2]]=3;
+            q.push(Eigen::Vector3i(point[0]-1,point[1],point[2]));
+        }
+        if(point[1]+1<env[0].size()&&env[point[0]][point[1]+1][point[2]]==0){ //x, y+1, z
+            env[point[0]][point[1]+1][point[2]]=3;
+            q.push(Eigen::Vector3i(point[0],point[1]+1,point[2]));
+        }
+        if(point[1]>0&&env[point[0]][point[1]-1][point[2]]==0){ //x, y-1, z
+            env[point[0]][point[1]-1][point[2]]=3;
+            q.push(Eigen::Vector3i(point[0],point[1]-1,point[2]));
+        }
+        if(point[2]+1<env[0][0].size()&&env[point[0]][point[1]][point[2]+1]==0){ //x, y, z+1
+            env[point[0]][point[1]][point[2]+1]=3;
+            q.push(Eigen::Vector3i(point[0],point[1],point[2]+1));
+        }
+        if(point[2]>0&&env[point[0]][point[1]][point[2]-1]==0){ //x, y, z-1
+            env[point[0]][point[1]][point[2]-1]=3;
+            q.push(Eigen::Vector3i(point[0],point[1],point[2]-1));
+        }
+    }
+}
+
+void clean(std::vector<std::vector<std::vector<int> > >& env){
+    std::stack<Eigen::Vector3i> st;
+    for(int col=0;col<env.size();col++){
+        for(int row=0;row<env[0].size();row++){
+            for(int height=0;height<env[0][0].size();height++){
+                if(env[col][row][height]==4){
+                    if((col<env.size()-1&&env[col+1][row][height]==3)||
+                            (row<env[0].size()-1&&env[col][row+1][height]==3)||
+                            (height<env[0][0].size()-1&&env[col][row][height+1]==3))
+                    {
+                        env[col][row][height]=3;
+                    }else
+                    {
+                        env[col][row][height]=1;
+                        if((col<env.size()-1&&env[col+1][row][height]==4)&&
+                                (row<env[0].size()-1&&env[col][row+1][height]==4)&&
+                                (height<env[0][0].size()-1&&env[col][row][height+1]==4))
+                        {
+                            st.push(Eigen::Vector3i(col, row, height));
+                        }
+                    }
+                    
+                }
+            }
+        }
+    }
+    while(!st.empty()){
+        Eigen::Vector3i point=st.top();
+        st.pop();
+        int col=point[0];int row=point[1];int height=point[2];
+        if(col<env.size()-1&&(env[col+1][row][height]==3)&&
+                (row<env[0].size()-1&&env[col][row+1][height]==3))
+        {
+            env[col][row][height]=3;
+        }else
+        {
+            env[col][row][height]=1;
+        }
+    }
+}
 int main(int argc, char **argv){
     ros::init(argc, argv, "preprocessing");
     int numModels;
@@ -430,9 +519,20 @@ int main(int argc, char **argv){
         }
         parse(outlet, env, 2);
 
+        double empty_point_x;
+        private_nh.param<double>("empty_point_x", empty_point_x, 1);
+        double empty_point_y;
+        private_nh.param<double>("empty_point_y", empty_point_y, 1);
+        double empty_point_z;
+        private_nh.param<double>("empty_point_z", empty_point_z, 1);
+        fill((empty_point_x-env_min_x)/cell_size,
+            (empty_point_y-env_min_y)/cell_size,
+            (empty_point_z-env_min_z)/cell_size, 
+            env);
+        clean(env);
         //output - path, occupancy vector, scale
         printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), env, 1);
-        printEnv(boost::str(boost::format("%s/occupancy.pbm") % output.c_str()), env, 5);
+        printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 10);
 
         //WIND
         int idx = 0;
@@ -445,11 +545,5 @@ int main(int argc, char **argv){
     }
 
     ROS_INFO("Preprocessing done");
-    std_msgs::Bool b;
-    b.data=true;
-    pub.publish(b);
-    ros::Rate r(0.1);
-    while(ros::ok()){
-        r.sleep();
-    }
+    
 }
