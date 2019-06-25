@@ -334,13 +334,13 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     private_nh.param<double>("pub_rate", pub_rate, 5.0);
 
     //sensor_array_topic_id
-    private_nh.param<std::string>("topic_id", topic_id, "\enose");
+    private_nh.param<std::string>("topic_id", topic_id, "/enose");
 
     //sensor_array_frame_id
     private_nh.param<std::string>("frame_id", frame_id, "enose_frame");
 
 	//fixed frame
-    private_nh.param<std::string>("fixed_frame", fixed_frame, "\map");
+    private_nh.param<std::string>("fixed_frame", fixed_frame, "/map");
 
     //PID_correction_factors
     private_nh.param<bool>("use_PID_correction_factors", use_PID_correction_factors, false);

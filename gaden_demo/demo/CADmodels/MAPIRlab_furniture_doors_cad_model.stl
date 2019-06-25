@@ -1,0 +1,194 @@
+solid AssimpScene
+ facet normal 0 1 0
+  outer loop
+  vertex -2 5.5 0
+  vertex -3 5.5 0
+  vertex -2 5.5 2
+  endloop
+ endfacet
+
+ facet normal 0 1 0
+  outer loop
+  vertex -3 5.5 0
+  vertex -3 5.5 2
+  vertex -2 5.5 2
+  endloop
+ endfacet
+
+ facet normal 0 -1 0
+  outer loop
+  vertex -3 5.3 0
+  vertex -2 5.3 0
+  vertex -3 5.3 2
+  endloop
+ endfacet
+
+ facet normal 0 -1 0
+  outer loop
+  vertex -2 5.3 0
+  vertex -2 5.3 2
+  vertex -3 5.3 2
+  endloop
+ endfacet
+
+ facet normal 0 0 1
+  outer loop
+  vertex -3 5.3 2
+  vertex -2 5.3 2
+  vertex -3 5.5 2
+  endloop
+ endfacet
+
+ facet normal 0 0 1
+  outer loop
+  vertex -2 5.3 2
+  vertex -2 5.5 2
+  vertex -3 5.5 2
+  endloop
+ endfacet
+
+ facet normal -1 0 0
+  outer loop
+  vertex -3 5.3 0
+  vertex -3 5.3 2
+  vertex -3 5.5 0
+  endloop
+ endfacet
+
+ facet normal -1 0 0
+  outer loop
+  vertex -3 5.3 2
+  vertex -3 5.5 2
+  vertex -3 5.5 0
+  endloop
+ endfacet
+
+ facet normal 1 0 0
+  outer loop
+  vertex -2 5.3 2
+  vertex -2 5.3 0
+  vertex -2 5.5 2
+  endloop
+ endfacet
+
+ facet normal 1 0 0
+  outer loop
+  vertex -2 5.3 0
+  vertex -2 5.5 0
+  vertex -2 5.5 2
+  endloop
+ endfacet
+
+ facet normal 0 0 -1
+  outer loop
+  vertex -2 5.3 0
+  vertex -3 5.3 0
+  vertex -2 5.5 0
+  endloop
+ endfacet
+
+ facet normal 0 0 -1
+  outer loop
+  vertex -3 5.3 0
+  vertex -3 5.5 0
+  vertex -2 5.5 0
+  endloop
+ endfacet
+
+ facet normal 0 -1 0
+  outer loop
+  vertex 2 5.3 0
+  vertex 3 5.3 0
+  vertex 2 5.3 2
+  endloop
+ endfacet
+
+ facet normal 0 -1 0
+  outer loop
+  vertex 3 5.3 0
+  vertex 3 5.3 2
+  vertex 2 5.3 2
+  endloop
+ endfacet
+
+ facet normal 0 0 1
+  outer loop
+  vertex 2 5.3 2
+  vertex 3 5.3 2
+  vertex 2 5.5 2
+  endloop
+ endfacet
+
+ facet normal 0 0 1
+  outer loop
+  vertex 3 5.3 2
+  vertex 3 5.5 2
+  vertex 2 5.5 2
+  endloop
+ endfacet
+
+ facet normal -1 0 0
+  outer loop
+  vertex 2 5.3 0
+  vertex 2 5.3 2
+  vertex 2 5.5 0
+  endloop
+ endfacet
+
+ facet normal -1 0 0
+  outer loop
+  vertex 2 5.3 2
+  vertex 2 5.5 2
+  vertex 2 5.5 0
+  endloop
+ endfacet
+
+ facet normal 0 1 0
+  outer loop
+  vertex 3 5.5 0
+  vertex 2 5.5 0
+  vertex 3 5.5 2
+  endloop
+ endfacet
+
+ facet normal 0 1 0
+  outer loop
+  vertex 2 5.5 0
+  vertex 2 5.5 2
+  vertex 3 5.5 2
+  endloop
+ endfacet
+
+ facet normal 1 0 0
+  outer loop
+  vertex 3 5.3 2
+  vertex 3 5.3 0
+  vertex 3 5.5 2
+  endloop
+ endfacet
+
+ facet normal 1 0 0
+  outer loop
+  vertex 3 5.3 0
+  vertex 3 5.5 0
+  vertex 3 5.5 2
+  endloop
+ endfacet
+
+ facet normal 0 0 -1
+  outer loop
+  vertex 3 5.3 0
+  vertex 2 5.3 0
+  vertex 3 5.5 0
+  endloop
+ endfacet
+
+ facet normal 0 0 -1
+  outer loop
+  vertex 2 5.3 0
+  vertex 2 5.5 0
+  vertex 3 5.5 0
+  endloop
+ endfacet
+
+endsolid AssimpScene

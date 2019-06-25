@@ -1,0 +1,28 @@
+<launch>
+<node pkg="preprocessing" type="preprocessing" name="preprocessing" output="screen" >
+      #IF YOU CHANGE THE MODELS OR THE WIND INFO, DELETE THE OLD OCCUPANCY3D FILE SO THE PREPROCESSING NODE KNOWS TO RE-PROCESS EVERYTHING   
+      #Cell size and number of CAD models
+      <param name="/cell_size" value="0.1"/>    
+	    <param name="/number_of_models" value="4"/>
+
+        #CAD models of the enviroment (.stl)
+	    <param name="/model_0" value="$(find gaden_demo)/demo/CADmodels/MAPIRlab_furniture_tables_cad_model.stl"/>
+	    <param name="/model_1" value="$(find gaden_demo)/demo/CADmodels/MAPIRlab_furniture_walls_cad_model.stl"/>
+  	    <param name="/model_2" value="$(find gaden_demo)/demo/CADmodels/MAPIRlab_furniture_wardrobes_cad_model.stl"/>
+	    <param name="/model_3" value="$(find gaden_demo)/demo/CADmodels/MAPIRlab_furniture_windows_cad_model.stl"/>
+        
+        #Location of a point we know is empty
+        <param name="/empty_point_x" value="2.5"/>            ### (m)
+	    <param name="/empty_point_y" value="-3.0"/>           ### (m)
+	    <param name="/empty_point_z" value="1.5"/>            ### (m)
+        #CAD models of the outlets (.stl)
+	    <param name="/outlets_model" value="$(find gaden_demo)/demo/CADmodels/MAPIRlab_furniture_doors_cad_model.stl"/>
+	    
+        #Wind Data (the node will append _i.csv to the name that is specified here)
+        <param name="/wind_files" value="$(find gaden_demo)/demo/wind_at_cell_center_points"/>
+	    
+   	  #Where to write the output
+	    <param name="/output_path" value="$(find gaden_demo)/demo" />
+
+		</node>
+</launch>

@@ -1,11 +1,13 @@
 #ifndef EVNIRONMENT_ENVIRONMENT_H_
 #define EVNIRONMENT_ENVIRONMENT_H_
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <resource_retriever/retriever.h>
 #include <cmath>
 #include <fstream>
+#include <boost/format.hpp>
 
 #define		NODE_NAME 							"environment"
 #define 	DEFAULT_SOURCE_POS_X				0.0

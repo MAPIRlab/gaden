@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(gaden_player)
 
+set(CMAKE_CXX_FLAGS "-lboost_iostreams -std=c++11 ${CMAKE_CXX_FLAGS}")
+project(gaden_player)
 find_package(catkin REQUIRED COMPONENTS
     roscpp
     visualization_msgs
@@ -9,7 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
     tf
     message_generation
 )
-
+find_package(Boost REQUIRED COMPONENTS iostreams)
 add_service_files(
   FILES
   GasPosition.srv
@@ -23,9 +24,8 @@ generate_messages(
 
 
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
-
 catkin_package(
-    DEPENDS roscpp visualization_msgs std_msgs nav_msgs tf
+    DEPENDS roscpp visualization_msgs std_msgs nav_msgs tf Boost
 )
 
 include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})

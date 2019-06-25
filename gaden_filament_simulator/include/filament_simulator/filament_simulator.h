@@ -1,18 +1,25 @@
 #ifndef CFilamentSimulator_H
 #define CFilamentSimulator_H
 
-
+#include <omp.h>
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 #include <visualization_msgs/Marker.h>
 
 #include "filament_simulator/filament.h"
 #include <stdlib.h>     /* srand, rand */
+#include <iostream>
 #include <fstream>
 #include <boost/random.hpp>
 #include <boost/random/normal_distribution.hpp>
-
+#include <boost/format.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/interprocess/streams/bufferstream.hpp>
+#include <boost/iostreams/filter/zlib.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/copy.hpp>
 //
 // Type definitions for a easier gaussian random number generation
 //
@@ -29,7 +36,9 @@ public:
     void add_new_filaments(double radius_arround_source);
     void read_wind_snapshot(int idx);
     void update_gas_concentration_from_filaments();
+    void update_gas_concentration_from_filament(int fil_i);
     void update_filaments_location();
+    void update_filament_location(int i);
     void publish_markers();
     void save_state_to_file();
 
@@ -39,7 +48,7 @@ public:
     int         current_simulation_step;
     double      sim_time;
     int         last_saved_step;
-
+    
     //Parameters
     double      max_sim_time;           //(sec) Time tu run this simulation
     int			numSteps;               //Number of gas iterations to simulate
@@ -87,7 +96,7 @@ public:
     double      results_time_step;      //(sec) Time increment between saving results
     double      results_min_time;       //(sec) time after which start saving results
 
-
+    boost::mutex mtx;
 
 
 protected:

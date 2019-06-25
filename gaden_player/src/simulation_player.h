@@ -18,6 +18,8 @@
 #include <string>
 #include <time.h>
 
+#include <boost/iostreams/filter/zlib.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
 // CLASS for every simulation to run. If two gas sources are needed, just create 2 instances!
 class sim_obj
 {

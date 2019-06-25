@@ -6,6 +6,7 @@
 #include <tf/transform_listener.h>
 #include <olfaction_msgs/gas_sensor_array.h>
 #include <gaden_player/GasPosition.h>
+#include <boost/format.hpp>
 
 #include <cstdlib>
 #include <math.h>

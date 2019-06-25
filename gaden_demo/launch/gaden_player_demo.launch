@@ -2,12 +2,11 @@
 
 <launch>
     <arg name="FixedFrame" default="/map" />
-    
- 
-    ### NODE environment (for RVIZ visualization) ###
+
+     ### NODE environment (for RVIZ visualization) ###
     <node pkg="gaden_environment" type="environment" name="environment" output="screen">	    
 	    <param name="/fixed_frame" value="$(arg FixedFrame)"/>
-        
+       
         # Plot source positions
         <param name="/number_of_sources" value="3"/>    
 	    <param name="/source_0_position_x" value="-2.5"/>
@@ -20,7 +19,7 @@
 	    
    	    <param name="/source_2_position_x" value="0.5"/>
 	    <param name="/source_2_position_y" value="-1.5"/>
-	    <param name="/source_2_position_z" value="1"/>	    
+	    <param name="/source_2_position_z" value="1"/>
    	    
 	    # Plot CAD models
 	    <param name="/occupancy3D_data" value="$(find gaden_demo)/demo/OccupancyGrid3D.csv" />
@@ -31,7 +30,7 @@
 	    <param name="/CAD_3" value="package://gaden_demo/demo/CADmodels/MAPIRlab_furniture_tables_cad_model.dae"/>
 	    <param name="/CAD_4" value="package://gaden_demo/demo/CADmodels/MAPIRlab_furniture_wardrobes_cad_model.dae"/>
     </node>
-
+    
 
 
 
