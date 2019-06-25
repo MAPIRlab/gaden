@@ -225,7 +225,7 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
 
         int value=val;
         bool isParallel = parallel(normals[i]);
-        if(isParallel){
+        if(val==1&&isParallel){
             if(eq(std::fmod(min_val(x1,x2,x3)-env_min_x, cell_size),0)||
                     eq(std::fmod(min_val(y1,y2,y3)-env_min_y, cell_size),0)||
                     eq(std::fmod(min_val(z1,z2,z3)-env_min_z, cell_size),0))
@@ -449,6 +449,7 @@ void clean(std::vector<std::vector<std::vector<int> > >& env){
                     }
                     
                 }
+                
             }
         }
     }
@@ -496,53 +497,46 @@ int main(int argc, char **argv){
     std::string output;
     private_nh.param<std::string>("output_path", output, "");
 
-    if (FILE *file = fopen(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()).c_str(), "r"))
+    //OCCUPANCY
+
+    for (int i = 0; i < CADfiles.size(); i++)
     {
-        //File exists, no need for any preprocessing
+        findDimensions(CADfiles[i]);
+    }
+
+    std::vector<std::vector<std::vector<int> > > env((env_max_y - env_min_y) / cell_size,
+                                                    std::vector<std::vector<int> >((env_max_x - env_min_x) / cell_size,
+                                                                                    std::vector<int>((env_max_z - env_min_z) / cell_size, 0)));
+    for (int i = 0; i < numModels; i++)
+    {
+        parse(CADfiles[i], env, 1);
+    }
+    parse(outlet, env, 2);
+
+    double empty_point_x;
+    private_nh.param<double>("empty_point_x", empty_point_x, 1);
+    double empty_point_y;
+    private_nh.param<double>("empty_point_y", empty_point_y, 1);
+    double empty_point_z;
+    private_nh.param<double>("empty_point_z", empty_point_z, 1);
+    fill((empty_point_x-env_min_x)/cell_size,
+        (empty_point_y-env_min_y)/cell_size,
+        (empty_point_z-env_min_z)/cell_size, 
+        env);
+    clean(env);
+    //output - path, occupancy vector, scale
+    printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), env, 1);
+    printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 10);
+
+    //WIND
+    int idx = 0;
+    while (FILE *file = fopen(boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str(), "r"))
+    {
         fclose(file);
+        openFoam_to_gaden(boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str(), env);
+        idx++;
     }
-    else
-    {
-        //OCCUPANCY
-
-        for (int i = 0; i < CADfiles.size(); i++)
-        {
-            findDimensions(CADfiles[i]);
-        }
-
-        std::vector<std::vector<std::vector<int> > > env((env_max_y - env_min_y) / cell_size,
-                                                       std::vector<std::vector<int> >((env_max_x - env_min_x) / cell_size,
-                                                                                     std::vector<int>((env_max_z - env_min_z) / cell_size, 0)));
-        for (int i = 0; i < numModels; i++)
-        {
-            parse(CADfiles[i], env, 1);
-        }
-        parse(outlet, env, 2);
-
-        double empty_point_x;
-        private_nh.param<double>("empty_point_x", empty_point_x, 1);
-        double empty_point_y;
-        private_nh.param<double>("empty_point_y", empty_point_y, 1);
-        double empty_point_z;
-        private_nh.param<double>("empty_point_z", empty_point_z, 1);
-        fill((empty_point_x-env_min_x)/cell_size,
-            (empty_point_y-env_min_y)/cell_size,
-            (empty_point_z-env_min_z)/cell_size, 
-            env);
-        clean(env);
-        //output - path, occupancy vector, scale
-        printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), env, 1);
-        printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 10);
-
-        //WIND
-        int idx = 0;
-        while (FILE *file = fopen(boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str(), "r"))
-        {
-            fclose(file);
-            openFoam_to_gaden(boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str(), env);
-            idx++;
-        }
-    }
+    
 
     ROS_INFO("Preprocessing done");
     
