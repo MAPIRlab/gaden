@@ -45,6 +45,7 @@ public:
     int			numSteps;               //Number of gas iterations to simulate
     double		time_step;              //(sec) Time increment between gas snapshots --> Simul_time = snapshots*time_step
     int			numFilaments_sec;       //Num of filaments released per second
+    bool        variable_rate;          //If true the number of released filaments would be random(0,numFilaments_sec)
     int			numFilaments_step;      //Num of filaments released per time_step
     int         total_number_filaments; //total number of filaments to use along the simulation (for efficiency -> avoids push_back)
     double      filament_ppm_center;    //[ppm] Gas concentration at the center of the 3D gaussian (filament)

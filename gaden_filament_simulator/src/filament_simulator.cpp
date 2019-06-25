@@ -136,6 +136,7 @@ void CFilamentSimulator::loadNodeParameters()
 
 	//Num of filaments/sec
 	private_nh.param<int>("num_filaments_sec", numFilaments_sec, 100);
+    private_nh.param<bool>("variable_rate", variable_rate, false);
 	numFilaments_step = floor(numFilaments_sec * time_step);
 	total_number_filaments = numFilaments_step * numSteps;
 
@@ -413,7 +414,18 @@ void CFilamentSimulator::read_3D_file(std::string filename, std::vector< std::ve
 // Add new filaments. On each step add a total of "numFilaments_step"
 void CFilamentSimulator::add_new_filaments(double radius_arround_source)
 {
-	for (int i=0; i<numFilaments_step; i++)
+    // Release rate
+    int filaments_to_release;
+    if (variable_rate)
+    {
+        filaments_to_release = (int) round( random_number(0.0, numFilaments_step) );
+    }
+    else
+    {
+        filaments_to_release = numFilaments_step;
+    }
+
+    for (int i=0; i<filaments_to_release; i++)
 	{
 		//Set position of new filament within the especified radius arround the gas source location
 		double x = gas_source_pos_x + random_number(-1,1)*radius_arround_source;
