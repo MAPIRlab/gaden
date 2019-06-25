@@ -1,6 +1,6 @@
-image: MAPIRlab_furniture.pgm
+image: occupancy.pgm
 resolution: 0.01
-origin: [-5.0, -5.5, 0.000000]   #The 2-D pose of the lower-left pixel in the map
+origin: [-5.5, -6.0, 0.000000]   #The 2-D pose of the lower-left pixel in the map
 occupied_thresh: 0.65
 free_thresh: 0.196
 negate: 0

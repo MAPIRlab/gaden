@@ -129,11 +129,9 @@ window                         #Main Simulator window
 floorMap                     # load an environment bitmap
 (
   name "SimulatedMap"
-
-  #MAPIRlab_furniture.pgm 1000x1100px
-  # resolution 0.01 m/px
-  bitmap "./MAPIRlab_furniture.pgm"
-  size [10.0 11.0 3.00]           #m  
+  
+  bitmap "occupancy.pgm"
+  size [11.0 12.0 3.00]           #m  
   pose [ 0.0 0.0 0.000 0.000 ]    #Coordinates (m) of the Center of the image_map
 )
 
