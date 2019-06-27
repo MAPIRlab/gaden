@@ -132,7 +132,7 @@ floorMap                     # load an environment bitmap
 
   #occupancy_map.pgm 1020x620px
   # resolution 0.01 m/px
-  bitmap "../../occupancy_map.pgm"
+  bitmap "../../occupancy.pgm"
   size [10.2 6.2 2.5]             #m  
   pose [ 5.0 3.0 0.0 0.000 ]    #Coordinates (m) of the Center of the image_map
 )
