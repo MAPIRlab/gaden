@@ -80,6 +80,16 @@ void printWind(std::vector<std::vector<std::vector<double> > > U,
     }
 }
 
+void printYaml(std::string output){
+    std::ofstream yaml(boost::str(boost::format("%s/occupancy.yaml") % output.c_str()));
+    yaml << "image: occupancy.pgm\n" 
+        << "resolution: " << cell_size 
+        << "\norigin: [" << env_min_x << ", " << env_min_y << ", " << env_min_z << "]\n"
+        << "occupied_thresh: 0.9\n" 
+        << "free_thresh: 0.1\n" 
+        << "negate: 0";
+}
+
 double min_val(double x, double y, double z) {
 
     double min = 99999;
@@ -188,15 +198,12 @@ bool pointInTriangle(const Eigen::Vector3d& query_point,
 }
 
 bool parallel (std::vector<double> &vec){
-    return (eq(abs(vec[0]),1)
-                &&eq(vec[1],0)
+    return (eq(vec[1],0)
                 &&eq(vec[2],0))||
            (eq(vec[0],0)
-                &&eq(abs(vec[1]),1)
                 &&eq(vec[2],0))||
            (eq(vec[0],0)
-                &&eq(vec[1],0)
-                &&eq(abs(vec[2]),1));
+                &&eq(vec[1],0));
 }
 void occupy(std::vector<std::vector<std::vector<int> > >& env,
             std::vector<std::vector<std::vector<double> > > &points, 
@@ -486,7 +493,8 @@ int main(int argc, char **argv){
     }
 
     //stl file with the model of the outlets
-    std::string outlet;
+    std::string outlet; int numOutletModels;
+    private_nh.param<int>("number_of_outlet_models", numOutletModels, 1); // number of CAD models
     private_nh.param<std::string>("outlets_model", outlet, "");
 
     //path to the point cloud files with the wind data
@@ -511,7 +519,9 @@ int main(int argc, char **argv){
     {
         parse(CADfiles[i], env, 1);
     }
-    parse(outlet, env, 2);
+    for (int i=0;i<numOutletModels; i++){
+        parse(outlet, env, 2);
+    }    
 
     double empty_point_x;
     private_nh.param<double>("empty_point_x", empty_point_x, 1);
@@ -526,8 +536,8 @@ int main(int argc, char **argv){
     clean(env);
     //output - path, occupancy vector, scale
     printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), env, 1);
-    printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 10);
-
+    printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 1);
+    printYaml(output);
     //WIND
     int idx = 0;
     while (FILE *file = fopen(boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str(), "r"))
