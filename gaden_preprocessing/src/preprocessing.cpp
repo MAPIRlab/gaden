@@ -294,10 +294,14 @@ void parse(std::string filename, std::vector<std::vector<std::vector<int> > >& e
             while (line.find("facet normal") == std::string::npos){std::getline(infile, line);}
             size_t pos = line.find("facet");
             line.erase(0, pos + 12);
+            double aux;
             std::stringstream ss(line);
-            ss >> std::skipws >> normals[i][0];
-            ss >> std::skipws >> normals[i][1];
-            ss >> std::skipws >> normals[i][2];
+            ss >> std::skipws >>  aux; 
+            normals[i][0] = (eq(aux,0)?0:aux);
+            ss >> std::skipws >>  aux; 
+            normals[i][1] = (eq(aux,0)?0:aux);
+            ss >> std::skipws >>  aux; 
+            normals[i][2] = (eq(aux,0)?0:aux);
             std::getline(infile, line);
 
             for(int j=0;j<3;j++){
@@ -305,9 +309,12 @@ void parse(std::string filename, std::vector<std::vector<std::vector<int> > >& e
                 size_t pos = line.find("vertex ");
                 line.erase(0, pos + 7);
                 std::stringstream ss(line);
-                ss >> std::skipws >> points[i][j][0];
-                ss >> std::skipws >> points[i][j][1];
-                ss >> std::skipws >> points[i][j][2];
+                ss >> std::skipws >>  aux; 
+                points[i][j][0] = (eq(aux,0)?0:aux);
+                ss >> std::skipws >>  aux; 
+                points[i][j][1] = (eq(aux,0)?0:aux);
+                ss >> std::skipws >>  aux; 
+                points[i][j][2] = (eq(aux,0)?0:aux);
             }
             i++;
             //skipping lines here makes checking for the end of the file more convenient
@@ -441,18 +448,19 @@ void clean(std::vector<std::vector<std::vector<int> > >& env){
                 if(env[col][row][height]==4){
                     if((col<env.size()-1&&env[col+1][row][height]==3)||
                             (row<env[0].size()-1&&env[col][row+1][height]==3)||
-                            (height<env[0][0].size()-1&&env[col][row][height+1]==3))
+                            (height<env[0][0].size()-1&&env[col][row][height+1]==3)||
+                            (col<env.size()-1&&row<env[0].size()-1&&env[col+1][row+1][height]==3))
                     {
                         env[col][row][height]=3;
                     }else
                     {
                         env[col][row][height]=1;
-                        if((col<env.size()-1&&env[col+1][row][height]==4)&&
-                                (row<env[0].size()-1&&env[col][row+1][height]==4)&&
-                                (height<env[0][0].size()-1&&env[col][row][height+1]==4))
-                        {
-                            st.push(Eigen::Vector3i(col, row, height));
-                        }
+                        //if((col<env.size()-1&&env[col+1][row][height]==4)&&
+                        //        (row<env[0].size()-1&&env[col][row+1][height]==4)&&
+                        //        (height<env[0][0].size()-1&&env[col][row][height+1]==4))
+                        //{
+                        //    st.push(Eigen::Vector3i(col, row, height));
+                        //}
                     }
                     
                 }
@@ -460,19 +468,19 @@ void clean(std::vector<std::vector<std::vector<int> > >& env){
             }
         }
     }
-    while(!st.empty()){
-        Eigen::Vector3i point=st.top();
-        st.pop();
-        int col=point[0];int row=point[1];int height=point[2];
-        if(col<env.size()-1&&(env[col+1][row][height]==3)&&
-                (row<env[0].size()-1&&env[col][row+1][height]==3))
-        {
-            env[col][row][height]=3;
-        }else
-        {
-            env[col][row][height]=1;
-        }
-    }
+    //while(!st.empty()){
+    //    Eigen::Vector3i point=st.top();
+    //    st.pop();
+    //    int col=point[0];int row=point[1];int height=point[2];
+    //    if(col<env.size()-1&&(env[col+1][row][height]==3)&&
+    //            (row<env[0].size()-1&&env[col][row+1][height]==3))
+    //    {
+    //        env[col][row][height]=3;
+    //    }else
+    //    {
+    //        env[col][row][height]=1;
+    //    }
+    //}
 }
 int main(int argc, char **argv){
     ros::init(argc, argv, "preprocessing");
@@ -540,7 +548,7 @@ int main(int argc, char **argv){
         (empty_point_y-env_min_y)/cell_size,
         (empty_point_z-env_min_z)/cell_size, 
         env);
-    //clean(env);
+    clean(env);
     //output - path, occupancy vector, scale
     printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), env, 1);
     printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 1);
