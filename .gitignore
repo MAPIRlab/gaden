@@ -2,15 +2,23 @@
 *.pcd
 *.pyc
 *.user
+*.gz
 
 # Avoid gas_simulations
 test_env/*/gas_simulations/*
 
-# Avoid Occupancy maps (can be regenerated)
+# Avoid Occupancy maps
 test_env/*/*.pgm
 test_env/*/*.yaml
 test_env/*/*.csv
 
+# Avoid PostProcessed Wind Data
+test_env/*/wind_simulations/**/*.foam
+test_env/*/wind_simulations/**/*.csv_U
+test_env/*/wind_simulations/**/*.csv_V
+test_env/*/wind_simulations/**/*.csv_W
+test_env/*/wind_simulations/**/constant
+test_env/*/wind_simulations/**/system
 
 # qcreator stuff
 CMakeLists.txt.user
