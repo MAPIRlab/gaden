@@ -1,2 +1,23 @@
 *~
-gaden_environment/CADmodels
+*.pcd
+*.pyc
+*.user
+
+# Avoid gas_simulations
+test_env/*/gas_simulations/*
+
+# Avoid Occupancy maps (can be regenerated)
+test_env/*/*.pgm
+test_env/*/*.yaml
+test_env/*/*.csv
+
+
+# qcreator stuff
+CMakeLists.txt.user
+
+
+# Catkin custom files
+CATKIN_IGNORE
+*/CATKIN_IGNORE
+*/*/CATKIN_IGNORE
+*/*/*/CATKIN_IGNORE
