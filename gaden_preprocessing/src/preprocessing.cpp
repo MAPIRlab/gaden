@@ -495,7 +495,14 @@ int main(int argc, char **argv){
     //stl file with the model of the outlets
     std::string outlet; int numOutletModels;
     private_nh.param<int>("number_of_outlet_models", numOutletModels, 1); // number of CAD models
-    private_nh.param<std::string>("outlets_model", outlet, "");
+
+    std::vector<std::string> outletFiles;     
+    for(int i = 0; i< numOutletModels; i++){
+        std::string paramName = boost::str( boost::format("outlets_model_%i") % i); //each of the stl models
+        std::string filename;
+        private_nh.param<std::string>(paramName, filename, "");
+        outletFiles.push_back(filename.c_str());
+    }
 
     //path to the point cloud files with the wind data
     std::string windFileName;
@@ -520,7 +527,7 @@ int main(int argc, char **argv){
         parse(CADfiles[i], env, 1);
     }
     for (int i=0;i<numOutletModels; i++){
-        parse(outlet, env, 2);
+        parse(outletFiles[i], env, 2);
     }    
 
     double empty_point_x;
@@ -533,7 +540,7 @@ int main(int argc, char **argv){
         (empty_point_y-env_min_y)/cell_size,
         (empty_point_z-env_min_z)/cell_size, 
         env);
-    clean(env);
+    //clean(env);
     //output - path, occupancy vector, scale
     printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), env, 1);
     printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 1);
