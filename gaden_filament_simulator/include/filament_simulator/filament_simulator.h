@@ -15,6 +15,7 @@
 #include <boost/random.hpp>
 #include <boost/random/normal_distribution.hpp>
 #include <boost/format.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/interprocess/streams/bufferstream.hpp>
 #include <boost/iostreams/filter/zlib.hpp>
@@ -50,6 +51,9 @@ public:
     int         last_saved_step;
     
     //Parameters
+    bool        verbose;
+    bool        wait_preprocessing;
+    bool        preprocessing_done;
     double      max_sim_time;           //(sec) Time tu run this simulation
     int			numSteps;               //Number of gas iterations to simulate
     double		time_step;              //(sec) Time increment between gas snapshots --> Simul_time = snapshots*time_step
@@ -69,6 +73,10 @@ public:
     //Wind
     std::string	wind_files_location;    //Location of the wind information
     double      windTime_step;          //(sec) Time increment between wind snapshots
+    double      sim_time_last_wind;     //(sec) Simulation Time of the last updated of wind data
+    bool        allow_looping;
+    int         loop_from_step;
+    int         loop_to_step;
 
     //Enviroment
     std::string occupancy3D_data;       //Location of the 3D Occupancy GridMap of the environment
@@ -107,9 +115,11 @@ protected:
     int check_pose_with_environment(double pose_x, double pose_y, double pose_z);
     bool check_environment_for_obstacle(double start_x, double start_y, double start_z, double end_x, double end_y, double end_z);
     double random_number(double min_val, double max_val);
+    void preprocessingCB(const std_msgs::Bool& b);
 
     //Subscriptions & Publishers
     ros::Publisher marker_pub;          //For visualization of the filaments!
+    ros::Subscriber prepro_sub;         // In case we require the preprocessing node to finish.
 
     //Vars
     ros::NodeHandle n;

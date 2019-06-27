@@ -31,20 +31,42 @@
 #include "filament_simulator/filament_simulator.h"
 
 
+//==========================//
+//      Constructor         //
+//==========================//
 CFilamentSimulator::CFilamentSimulator()
 {
 	//Read parameters
 	loadNodeParameters();
 
+    //Create directory to save results (if needed)
+    if (save_results && !boost::filesystem::exists(results_location))
+       if (!boost::filesystem::create_directories(results_location))
+           ROS_ERROR("[filament] Could not create result directory: %s", results_location.c_str());
+
 	//Set Publishers and Subscribers
 	//-------------------------------
 	marker_pub = n.advertise<visualization_msgs::Marker>("filament_visualization", 1);
 
+    // Wait preprocessing Node to finish?
+    preprocessing_done = false;
+    if(wait_preprocessing)
+    {
+        prepro_sub = n.subscribe("preprocessing_done", 1, &CFilamentSimulator::preprocessingCB, this);
+        while(ros::ok() && !preprocessing_done)
+        {
+            ros::Duration(0.5).sleep();
+            ros::spinOnce();
+            if (verbose) ROS_INFO("[filament] Waiting for node GADEN_preprocessing to end.");
+        }
+    }
+
 	//Init variables
 	//-----------------
-    sim_time = 0.0;                      //Start at time = 0(sec)
-    current_wind_snapshot = 0;           //Start with wind_iter= 0;
-    current_simulation_step = 0;         //Start with iter= 0;
+    sim_time = 0.0;                         //Start at time = 0(sec)
+    sim_time_last_wind = -2*windTime_step;  //Force to load wind-data on startup
+    current_wind_snapshot = 0;              //Start with wind_iter= 0;
+    current_simulation_step = 0;            //Start with iter= 0;
 	//last_saved_step = -1;
 	last_saved_step = results_min_time/results_time_step;
     wind_notified = false;               //To warm the user (only once) that no more wind data is found!
@@ -76,11 +98,11 @@ CFilamentSimulator::CFilamentSimulator()
 	double numMoles_in_cm3 = envPressure/(R*envTemperature);   //[mol/cm³]
 	filament_numMoles_of_gas = filament_numMoles_of_gas * numMoles_in_cm3; //[moles_target_gas/filament] This is a CTE parameter!!
 
-	ROS_INFO("[filament] filament_initial_vol [cm3]: %f",filament_initial_vol);
-	ROS_INFO("[filament] env_cell_vol [cm3]: %f",env_cell_vol);
-	ROS_INFO("[filament] filament_numMoles [mol]: %E",filament_numMoles);
-	ROS_INFO("[filament] env_cell_numMoles [mol]: %E",env_cell_numMoles);
-	ROS_INFO("[filament] filament_numMoles_of_gas [mol]: %E",filament_numMoles_of_gas);
+    if (verbose) ROS_INFO("[filament] filament_initial_vol [cm3]: %f",filament_initial_vol);
+    if (verbose) ROS_INFO("[filament] env_cell_vol [cm3]: %f",env_cell_vol);
+    if (verbose) ROS_INFO("[filament] filament_numMoles [mol]: %E",filament_numMoles);
+    if (verbose) ROS_INFO("[filament] env_cell_numMoles [mol]: %E",env_cell_numMoles);
+    if (verbose) ROS_INFO("[filament] filament_numMoles_of_gas [mol]: %E",filament_numMoles_of_gas);
 
 	// Molecular gas mass [g/mol]
 	// SpecificGravity(Air) = 1 (as reference)
@@ -118,54 +140,57 @@ CFilamentSimulator::~CFilamentSimulator()
 {
 }
 
-bool preprocessing=false;
-void callback(const std_msgs::Bool& b)
+
+//==============================//
+//      GADEN_preprocessing CB  //
+//==============================//
+void CFilamentSimulator::preprocessingCB(const std_msgs::Bool& b)
 {
-	preprocessing=true;
+    preprocessing_done = true;
 }
 
+
+//==========================//
+//      Load Params         //
+//==========================//
 void CFilamentSimulator::loadNodeParameters()
 {
 	ros::NodeHandle private_nh("~");
-	bool wait_preprocessing;
-	private_nh.param<bool>("wait_preprocessing", wait_preprocessing, false);
-	if(wait_preprocessing){
-		ros::NodeHandle nh;
-		ros::Subscriber sub = nh.subscribe("preprocessing_done", 1, callback);
-
-		while(!preprocessing){
-			ros::spinOnce();
-		}
-	}
     
-	//Simulation Time (sec)
+    // Verbose
+    private_nh.param<bool>("verbose", verbose, false);
+
+    // Wait PreProcessing
+    private_nh.param<bool>("wait_preprocessing", wait_preprocessing, false);
+
+    // Simulation Time (sec)
 	private_nh.param<double>("sim_time", max_sim_time, 20.0);
 
-	//Time increment between Gas snapshots (sec)
+    // Time increment between Gas snapshots (sec)
 	private_nh.param<double>("time_step", time_step, 1.0);
 
-	//Number of iterations to carry on = max_sim_time/time_step
+    // Number of iterations to carry on = max_sim_time/time_step
 	numSteps = floor(max_sim_time/time_step);
 
-	//Num of filaments/sec
+    // Num of filaments/sec
 	private_nh.param<int>("num_filaments_sec", numFilaments_sec, 100);
     private_nh.param<bool>("variable_rate", variable_rate, false);
 	numFilaments_step = floor(numFilaments_sec * time_step);
 	total_number_filaments = numFilaments_step * numSteps;
 
-	//Gas concentration at the filament center - 3D gaussian [ppm]
+    // Gas concentration at the filament center - 3D gaussian [ppm]
 	private_nh.param<double>("ppm_filament_center", filament_ppm_center, 20);
 
-	//[cm] Sigma of the filament at t=0-> 3DGaussian shape
+    // [cm] Sigma of the filament at t=0-> 3DGaussian shape
 	private_nh.param<double>("filament_initial_std", filament_initial_std, 1.5);
 
-	//[cm²/s] Growth ratio of the filament_std
+    // [cm²/s] Growth ratio of the filament_std
 	private_nh.param<double>("filament_growth_gamma", filament_growth_gamma, 10.0);
 
-	//[cm] Sigma of the white noise added on each iteration
+    // [cm] Sigma of the white noise added on each iteration
 	private_nh.param<double>("filament_noise_std", filament_noise_std, 0.1);
 
-	//Gas Type ID
+    // Gas Type ID
 	private_nh.param<int>("gas_type", gasType, 1);
 
 	// Environment temperature (necessary for molecules/cm3 -> ppm)
@@ -183,10 +208,12 @@ void CFilamentSimulator::loadNodeParameters()
 	//----------
 	//CFD wind files location
 	private_nh.param<std::string>("wind_data", wind_files_location, "");
-
 	//(sec) Time increment between Wind snapshots --> Determines when to load a new wind field
 	private_nh.param<double>("wind_time_step", windTime_step, 1.0);
-
+    // Loop
+    private_nh.param<bool>("allow_looping", allow_looping, false);
+    private_nh.param<int>("loop_from_step", loop_from_step, 1);
+    private_nh.param<int>("loop_to_step", loop_to_step, 100);
 
 
 
@@ -197,14 +224,6 @@ void CFilamentSimulator::loadNodeParameters()
 
 	//fixed frame (to disaply the gas particles on RVIZ)
 	private_nh.param<std::string>("fixed_frame", fixed_frame, "/map");
-
-	//Environment size (Num of cells): Set accordingly with the CFD wind fields
-	//private_nh.param<int>("env_cells_x", env_cells_x, 10);
-	//private_nh.param<int>("env_cells_y", env_cells_y, 10);
-	//private_nh.param<int>("env_cells_z", env_cells_z, 10);
-
-	//Environment Cell size
-	//private_nh.param<double>("cell_size", cell_size, 1.0);
 
 	//Source postion (x,y,z)
 	private_nh.param<double>("source_position_x", gas_source_pos_x, 1.0);
@@ -218,30 +237,40 @@ void CFilamentSimulator::loadNodeParameters()
     private_nh.param<double>("results_time_step", results_time_step, 1.0);
 
 
-	ROS_INFO("[filament] The data provided in the roslaunch file is:");
-	ROS_INFO("[filament] Simulation Time	  %f(s)",sim_time);
-	ROS_INFO("[filament] Gas Time Step:	   %f(s)",time_step);
-	ROS_INFO("[filament] Num_steps:		   %d",numSteps);
-	ROS_INFO("[filament] Number of filaments: %d",numFilaments_sec);
-	ROS_INFO("[filament] PPM filament center  %f",filament_ppm_center);
-	ROS_INFO("[filament] Gas type:			%d",gasType);
-	ROS_INFO("[filament] Concentration unit:  %d",gasConc_unit);
-	ROS_INFO("[filament] Wind_time_step:	  %f(s)", windTime_step);
-	ROS_INFO("[filament] Fixed frame:		 %s",fixed_frame.c_str());
-	ROS_INFO("[filament] Source position:	 (%f,%f,%f)",gas_source_pos_x, gas_source_pos_y, gas_source_pos_z);
+    if (verbose)
+    {
+        ROS_INFO("[filament] The data provided in the roslaunch file is:");
+        ROS_INFO("[filament] Simulation Time        %f(s)",sim_time);
+        ROS_INFO("[filament] Gas Time Step:         %f(s)",time_step);
+        ROS_INFO("[filament] Num_steps:             %d",numSteps);
+        ROS_INFO("[filament] Number of filaments:   %d",numFilaments_sec);
+        ROS_INFO("[filament] PPM filament center    %f",filament_ppm_center);
+        ROS_INFO("[filament] Gas type:              %d",gasType);
+        ROS_INFO("[filament] Concentration unit:    %d",gasConc_unit);
+        ROS_INFO("[filament] Wind_time_step:        %f(s)", windTime_step);
+        ROS_INFO("[filament] Fixed frame:           %s",fixed_frame.c_str());
+        ROS_INFO("[filament] Source position:       (%f,%f,%f)",gas_source_pos_x, gas_source_pos_y, gas_source_pos_z);
+
+        if (save_results)
+            ROS_INFO("[filament] Saving results to %s",results_location.c_str());
+    }
 }
 
 
+
+//==========================//
+//                          //
+//==========================//
 void CFilamentSimulator::initSimulator()
 {
-	ROS_INFO("[filament] Initializing Simulator... Please Wait!");
+    if (verbose) ROS_INFO("[filament] Initializing Simulator... Please Wait!");
 
 	//1. Load Environment and Configure Matrices
 	if (FILE *file = fopen(occupancy3D_data.c_str(), "r"))
 	{
 		//Files exist!, keep going!
 		fclose(file);
-		ROS_INFO("[filament] Loading 3D Occupancy GridMap");
+        if (verbose) ROS_INFO("[filament] Loading 3D Occupancy GridMap");
 		read_3D_file(occupancy3D_data, Env, true);
 	}
 	else
@@ -254,9 +283,10 @@ void CFilamentSimulator::initSimulator()
 	read_wind_snapshot(current_simulation_step);
 
 	//3. Initialize the filaments vector to its max value (to avoid increasing the size at runtime)
-	ROS_INFO("[filament] Initializing Filaments");
+    if (verbose) ROS_INFO("[filament] Initializing Filaments");
 	filaments.resize(total_number_filaments, CFilament(0.0, 0.0, 0.0, filament_initial_std));
 }
+
 
 
 //Resize a 3D Matrix compose of Vectors, This operation is only performed once!
@@ -274,6 +304,10 @@ void CFilamentSimulator::configure3DMatrix(std::vector< std::vector< std::vector
 }
 
 
+
+//==========================//
+//                          //
+//==========================//
 void CFilamentSimulator::read_wind_snapshot(int idx)
 {
 
@@ -282,14 +316,14 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 	std::string V_filemane = boost::str( boost::format("%s%i.csv_V") % wind_files_location % idx );
 	std::string W_filemane = boost::str( boost::format("%s%i.csv_W") % wind_files_location % idx );
 
-    ROS_INFO("Reading Wind Snapshot %s",U_filemane.c_str());
+    if (verbose) ROS_INFO("Reading Wind Snapshot %s",U_filemane.c_str());
 
     //read data to 3D matrices
 	if (FILE *file = fopen(U_filemane.c_str(), "r"))
 	{
 		//Files exist!, keep going!
 		fclose(file);
-		ROS_INFO("[filament] Loading Wind Snapshot %i", idx);
+        if (verbose) ROS_INFO("[filament] Loading Wind Snapshot %i", idx);
 
 		read_3D_file(U_filemane, U, false);
 		read_3D_file(V_filemane, V, false);
@@ -304,14 +338,15 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 			ROS_WARN("[filament] No more wind data available. Using last Wind snapshopt as SteadyState.");
 			wind_notified = true;
 		}
-	}
-
-	//Update the current idx
-	current_wind_snapshot = idx;
+    }
 }
 
 
 
+
+//==========================//
+//                          //
+//==========================//
 void CFilamentSimulator::read_3D_file(std::string filename, std::vector< std::vector< std::vector<double> > > &A, bool hasHeader=false)
 {
 	//open file
@@ -365,8 +400,8 @@ void CFilamentSimulator::read_3D_file(std::string filename, std::vector< std::ve
 		pos = line.find(" ");
 		cell_size = atof(line.substr(pos+1).c_str());
 
-		ROS_INFO("[filament] Env dimensions (%.2f,%.2f,%.2f) to (%.2f,%.2f,%.2f)",env_min_x, env_min_y, env_min_z, env_max_x, env_max_y, env_max_z );
-		ROS_INFO("[filament] Env size in cells	 (%d,%d,%d) - with cell size %f [m]",env_cells_x,env_cells_y,env_cells_z, cell_size);
+        if (verbose) ROS_INFO("[filament] Env dimensions (%.2f,%.2f,%.2f) to (%.2f,%.2f,%.2f)",env_min_x, env_min_y, env_min_z, env_max_x, env_max_y, env_max_z );
+        if (verbose) ROS_INFO("[filament] Env size in cells	 (%d,%d,%d) - with cell size %f [m]",env_cells_x,env_cells_y,env_cells_z, cell_size);
 
 		//Reserve memory for the 3D matrices: U,V,W,C and Env, according to provided num_cells of the environment.
 		//It also init them to 0.0 values
@@ -377,7 +412,7 @@ void CFilamentSimulator::read_3D_file(std::string filename, std::vector< std::ve
 		configure3DMatrix(Env);
 	}
 
-    ROS_INFO("Reading File to (%lu,%lu,%lu)Matrix", A.size(), A[0].size(), A[0][0].size());
+    if (verbose) ROS_INFO("Reading File to (%lu,%lu,%lu)Matrix", A.size(), A[0].size(), A[0][0].size());
 
 	//Read file line by line
 	int x_idx = 0;
@@ -419,7 +454,7 @@ void CFilamentSimulator::read_3D_file(std::string filename, std::vector< std::ve
 		}
 	}
     //End of file.
-    ROS_INFO("End of File");
+    if (verbose) ROS_INFO("End of File");
 }
 
 
@@ -544,6 +579,10 @@ void CFilamentSimulator::update_gas_concentration_from_filament(int fil_i)
 
 
 
+
+//==========================//
+//                          //
+//==========================//
 void CFilamentSimulator::update_gas_concentration_from_filaments(){
 	//First, set all cells to 0.0 gas concentration (clear previous state)
 	#pragma omp parallel for collapse(3)
@@ -590,6 +629,10 @@ int CFilamentSimulator::check_pose_with_environment(double pose_x, double pose_y
 	return Env[x_idx][y_idx][z_idx];
 }
 
+
+//==========================//
+//                          //
+//==========================//
 bool CFilamentSimulator::check_environment_for_obstacle(double start_x, double start_y, double start_z,
 													   double   end_x, double   end_y, double end_z)
 {
@@ -751,6 +794,10 @@ void CFilamentSimulator::update_filament_location(int i)
 			}
 }
 
+
+//==========================//
+//                          //
+//==========================//
 void CFilamentSimulator::update_filaments_location()
 {
 	#pragma omp parallel for
@@ -763,6 +810,10 @@ void CFilamentSimulator::update_filaments_location()
 	}
 }
 
+
+//==========================//
+//                          //
+//==========================//
 void CFilamentSimulator::publish_markers()
 {
 	//1. Clean old markers
@@ -812,6 +863,10 @@ void CFilamentSimulator::publish_markers()
 }
 
 
+
+//==========================//
+//                          //
+//==========================//
 double CFilamentSimulator::random_number(double min_val, double max_val)
 {
 	double n = (double)(rand() % 100);  //int random number [0, 100)
@@ -826,10 +881,10 @@ double CFilamentSimulator::random_number(double min_val, double max_val)
 // These files will be later used in the "player" node.
 void CFilamentSimulator::save_state_to_file()
 {
-	//Configure file name for saving the current snapshot
-	std::string out_filename = boost::str( boost::format("%s/FilamentSimulation_gasType_%i_sourcePosition_%.2f_%.2f_%.2f_iteration_%i") % results_location % gasType % gas_source_pos_x % gas_source_pos_y % gas_source_pos_z % last_saved_step);
+    //Configure file name for saving the current snapshot
+    std::string out_filename = boost::str( boost::format("%s/FilamentSimulation_gasType_%i_sourcePosition_%.2f_%.2f_%.2f_iteration_%i") % results_location % gasType % gas_source_pos_x % gas_source_pos_y % gas_source_pos_z % last_saved_step);
 	
-	int count=0;
+    int count=0;
 	
 	//We don't write directly to the file because we want to compress it,
 	//and we dont store every line directly in a stream because that is very slow.
@@ -840,11 +895,11 @@ void CFilamentSimulator::save_state_to_file()
 	//Write header
 	//--------------
 	//count how many chars have been printed to the array in each step and advance the pointer accordingly
-	count+=sprintf(&charArray[count], "env_min(m) %.4f %.4f %.4f\n",env_min_x, env_min_y, env_min_z);
-	count+=sprintf(&charArray[count], "env_max(m) %.4f %.4f %.4f\n",env_max_x, env_max_y, env_max_z);
-	count+=sprintf(&charArray[count], "NumCells_XYZ %i %i %i\n",env_cells_x,env_cells_y,env_cells_z);
-	count+=sprintf(&charArray[count], "CellSizes_XYZ[m] %.4f %.4f %.4f\n",cell_size, cell_size, cell_size);
-	count+=sprintf(&charArray[count], "GasSourceLocation_XYZ[m] %.4f %.4f %.4f\n",gas_source_pos_x, gas_source_pos_y, gas_source_pos_z);
+    count += sprintf(&charArray[count], "env_min(m) %.4f %.4f %.4f\n",env_min_x, env_min_y, env_min_z);
+    count += sprintf(&charArray[count], "env_max(m) %.4f %.4f %.4f\n",env_max_x, env_max_y, env_max_z);
+    count += sprintf(&charArray[count], "NumCells_XYZ %i %i %i\n",env_cells_x,env_cells_y,env_cells_z);
+    count += sprintf(&charArray[count], "CellSizes_XYZ[m] %.4f %.4f %.4f\n",cell_size, cell_size, cell_size);
+    count += sprintf(&charArray[count], "GasSourceLocation_XYZ[m] %.4f %.4f %.4f\n",gas_source_pos_x, gas_source_pos_y, gas_source_pos_z);
 	std::string gas_type_str;
 	switch (gasType)
 	{
@@ -860,7 +915,7 @@ void CFilamentSimulator::save_state_to_file()
 		case 9: gas_type_str = "hot_air"; break;
 		default: gas_type_str = "ethanol";
 	}
-	count+= sprintf(&charArray[count], "GasType %s\n",gas_type_str.c_str());
+    count += sprintf(&charArray[count], "GasType %s\n",gas_type_str.c_str());
 
 	std::string gas_units_str;
 	if (gasConc_unit == 0)
@@ -869,7 +924,7 @@ void CFilamentSimulator::save_state_to_file()
 		gas_units_str =  "10^⁻3ppm";
 	else
 		gas_units_str =  "10^⁻3ppm";
-	count+= sprintf(&charArray[count], "Cell_x\t Cell_y\t Cell_z\t Gas_conc[%s]\t Wind_u[10^⁻3m/s]\t Wind_v[10^⁻3m/s]\t Wind_w[10^⁻3m/s]\n", gas_units_str.c_str());
+    count += sprintf(&charArray[count], "Cell_x\t Cell_y\t Cell_z\t Gas_conc[%s]\t Wind_u[10^⁻3m/s]\t Wind_v[10^⁻3m/s]\t Wind_w[10^⁻3m/s]\n", gas_units_str.c_str());
 
 	
 	// Save to file the Gas concentration and wind vectors of every cell of the environment.
@@ -883,7 +938,7 @@ void CFilamentSimulator::save_state_to_file()
 				if(!(C[x][y][z]==0&& U[x][y][z]==0&& V[x][y][z]==0&& W[x][y][z]==0))
 				{
 					//Save to file! -> "Cell_x Cell_y Cell_z, Gas_conc U V W"
-					count+=sprintf(&charArray[count], "%i %i %i %i %i %i %i\n",x, y, z,  (int)(1000* C[x][y][z]),  (int)(1000* U[x][y][z]),  (int)(1000* V[x][y][z]),  (int)(1000* W[x][y][z]));
+                    count += sprintf(&charArray[count], "%i %i %i %i %i %i %i\n",x, y, z,  (int)(1000* C[x][y][z]),  (int)(1000* U[x][y][z]),  (int)(1000* V[x][y][z]),  (int)(1000* W[x][y][z]));
 				}
 			}
 		}
@@ -903,11 +958,9 @@ void CFilamentSimulator::save_state_to_file()
 }
 
 
-//================================
-//
-//			M   A   I   N
-//
-//================================
+//==============================//
+//			MAIN                //
+//==============================//
 int main(int argc, char **argv)
 {
 	// Init ROS-NODE
@@ -923,14 +976,29 @@ int main(int argc, char **argv)
 	//--------------
 	// LOOP
 	//--------------	
-        ros::Rate r(100);   //Go as fast as you can!
+    ros::Rate r(100);
 	while (ros::ok() && (sim.current_simulation_step<sim.numSteps) )
 	{
 		//ROS_INFO("[filament] Simulating step %i (sim_time = %.2f)", sim.current_simulation_step, sim.sim_time);
 
-		//0. Load wind snapshot (if necessary and availabe)
-		if ( floor(sim.sim_time/sim.windTime_step) != sim.current_wind_snapshot)
-			sim.read_wind_snapshot(floor(sim.sim_time/sim.windTime_step));
+        //0. Load wind snapshot (if necessary and availabe)
+        if ( sim.sim_time-sim.sim_time_last_wind >= sim.windTime_step)
+        {
+            // Time to update wind!
+            sim.sim_time_last_wind = sim.sim_time;
+            if (sim.allow_looping)
+            {
+                // Load wind-data
+                sim.read_wind_snapshot(sim.current_wind_snapshot);
+                // Update idx
+                if (sim.current_wind_snapshot >= sim.loop_to_step)
+                    sim.current_wind_snapshot = sim.loop_from_step;
+                else
+                    sim.current_wind_snapshot++;
+            }
+            else
+                sim.read_wind_snapshot(floor(sim.sim_time/sim.windTime_step));  //Alllways increasing
+        }
 
 		//1. Create new filaments close to the source location
 		//   On each iteration num_filaments (See params) are created

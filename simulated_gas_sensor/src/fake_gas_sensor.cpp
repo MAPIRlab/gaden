@@ -343,18 +343,20 @@ float simulate_pid(gaden_player::GasPositionResponse GT_gas_concentrations)
     return accumulated_conc;
 }
 
-
-//Load Sensor parameters
+// ===============================//
+//      Load Node Parameters      //
+// ===============================//
 void loadNodeParameters(ros::NodeHandle private_nh)
 {	
+    //fixed frame
+    private_nh.param<std::string>("fixed_frame", input_fixed_frame, "map");
+
     //Sensor Model
     private_nh.param<int>("sensor_model", input_sensor_model, DEFAULT_SENSOR_MODEL);
 
     //sensor_frame
     private_nh.param<std::string>("sensor_frame", input_sensor_frame, DEFAULT_SENSOR_FRAME);
 
-	//fixed frame
-    private_nh.param<std::string>("fixed_frame", input_fixed_frame, DEFAULT_FIXED_FRAME);
 
     //PID_correction_factors
     private_nh.param<bool>("use_PID_correction_factors", use_PID_correction_factors, false);

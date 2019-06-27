@@ -95,10 +95,11 @@ void loadEnvironment(visualization_msgs::MarkerArray &env_marker)
     // Wait for the GADEN_preprocessin node to finish?
     if( wait_preprocessing )
     {
-        while(!preprocessing_done)
+        while(ros::ok() && !preprocessing_done)
         {
             ros::Duration(0.5).sleep();
             ros::spinOnce();
+            if (verbose) ROS_INFO("[environment] Waiting for node GADEN_preprocessing to end.");
         }
 	}
 
