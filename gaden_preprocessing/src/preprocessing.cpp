@@ -497,7 +497,7 @@ int main(int argc, char **argv){
     private_nh.param<int>("number_of_outlet_models", numOutletModels, 1); // number of CAD models
 
     std::vector<std::string> outletFiles;     
-    for(int i = 0; i< numModels; i++){
+    for(int i = 0; i< numOutletModels; i++){
         std::string paramName = boost::str( boost::format("outlets_model_%i") % i); //each of the stl models
         std::string filename;
         private_nh.param<std::string>(paramName, filename, "");
