@@ -83,7 +83,7 @@ void printWind(std::vector<std::vector<std::vector<double> > > U,
 void printYaml(std::string output){
     std::ofstream yaml(boost::str(boost::format("%s/occupancy.yaml") % output.c_str()));
     yaml << "image: occupancy.pgm\n" 
-        << "resolution: " << cell_size 
+        << "resolution: " << cell_size/10 
         << "\norigin: [" << env_min_x << ", " << env_min_y << ", " << env_min_z << "]\n"
         << "occupied_thresh: 0.9\n" 
         << "free_thresh: 0.1\n" 
@@ -297,11 +297,11 @@ void parse(std::string filename, std::vector<std::vector<std::vector<int> > >& e
             double aux;
             std::stringstream ss(line);
             ss >> std::skipws >>  aux; 
-            normals[i][0] = (eq(aux,0)?0:aux);
+            normals[i][0] = roundf(aux * 1000) / 1000;
             ss >> std::skipws >>  aux; 
-            normals[i][1] = (eq(aux,0)?0:aux);
+            normals[i][1] = roundf(aux * 1000) / 1000;
             ss >> std::skipws >>  aux; 
-            normals[i][2] = (eq(aux,0)?0:aux);
+            normals[i][2] = roundf(aux * 1000) / 1000;
             std::getline(infile, line);
 
             for(int j=0;j<3;j++){
@@ -310,11 +310,11 @@ void parse(std::string filename, std::vector<std::vector<std::vector<int> > >& e
                 line.erase(0, pos + 7);
                 std::stringstream ss(line);
                 ss >> std::skipws >>  aux; 
-                points[i][j][0] = (eq(aux,0)?0:aux);
+                points[i][j][0] = roundf(aux * 1000) / 1000;
                 ss >> std::skipws >>  aux; 
-                points[i][j][1] = (eq(aux,0)?0:aux);
+                points[i][j][1] = roundf(aux * 1000) / 1000;
                 ss >> std::skipws >>  aux; 
-                points[i][j][2] = (eq(aux,0)?0:aux);
+                points[i][j][2] = roundf(aux * 1000) / 1000;
             }
             i++;
             //skipping lines here makes checking for the end of the file more convenient
@@ -551,7 +551,7 @@ int main(int argc, char **argv){
     clean(env);
     //output - path, occupancy vector, scale
     printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), env, 1);
-    printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 1);
+    printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 10);
     printYaml(output);
     //WIND
     int idx = 0;
