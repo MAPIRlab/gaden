@@ -9,28 +9,19 @@
 #include <fstream>
 #include <boost/format.hpp>
 
-#define		NODE_NAME 							"environment"
-#define 	DEFAULT_SOURCE_POS_X				0.0
-#define 	DEFAULT_SOURCE_POS_Y				0.0
-#define 	DEFAULT_SOURCE_POS_Z				0.5
-#define		DEFAULT_ENVIRONMENT_DATA			""
-#define		DEFAULT_FIXED_FRAME					"/map"
-#define	DEFAULT_AREA_X						31
-#define	DEFAULT_AREA_Y						16
-#define	DEFAULT_AREA_Z						6
-#define	DEFAULT_AREA_CELL_SIZE				1
+
 
 //Gas Sources
-int                         number_of_sources;
-std::vector<double>         gas_source_pos_x;
-std::vector<double>         gas_source_pos_y;
-std::vector<double>         gas_source_pos_z;
-std::vector<double>         gas_source_scale;
-std::vector< std::vector<double> >         gas_source_color;
+int                                 number_of_sources;
+std::vector<double>                 gas_source_pos_x;
+std::vector<double>                 gas_source_pos_y;
+std::vector<double>                 gas_source_pos_z;
+std::vector<double>                 gas_source_scale;
+std::vector< std::vector<double> >  gas_source_color;
 
 //CAD models
-int                         number_of_CAD;
-std::vector<std::string>    CAD_models;
+int                                 number_of_CAD;
+std::vector<std::string>            CAD_models;
 
 //Environment 3D
 std::string occupancy3D_data;       //Location of the 3D Occupancy GridMap of the environment
@@ -46,7 +37,9 @@ double      env_min_z;              //[m]
 double      env_max_z;              //[m]
 double		cell_size;              //[m]
 
-
+bool        verbose;
+bool        wait_preprocessing;
+bool        preprocessing_done;
 
 //Methods
 void loadNodeParameters(ros::NodeHandle);

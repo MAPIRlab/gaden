@@ -8,21 +8,22 @@
 #include "environment/environment.h"
 
 
-
-//Load Node parameters
+// ===============================//
+//      Load Node parameters      //
+// ===============================//
 void loadNodeParameters(ros::NodeHandle private_nh)
 {
+    private_nh.param<bool>("verbose", verbose, false);
+    if (verbose) ROS_INFO("[env] The data provided in the roslaunch file is:");
 
-    ROS_INFO("[env] The data provided in the roslaunch file is:");
+    private_nh.param<bool>("wait_preprocessing", wait_preprocessing, false);
+    if (verbose) ROS_INFO("[env] wait_preprocessing: %u",wait_preprocessing);
 
-    //fixed frame
-    private_nh.param<std::string>("fixed_frame", fixed_frame, DEFAULT_FIXED_FRAME);
-    ROS_INFO("[env] Fixed Frame: %s",fixed_frame.c_str());
+    private_nh.param<std::string>("fixed_frame", fixed_frame, "map");
+    if (verbose) ROS_INFO("[env] Fixed Frame: %s",fixed_frame.c_str());
 
-    //Gas Sources & their postions (x,y,z)
     private_nh.param<int>("number_of_sources", number_of_sources, 0);
-    ROS_INFO("[env] number_of_sources: %i",number_of_sources);
-
+    if (verbose) ROS_INFO("[env] number_of_sources: %i",number_of_sources);
     gas_source_pos_x.resize(number_of_sources);
     gas_source_pos_y.resize(number_of_sources);
     gas_source_pos_z.resize(number_of_sources);
@@ -37,13 +38,13 @@ void loadNodeParameters(ros::NodeHandle private_nh)
         std::string scale = boost::str( boost::format("source_%i_scale") % i);
         std::string color = boost::str( boost::format("source_%i_color") % i);
 
-        private_nh.param<double>(paramNameX.c_str(), gas_source_pos_x[i], DEFAULT_SOURCE_POS_X);
-        private_nh.param<double>(paramNameY.c_str(), gas_source_pos_y[i], DEFAULT_SOURCE_POS_Y);
-        private_nh.param<double>(paramNameZ.c_str(), gas_source_pos_z[i], DEFAULT_SOURCE_POS_Z);
+        private_nh.param<double>(paramNameX.c_str(), gas_source_pos_x[i], 0.0);
+        private_nh.param<double>(paramNameY.c_str(), gas_source_pos_y[i], 0.0);
+        private_nh.param<double>(paramNameZ.c_str(), gas_source_pos_z[i], 0.0);
         private_nh.param<double>(scale.c_str(), gas_source_scale[i], 0.1);
         gas_source_color[i].resize(3);
         private_nh.getParam(color.c_str(),gas_source_color[i]);
-        ROS_INFO("[env] Gas_source(%i): pos=[%0.2f %0.2f %0.2f] scale=%.2f color=[%0.2f %0.2f %0.2f]",
+        if (verbose) ROS_INFO("[env] Gas_source(%i): pos=[%0.2f %0.2f %0.2f] scale=%.2f color=[%0.2f %0.2f %0.2f]",
                  i, gas_source_pos_x[i], gas_source_pos_y[i], gas_source_pos_z[i],
                  gas_source_scale[i],
                  gas_source_color[i][0],gas_source_color[i][1],gas_source_color[i][2]);
@@ -53,7 +54,7 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     //-------------
     //CAD model files
     private_nh.param<int>("number_of_CAD", number_of_CAD, 0);
-    ROS_INFO("[env] number_of_CAD: %i",number_of_CAD);
+    if (verbose) ROS_INFO("[env] number_of_CAD: %i",number_of_CAD);
 
     CAD_models.resize(number_of_CAD);
     for(int i=0;i<number_of_CAD;i++)
@@ -62,7 +63,7 @@ void loadNodeParameters(ros::NodeHandle private_nh)
         std::string paramName = boost::str( boost::format("CAD_%i") % i);
 
         private_nh.param<std::string>(paramName.c_str(), CAD_models[i], "");
-        ROS_INFO("[env] CAD_models(%i): %s",i, CAD_models[i].c_str());
+        if (verbose) ROS_INFO("[env] CAD_models(%i): %s",i, CAD_models[i].c_str());
     }
 
 
@@ -70,36 +71,38 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     //Occupancy 3D gridmap
     //---------------------
     private_nh.param<std::string>("occupancy3D_data", occupancy3D_data, "");
-    ROS_INFO("[env] Occupancy3D file location: %s",occupancy3D_data.c_str());
+    if (verbose) ROS_INFO("[env] Occupancy3D file location: %s",occupancy3D_data.c_str());
 }
 
-bool        preprocessing=false;
-void callback(const std_msgs::Bool& b)
+
+//=========================//
+// PreProcessing CallBack  //
+//=========================//
+void PreprocessingCB(const std_msgs::Bool& b)
 {
-	preprocessing=true;
+    preprocessing_done = true;
 }
+
+
 
 /* Load environment from 3DOccupancy.csv GridMap
  * Loads the environment file containing a description of the simulated environment in the CFD (for the estimation of the wind flows), and displays it.
- * As a general rule, environment files set a "1" for a ocuppiedd cell, and "0" for a free cell
+ * As a general rule, environment files set a value of "0" for a free cell, "1" for a ocuppiedd cell and "2" for outlet.
  * This function creates a cube marker for every occupied cell, with the corresponding dimensions
 */
-
 void loadEnvironment(visualization_msgs::MarkerArray &env_marker)
-{   
-
-    ros::NodeHandle nh;
-    ros::NodeHandle private_nh("~");
-	bool wait_preprocessing;
-	private_nh.param<bool>("wait_preprocessing", wait_preprocessing, false);
-	if(wait_preprocessing){
-		ros::NodeHandle nh;
-		ros::Subscriber sub = nh.subscribe("preprocessing_done", 1, callback);
-
-		while(!preprocessing){
-			ros::spinOnce();
-		}
+{
+    // Wait for the GADEN_preprocessin node to finish?
+    if( wait_preprocessing )
+    {
+        while(!preprocessing_done)
+        {
+            ros::Duration(0.5).sleep();
+            ros::spinOnce();
+        }
 	}
+
+
     //open file
     std::ifstream infile(occupancy3D_data.c_str());
     std::string line;
@@ -144,8 +147,8 @@ void loadEnvironment(visualization_msgs::MarkerArray &env_marker)
         pos = line.find(" ");
         cell_size = atof(line.substr(pos+1).c_str());
 
-        ROS_INFO("[env]Env dimensions (%.2f,%.2f,%.2f)-(%.2f,%.2f,%.2f)",env_min_x, env_min_y, env_min_z, env_max_x, env_max_y, env_max_z );
-        ROS_INFO("[env]Env size in cells     (%d,%d,%d) - with cell size %f [m]",env_cells_x,env_cells_y,env_cells_z, cell_size);
+        if (verbose) ROS_INFO("[env]Env dimensions (%.2f,%.2f,%.2f)-(%.2f,%.2f,%.2f)",env_min_x, env_min_y, env_min_z, env_max_x, env_max_y, env_max_z );
+        if (verbose) ROS_INFO("[env]Env size in cells     (%d,%d,%d) - with cell size %f [m]",env_cells_x,env_cells_y,env_cells_z, cell_size);
     }
 
 
@@ -174,7 +177,8 @@ void loadEnvironment(visualization_msgs::MarkerArray &env_marker)
                 ss >> f;        //get one double value
                 if (!ss.fail())
                 {
-                    if (f == 1.0)
+                    // Occupie cell or Outlet
+                    if (f == 1.0 || f == 2.0)
                     {
                         //Add a new cube marker for this occupied cell
                         visualization_msgs::Marker new_marker;
@@ -199,11 +203,21 @@ void loadEnvironment(visualization_msgs::MarkerArray &env_marker)
                         new_marker.scale.y = cell_size;
                         new_marker.scale.z = cell_size;
 
-                        //Color (just one color for all occupied cells -_-)
-                        new_marker.color.r = 0.8f;
-                        new_marker.color.g = 0.8f;
-                        new_marker.color.b = 0.8f;
-                        new_marker.color.a = 1.0;
+                        //Color
+                        if (f == 1.0)
+                        {
+                            new_marker.color.r = 0.8f;
+                            new_marker.color.g = 0.8f;
+                            new_marker.color.b = 0.8f;
+                            new_marker.color.a = 1.0;
+                        }
+                        else
+                        {
+                            new_marker.color.r = 0.9f;
+                            new_marker.color.g = 0.1f;
+                            new_marker.color.b = 0.1f;
+                            new_marker.color.a = 1.0;
+                        }
 
                         env_marker.markers.push_back(new_marker);
                     }
@@ -223,20 +237,29 @@ void loadEnvironment(visualization_msgs::MarkerArray &env_marker)
 
 
 
-// MAIN
+
+// ===============================//
+//              MAIN              //
+// ===============================//
 int main( int argc, char** argv )
 {
     //Init
     ros::init(argc, argv, "environment");
     ros::NodeHandle n;
     ros::NodeHandle pnh("~");
+
+    //Load Parameters
+    loadNodeParameters(pnh);
+
+    // Publishers
     ros::Publisher gas_source_pub = n.advertise<visualization_msgs::MarkerArray>("source_visualization", 10);
     ros::Publisher environmnet_pub = n.advertise<visualization_msgs::MarkerArray>("environment_visualization", 100);
     ros::Publisher environmnet_cad_pub = n.advertise<visualization_msgs::MarkerArray>("environment_cad_visualization", 100);
 
+    // Subscribers
+    preprocessing_done  =false;
+    ros::Subscriber sub = n.subscribe("preprocessing_done", 1, PreprocessingCB);
 
-    //Load Parameters
-    loadNodeParameters(pnh);
 
     // 1. ENVIRONMNET AS CAD MODELS
     //-------------------------------
@@ -252,8 +275,6 @@ int main( int argc, char** argv )
 
     for (int i=0;i<number_of_CAD;i++)
     {
-        //ROS_INFO("Loading CADmodel: %s", CAD_models[i].c_str());
-
         // CAD model in Collada (.dae) format
         visualization_msgs::Marker cad;
         cad.header.frame_id = fixed_frame;
@@ -274,7 +295,7 @@ int main( int argc, char** argv )
         cad.pose.orientation.z = 0.0;
         cad.pose.orientation.w = 1.0;
 
-        //Color
+        //Color (Collada has no color)
         cad.color.r = color_r[i];
         cad.color.g = color_g[i];
         cad.color.b = color_b[i];
@@ -334,12 +355,13 @@ int main( int argc, char** argv )
     //---------------
     //      LOOP
     //---------------
-    ros::Rate r(1);     //1Hz is more than enough
+    ros::Rate r(0.1);     //Just to refresh from time to time
     while (ros::ok())
     {
-        //Publish Environment Markers
+        //Publish CAD Markers
         environmnet_cad_pub.publish(CAD_model_markers);
 
+        // Publish 3D Occupancy
         if (occupancy3D_data != "")
             environmnet_pub.publish(environment);
 
