@@ -14,10 +14,17 @@
         
 	    # Plot CAD models (Collada format .dae)
 	    <param name="number_of_CAD" value="3"/>
-	    <param name="CAD_0" value="package://test_env/$(arg scenario)/cad_models/10x6_walls.dae"/>
-	    <param name="CAD_1" value="package://test_env/$(arg scenario)/cad_models/10x6_door_left.dae"/>
-	    <param name="CAD_2" value="package://test_env/$(arg scenario)/cad_models/10x6_door_right.dae"/>
-	    
+	    <rosparam subst_value="True">
+            CAD_0: package://test_env/$(arg scenario)/cad_models/10x6_walls.dae
+            CAD_0_color: [0.92, 0.96, 0.96]
+            
+            CAD_1: package://test_env/$(arg scenario)/cad_models/10x6_door_left.dae
+            CAD_1_color: [0.96, 0.17, 0.3]
+            
+            CAD_2: package://test_env/$(arg scenario)/cad_models/10x6_door_right.dae
+            CAD_2_color: [0.96, 0.17, 0.3]
+        </rosparam>
+        	    
 	    # Plot 3D OccupancyGridmap
 	    <param name="occupancy3D_data" value="$(find test_env)/$(arg scenario)/OccupancyGrid3D.csv" />
 	    
