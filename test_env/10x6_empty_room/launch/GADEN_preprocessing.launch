@@ -3,6 +3,8 @@
 -->
 
 <launch>
+    <arg name="scenario" default="10x6_empty_room" />
+    
     <node pkg="gaden_preprocessing" type="preprocessing" name="preprocessing" output="screen" >
         #IF YOU CHANGE THE MODELS OR THE WIND DATA, DELETE THE OLD OCCUPANCY3D FILE SO THE PREPROCESSING NODE RE-PROCESS EVERYTHING   
           
@@ -11,12 +13,12 @@
         
         #CAD models of the enviroment (.stl)
         <param name="number_of_models" value="1"/>
-        <param name="model_0" value="$(find test_env)/10x6_empty_room/cad_models/10x6_empty_walls.stl"/>
+        <param name="model_0" value="$(find test_env)/$(arg scenario)/cad_models/10x6_walls.stl"/>
                 
         #CAD model of the outlets (.stl)
         <param name="number_of_outlet_models" value="1"/>
-        <param name="outlets_model_1" value="$(find test_env)/10x6_empty_room/cad_models/10x6_empty_door_left.stl"/>
-        <param name="outlets_model_0" value="$(find test_env)/10x6_empty_room/cad_models/10x6_empty_door_right.stl"/>
+        <param name="outlets_model_1" value="$(find test_env)/$(arg scenario)/cad_models/10x6_door_left.stl"/>
+        <param name="outlets_model_0" value="$(find test_env)/$(arg scenario)/cad_models/10x6_door_right.stl"/>
         
         #3D Location of a point in free-space
         <param name="empty_point_x" value="1.0"/>      ### (m)
@@ -25,10 +27,10 @@
             
 
         #Wind Data (the node will append _i.csv to the name that is specified here)
-        <param name="wind_files" value="$(find test_env)/10x6_empty_room/wind_simulations/dynamic/wind_at_cell_centers"/>
+        <param name="wind_files" value="$(find test_env)/$(arg scenario)/wind_simulations/dynamic/wind_at_cell_centers"/>
 
         #Where to write the output files
-        <param name="output_path" value="$(find test_env)/10x6_empty_room" />
+        <param name="output_path" value="$(find test_env)/$(arg scenario)" />
     </node>
 </launch>
 
