@@ -22,6 +22,7 @@ std::vector< std::vector<double> >  gas_source_color;
 //CAD models
 int                                 number_of_CAD;
 std::vector<std::string>            CAD_models;
+std::vector< std::vector<double> >  CAD_color;
 
 //Environment 3D
 std::string occupancy3D_data;       //Location of the 3D Occupancy GridMap of the environment

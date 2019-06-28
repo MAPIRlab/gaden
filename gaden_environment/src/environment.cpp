@@ -54,12 +54,16 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     if (verbose) ROS_INFO("[env] number_of_CAD: %i",number_of_CAD);
 
     CAD_models.resize(number_of_CAD);
+    CAD_color.resize(number_of_CAD);
     for(int i=0;i<number_of_CAD;i++)
     {
         //Get location of CAD file for instance (i)
         std::string paramName = boost::str( boost::format("CAD_%i") % i);
+        std::string paramColor = boost::str( boost::format("CAD_%i_color") % i);
 
         private_nh.param<std::string>(paramName.c_str(), CAD_models[i], "");
+        CAD_color[i].resize(3);
+        private_nh.getParam(paramColor.c_str(),CAD_color[i]);
         if (verbose) ROS_INFO("[env] CAD_models(%i): %s",i, CAD_models[i].c_str());
     }
 
