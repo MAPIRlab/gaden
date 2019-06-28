@@ -557,5 +557,12 @@ int main(int argc, char **argv){
     
 
     ROS_INFO("Preprocessing done");
+    std_msgs::Bool b;
+    b.data=true;
+    ros::Rate r(0.1);
+    while(ros::ok()){
+        pub.publish(b);
+        r.sleep();
+}
     
 }

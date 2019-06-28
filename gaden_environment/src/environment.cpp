@@ -16,6 +16,9 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     private_nh.param<bool>("verbose", verbose, false);
     if (verbose) ROS_INFO("[env] The data provided in the roslaunch file is:");
 
+    private_nh.param<bool>("wait_preprocessing", wait_preprocessing, false);
+    if (verbose) ROS_INFO("[env] wait_preprocessing: %u",wait_preprocessing);
+
     private_nh.param<std::string>("fixed_frame", fixed_frame, "map");
     if (verbose) ROS_INFO("[env] Fixed Frame: %s",fixed_frame.c_str());
 
@@ -72,6 +75,16 @@ void loadNodeParameters(ros::NodeHandle private_nh)
 }
 
 
+//=========================//
+// PreProcessing CallBack  //
+//=========================//
+void PreprocessingCB(const std_msgs::Bool& b)
+{
+    preprocessing_done = true;
+}
+
+
+
 /* Load environment from 3DOccupancy.csv GridMap
  * Loads the environment file containing a description of the simulated environment in the CFD (for the estimation of the wind flows), and displays it.
  * As a general rule, environment files set a value of "0" for a free cell, "1" for a ocuppiedd cell and "2" for outlet.
@@ -79,6 +92,18 @@ void loadNodeParameters(ros::NodeHandle private_nh)
 */
 void loadEnvironment(visualization_msgs::MarkerArray &env_marker)
 {
+    // Wait for the GADEN_preprocessin node to finish?
+    if( wait_preprocessing )
+    {
+        while(ros::ok() && !preprocessing_done)
+        {
+            ros::Duration(0.5).sleep();
+            ros::spinOnce();
+            if (verbose) ROS_INFO("[environment] Waiting for node GADEN_preprocessing to end.");
+        }
+	}
+
+
     //open file
     std::ifstream infile(occupancy3D_data.c_str());
     std::string line;
