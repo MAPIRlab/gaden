@@ -41,8 +41,9 @@ void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > >
                         for (int i = 0; i < scale; i++)
                         {
                             outfile << (env[row][col][height]==0?1:
-                                            (env[row][col][height]==3?0:
-                                                env[row][col][height])) 
+                                            (env[row][col][height]==3?2:
+                                            (env[row][col][height]==5?0:
+                                                env[row][col][height]))) 
                                     << " ";
                         }
                     }
@@ -405,36 +406,35 @@ void openFoam_to_gaden(std::string filename, std::vector<std::vector<std::vector
     printWind(U,V,W,filename);
 }
 
-void fill(int x, int y, int z, std::vector<std::vector<std::vector<int> > >& env){
-    std::cout<<"Filling...\n";
+void fill(int x, int y, int z, std::vector<std::vector<std::vector<int> > >& env, int val, int empty){
     std::queue<Eigen::Vector3i> q;
     q.push(Eigen::Vector3i(x, y, z));
-    env[x][y][1]=3;
+    env[x][y][1]=val;
     while(!q.empty()){
         Eigen::Vector3i point = q.front();
         q.pop();
-        if(point[0]+1<env.size()&&env[point[0]+1][point[1]][point[2]]==0){ // x+1, y, z
-            env[point[0]+1][point[1]][point[2]]=3;
+        if(point[0]+1<env.size()&&env[point[0]+1][point[1]][point[2]]==empty){ // x+1, y, z
+            env[point[0]+1][point[1]][point[2]]=val;
             q.push(Eigen::Vector3i(point[0]+1,point[1],point[2]));
         }
-        if(point[0]>0&&env[point[0]-1][point[1]][point[2]]==0){ //x-1, y, z
-            env[point[0]-1][point[1]][point[2]]=3;
+        if(point[0]>0&&env[point[0]-1][point[1]][point[2]]==empty){ //x-1, y, z
+            env[point[0]-1][point[1]][point[2]]=val;
             q.push(Eigen::Vector3i(point[0]-1,point[1],point[2]));
         }
-        if(point[1]+1<env[0].size()&&env[point[0]][point[1]+1][point[2]]==0){ //x, y+1, z
-            env[point[0]][point[1]+1][point[2]]=3;
+        if(point[1]+1<env[0].size()&&env[point[0]][point[1]+1][point[2]]==empty){ //x, y+1, z
+            env[point[0]][point[1]+1][point[2]]=val;
             q.push(Eigen::Vector3i(point[0],point[1]+1,point[2]));
         }
-        if(point[1]>0&&env[point[0]][point[1]-1][point[2]]==0){ //x, y-1, z
-            env[point[0]][point[1]-1][point[2]]=3;
+        if(point[1]>0&&env[point[0]][point[1]-1][point[2]]==empty){ //x, y-1, z
+            env[point[0]][point[1]-1][point[2]]=val;
             q.push(Eigen::Vector3i(point[0],point[1]-1,point[2]));
         }
-        if(point[2]+1<env[0][0].size()&&env[point[0]][point[1]][point[2]+1]==0){ //x, y, z+1
-            env[point[0]][point[1]][point[2]+1]=3;
+        if(point[2]+1<env[0][0].size()&&env[point[0]][point[1]][point[2]+1]==empty){ //x, y, z+1
+            env[point[0]][point[1]][point[2]+1]=val;
             q.push(Eigen::Vector3i(point[0],point[1],point[2]+1));
         }
-        if(point[2]>0&&env[point[0]][point[1]][point[2]-1]==0){ //x, y, z-1
-            env[point[0]][point[1]][point[2]-1]=3;
+        if(point[2]>0&&env[point[0]][point[1]][point[2]-1]==empty){ //x, y, z-1
+            env[point[0]][point[1]][point[2]-1]=val;
             q.push(Eigen::Vector3i(point[0],point[1],point[2]-1));
         }
     }
@@ -455,12 +455,6 @@ void clean(std::vector<std::vector<std::vector<int> > >& env){
                     }else
                     {
                         env[col][row][height]=1;
-                        //if((col<env.size()-1&&env[col+1][row][height]==4)&&
-                        //        (row<env[0].size()-1&&env[col][row+1][height]==4)&&
-                        //        (height<env[0][0].size()-1&&env[col][row][height+1]==4))
-                        //{
-                        //    st.push(Eigen::Vector3i(col, row, height));
-                        //}
                     }
                     
                 }
@@ -468,19 +462,6 @@ void clean(std::vector<std::vector<std::vector<int> > >& env){
             }
         }
     }
-    //while(!st.empty()){
-    //    Eigen::Vector3i point=st.top();
-    //    st.pop();
-    //    int col=point[0];int row=point[1];int height=point[2];
-    //    if(col<env.size()-1&&(env[col+1][row][height]==3)&&
-    //            (row<env[0].size()-1&&env[col][row+1][height]==3))
-    //    {
-    //        env[col][row][height]=3;
-    //    }else
-    //    {
-    //        env[col][row][height]=1;
-    //    }
-    //}
 }
 int main(int argc, char **argv){
     ros::init(argc, argv, "preprocessing");
@@ -534,9 +515,7 @@ int main(int argc, char **argv){
     {
         parse(CADfiles[i], env, 1);
     }
-    for (int i=0;i<numOutletModels; i++){
-        parse(outletFiles[i], env, 2);
-    }    
+      
 
     double empty_point_x;
     private_nh.param<double>("empty_point_x", empty_point_x, 1);
@@ -544,14 +523,28 @@ int main(int argc, char **argv){
     private_nh.param<double>("empty_point_y", empty_point_y, 1);
     double empty_point_z;
     private_nh.param<double>("empty_point_z", empty_point_z, 1);
+
+    std::cout<<"Filling...\n";
     fill((empty_point_x-env_min_x)/cell_size,
         (empty_point_y-env_min_y)/cell_size,
         (empty_point_z-env_min_z)/cell_size, 
-        env);
+        env, 3, 0);
     clean(env);
+
+
+    printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 10);
+    
+    for (int i=0;i<numOutletModels; i++){
+        parse(outletFiles[i], env, 2);
+    }  
+
+    fill((empty_point_x-env_min_x)/cell_size,
+        (empty_point_y-env_min_y)/cell_size,
+        (empty_point_z-env_min_z)/cell_size, 
+        env, 5, 3);
+
     //output - path, occupancy vector, scale
     printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), env, 1);
-    printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 10);
     printYaml(output);
     //WIND
     int idx = 0;
