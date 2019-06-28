@@ -7,36 +7,35 @@
 -->
 
 <launch>
-  <arg name="dataset_path" default="$(find test_env)/10x6_empty_room" />
-  <arg name="simulation_folder" default="1ms" />
-  
-  ### ROBOT SIMULATION ###
-  <param name="use_sim_time" value="true" />
-  
-  <node pkg="stage_ros" type="stageros" name="stage_ros" respawn="false" output="screen" args="$(arg dataset_path)/launch/ros/stage.world" >
-    <param name="laser_scan_topic" value="/laser_scan"/>
-    <param name="laser_frame_id" value="laser_stage" />
-    <param name="odom_topic" value="/odom"/>
-    <param name="odom_frame_id" value="odom" />    
-    <param name="disable_odometry" value="false" />    
-  </node>
-  
-  ### URDF MODEL ###
-  <param name="robot_description" textfile="$(arg dataset_path)/launch/ros/giraff.urdf" />
-  <param name="use_gui" value="False"/>
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
- 
-  ### NAVIGATION ###
-  <node name="map_server" pkg="map_server" type="map_server" args="$(arg dataset_path)/occupancy.yaml" />  
-  <include file="$(arg dataset_path)/launch/ros/simbot_move_base.launch" />  
-  <node pkg="fake_localization" type="fake_localization" name="fake_localization" output="screen">	    
-	<param name="odom_frame_id" value="odom"/>
-	<param name="global_frame_id" value="map"/>
-	<param name="base_frame_id" value="base_link"/>
-  </node>
+    <arg name="scenario" default="10x6_central_obstacle" />
 
-  ### RVIZ ###
-  <node name="rviz_player" pkg="rviz" type="rviz" args="-d $(arg dataset_path)/launch/ros/gaden.rviz"/>
+    ### ROBOT SIMULATION ###
+    <param name="use_sim_time" value="true" />
+
+    <node pkg="stage_ros" type="stageros" name="stage_ros" respawn="false" output="screen" args="$(find test_env)/$(arg scenario)/launch/ros/stage.world" >
+        <param name="laser_scan_topic" value="/laser_scan"/>
+        <param name="laser_frame_id" value="laser_stage" />
+        <param name="odom_topic" value="/odom"/>
+        <param name="odom_frame_id" value="odom" />    
+        <param name="disable_odometry" value="false" />    
+    </node>
+
+    ### URDF MODEL ###
+    <param name="robot_description" textfile="$(find test_env)/$(arg scenario)/launch/ros/giraff.urdf" />
+    <param name="use_gui" value="False"/>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+    ### NAVIGATION ###
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find test_env)/$(arg scenario)/occupancy.yaml" />  
+    <include file="$(find test_env)/$(arg scenario)/launch/ros/simbot_move_base.launch" />  
+    <node pkg="fake_localization" type="fake_localization" name="fake_localization" output="screen">	    
+        <param name="odom_frame_id" value="odom"/>
+        <param name="global_frame_id" value="map"/>
+        <param name="base_frame_id" value="base_link"/>
+    </node>
+
+    ### RVIZ ###
+    <node name="rviz_player" pkg="rviz" type="rviz" args="-d $(find test_env)/$(arg scenario)/launch/ros/gaden.rviz"/>
   
   
 # ===================== GADEN =====================================
@@ -48,13 +47,14 @@
         <param name="fixed_frame" value="map"/>
         
 	    # Plot CAD models (Collada format .dae)
-	    <param name="number_of_CAD" value="3"/>
-	    <param name="CAD_0" value="package://test_env/10x6_empty_room/cad_models/10x6_empty_walls.dae"/>
-	    <param name="CAD_1" value="package://test_env/10x6_empty_room/cad_models/10x6_empty_door_left.dae"/>
-	    <param name="CAD_2" value="package://test_env/10x6_empty_room/cad_models/10x6_empty_door_right.dae"/>
+	    <param name="number_of_CAD" value="4"/>
+	    <param name="CAD_0" value="package://test_env/$(arg scenario)/cad_models/10x6_walls.dae"/>
+	    <param name="CAD_1" value="package://test_env/$(arg scenario)/cad_models/10x6_central_obstacle.dae"/>
+	    <param name="CAD_2" value="package://test_env/$(arg scenario)/cad_models/10x6_door_left.dae"/>
+	    <param name="CAD_3" value="package://test_env/$(arg scenario)/cad_models/10x6_door_right.dae"/>
 	    
 	    # Plot 3D OccupancyGridmap
-	    <param name="occupancy3D_data" value="$(find test_env)/10x6_empty_room/OccupancyGrid3D.csv" />
+	    <param name="occupancy3D_data" value="$(find test_env)/$(arg scenario)/OccupancyGrid3D.csv" />
 	    
 	    # Plot gas sources
         <param name="number_of_sources" value="1"/>
@@ -66,23 +66,25 @@
             source_0_color: [0.0, 1.0, 0.0] 
         </rosparam>
     </node>
+          
+
+    ### NODE PLAYER ###
+    #-------------------
+    <node pkg="gaden_player" type="gaden_player" name="gaden_player" output="screen">
+        <param name="verbose" value="false" />
+	    <param name="player_freq" value="2" />         ###(Hz) Freq for loading the simulation log_files
+	    <param name="initial_iteration" value="0" />
+	    <param name="num_simulators" value="1" />      ### Number of simulations to load [1-inf] (useful for multiple sources and gases)
     
-    
-  ### GADEN PLAYER ###   
-  #------------------#
-  <node pkg="gaden_player" type="gaden_player" name="gaden_player" output="screen">
-    <param name="/verbose" value="false" />
-	<param name="/player_freq" value="2" />         ###(Hz) Freq for loading the simulation log_files
-	<param name="/num_simulators" value="1" />      ### Number of simulations to load [1-inf] (useful for multiple sources and gases)
-    
-    # Data from the "filament_simulator" pkg (Multiple sources can be set here)
-    <param name="/simulation_data_0" value="$(arg dataset_path)/gas_simulations/FilamentSimulation_gasType_0_sourcePosition_0.50_3.00_0.50_iteration_" />
-    
-    <param name="/initial_iteration" value="0" />       ### Initial iteration to load
-    <param name="/allow_looping" value="true" />        ### Allow looping  (bool)
-    <param name="/loop_from_iteration" value="0" />     ### Iteration to start the loop
-    <param name="/loop_to_iteration" value="200" />     ### Iteration to stop the loop
-  </node>
+        # Data from the "filament_simulator" pkg. Multiple sources can be set here
+        <param name="simulation_data_0" value="$(find test_env)/$(arg scenario)/gas_simulations/FilamentSimulation_gasType_0_sourcePosition_0.50_3.00_0.50_iteration_" />
+        
+        # Loop options        
+        <param name="allow_looping" value="true" />
+        <param name="loop_from_iteration" value="0" />
+        <param name="loop_to_iteration" value="298" />
+        
+    </node>
   
   
   ### SENSOR SIMULATION ###
