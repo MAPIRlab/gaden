@@ -1,3 +1,0 @@
-The log files produced by the simulator are automatically compressed with zlib. If you need to read the contents of the files, use this program.
-running "./decompress inputFile outputFile" will store in outputFile the decompressed contents of inputFile.
-
