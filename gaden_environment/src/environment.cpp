@@ -270,21 +270,13 @@ int main( int argc, char** argv )
     //-------------------------------
     visualization_msgs::MarkerArray CAD_model_markers;
 
-    //Set pallete of colors
-    static const float arr_r[] = {0.92, 0.38, 0.96, 0.64, 0.71};
-    static const float arr_g[] = {0.96, 0.92, 0.17, 0.53, 0.71};
-    static const float arr_b[] = {0.96, 0.96, 0.3, 0.3, 0.78};
-    std::vector<float> color_r (arr_r, arr_r + sizeof(arr_r) / sizeof(arr_r[0]) );
-    std::vector<float> color_g (arr_g, arr_g + sizeof(arr_g) / sizeof(arr_g[0]) );
-    std::vector<float> color_b (arr_b, arr_b + sizeof(arr_b) / sizeof(arr_b[0]) );
-
     for (int i=0;i<number_of_CAD;i++)
     {
         // CAD model in Collada (.dae) format
         visualization_msgs::Marker cad;
         cad.header.frame_id = fixed_frame;
         cad.header.stamp = ros::Time::now();
-        cad.ns = "environment_cad_visualization";
+        cad.ns = "part_" + std::to_string(i);
         cad.id = i;
         cad.type = visualization_msgs::Marker::MESH_RESOURCE;
         cad.action = visualization_msgs::Marker::ADD;
@@ -301,9 +293,9 @@ int main( int argc, char** argv )
         cad.pose.orientation.w = 1.0;
 
         //Color (Collada has no color)
-        cad.color.r = color_r[i];
-        cad.color.g = color_g[i];
-        cad.color.b = color_b[i];
+        cad.color.r = CAD_color[i][0];
+        cad.color.g = CAD_color[i][1];
+        cad.color.b = CAD_color[i][2];
         cad.color.a = 1.0;
 
         //Add Marker to array
@@ -356,11 +348,13 @@ int main( int argc, char** argv )
         gas_source_markers.markers.push_back(source);
     }
 
+    // Small sleep to allow RVIZ to startup
+    ros::Duration(1.0).sleep();
 
     //---------------
     //      LOOP
     //---------------
-    ros::Rate r(0.1);     //Just to refresh from time to time
+    ros::Rate r(0.3);     //Just to refresh from time to time
     while (ros::ok())
     {
         //Publish CAD Markers
