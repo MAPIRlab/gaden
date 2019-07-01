@@ -18,9 +18,9 @@ robot_radius: 0.26           #[m] radius of the robot shape for Giraff Robots (i
 observation_sources: laser_scan laser2_scan laser_stage
 
 #sensor_id: {sensor_frame: [], data_type: [LaserScan/PointCloud], topic: [], marking: true, clearing: true}
-laser_scan: {sensor_frame: /laser_link, data_type: LaserScan, topic: /laser_scan, marking: true, clearing: true}
-laser2_scan: {sensor_frame: /laser2_link, data_type: LaserScan, topic: /laser2_scan, marking: true, clearing: true}
-laser_stage: {sensor_frame: /laser_stage, data_type: LaserScan, topic: /laser_scan, marking: true, clearing: true}
+laser_scan: {sensor_frame: laser_link, data_type: LaserScan, topic: /laser_scan, marking: true, clearing: true}
+laser2_scan: {sensor_frame: laser2_link, data_type: LaserScan, topic: /laser2_scan, marking: true, clearing: true}
+laser_stage: {sensor_frame: laser_stage, data_type: LaserScan, topic: /laser_scan, marking: true, clearing: true}
 
 
 #Planners

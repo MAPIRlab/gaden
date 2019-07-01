@@ -8,8 +8,8 @@ global_costmap:
     - {name: inflation,  type: "costmap_2d::InflationLayer" }
     #- {name: proxemic,   type: "social_navigation_layers::ProxemicLayer" }
     
-  global_frame: /map
-  robot_base_frame: /base_link
+  global_frame: map
+  robot_base_frame: base_link
   update_frequency: 1.0
   publish_frequency: 0.5
   static_map: true

@@ -6,8 +6,7 @@
     <arg name="scenario" default="10x6_maze" />
     
     <node pkg="gaden_preprocessing" type="preprocessing" name="preprocessing" output="screen" >
-        #IF YOU CHANGE THE MODELS OR THE WIND DATA, DELETE THE OLD OCCUPANCY3D FILE SO THE PREPROCESSING NODE RE-PROCESS EVERYTHING   
-          
+
         #Cell size
         <param name="cell_size" value="0.1"/>    
         
@@ -18,7 +17,7 @@
         <param name="model_2" value="$(find test_env)/$(arg scenario)/cad_models/10x6_maze_obj_2.stl"/>
                 
         #CAD model of the outlets (.stl)
-        <param name="number_of_outlet_models" value="1"/>
+        <param name="number_of_outlet_models" value="2"/>
         <param name="outlets_model_1" value="$(find test_env)/$(arg scenario)/cad_models/10x6_door_left.stl"/>
         <param name="outlets_model_0" value="$(find test_env)/$(arg scenario)/cad_models/10x6_door_right.stl"/>
         

@@ -2,7 +2,7 @@
 # World file for Stage simulator #
 #--------------------------------#
 
-resolution 0.01    # resolution of the underlying raytrace model in meters
+resolution 0.01   # resolution of the underlying raytrace model in meters
 interval_sim 100   # simulation timestep in milliseconds
 
 
@@ -70,7 +70,7 @@ define CameraFront camera          # RGB camera
 
 define robotBase position      # Mobile robot base.
 (
-  size [0.52 0.52 1.0]
+  size [0.45 0.45 1.0]
   origin [0.00 0.000 0.000 0.000]
   gui_nose 1
   drive "diff"
@@ -98,10 +98,10 @@ define robotBase position      # Mobile robot base.
   )
     
   # Add a laser
-  LaserFront(pose [ 0.10 0.000 -1.00 0.000 ])    #pose in its parent's coordinate system
+  LaserFront(pose [ 0.10 0.000 -0.500 0.000 ])    #pose in its parent's coordinate system
   
   #Add a camera
-  #CameraFront(pose [ -0.20 0.000 0.6 0.000 ])    #pose in its parent's coordinate system
+  CameraFront(pose [ -0.20 0.000 0.6 0.000 ])    #pose in its parent's coordinate system
   
   #LOCALIZATION
   # Report error-free position in world coordinates
@@ -129,14 +129,12 @@ window                         #Main Simulator window
 floorMap                     # load an environment bitmap
 (
   name "SimulatedMap"
-
-  #occupancy_map.pgm 1020x620px
-  # resolution 0.01 m/px
+  
   bitmap "../../occupancy.pgm"
-  size [10.2 6.2 2.5]             #m  
-  pose [ 5.0 3.0 0.0 0.000 ]    #Coordinates (m) of the Center of the image_map
+  size [11.0 12.0 3.00]           #m  
+  pose [ 0.0 0.0 0.000 0.000 ]    #Coordinates (m) of the Center of the image_map
 )
 
 # throw in a robot
-robotBase( pose [ 9.5 3.1 0.0 180 ] name "SimRobot" color "blue")
+robotBase( pose [ 2.0 3.0 0.000 0.000 ] name "SimRobot" color "blue")
 
