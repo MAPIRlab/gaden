@@ -223,13 +223,13 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
         double y3 = points[i][2][1];
         double z3 = points[i][2][2];
 
-        int min_x = (min_val(x1,x2,x3)-env_min_x)/cell_size;
-        int min_y = (min_val(y1,y2,y3)-env_min_y)/cell_size;
-        int min_z = (min_val(z1,z2,z3)-env_min_z)/cell_size;
+        int min_x = roundf((min_val(x1,x2,x3)-env_min_x)/cell_size*1000)/1000;
+        int min_y = roundf((min_val(y1,y2,y3)-env_min_y)/cell_size*1000)/1000;
+        int min_z = roundf((min_val(z1,z2,z3)-env_min_z)/cell_size*1000)/1000;
 
-        int max_x = (max_val(x1,x2,x3)-env_min_x)/cell_size;
-        int max_y = (max_val(y1,y2,y3)-env_min_y)/cell_size;
-        int max_z = (max_val(z1,z2,z3)-env_min_z)/cell_size;
+        int max_x = roundf((max_val(x1,x2,x3)-env_min_x)/cell_size*1000)/1000;
+        int max_y = roundf((max_val(y1,y2,y3)-env_min_y)/cell_size*1000)/1000;
+        int max_z = roundf((max_val(z1,z2,z3)-env_min_z)/cell_size*1000)/1000;
 
         int value=val;
         bool isParallel = parallel(normals[i]);
@@ -351,9 +351,13 @@ void findDimensions(std::string filename){
                 size_t pos = line.find("vertex ");
                 line.erase(0, pos + 7);
                 std::stringstream ss(line);
-                ss >> std::skipws >> x;
-                ss >> std::skipws >> y;
-                ss >> std::skipws >> z;
+                double aux;
+                ss >> std::skipws >>  aux; 
+                x = roundf(aux * 1000) / 1000;
+                ss >> std::skipws >>  aux; 
+                y = roundf(aux * 1000) / 1000;
+                ss >> std::skipws >>  aux; 
+                z = roundf(aux * 1000) / 1000;
                 env_max_x = env_max_x>=x?env_max_x:x;
                 env_max_y = env_max_y>=y?env_max_y:y;
                 env_max_z = env_max_z>=z?env_max_z:z;
@@ -395,9 +399,9 @@ void openFoam_to_gaden(std::string filename, std::vector<std::vector<std::vector
 				line.erase(0, pos + 1);
 			}
 			//assign each of the points we have information about to the nearest cell
-			x_idx = (v[3] - env_min_x) / cell_size;
-			y_idx = (v[4] - env_min_y) / cell_size;
-			z_idx = (v[5] - env_min_z) / cell_size;
+			x_idx = roundf((v[3] - env_min_x) / cell_size*1000)/1000;
+			y_idx = roundf((v[4] - env_min_y) / cell_size*1000)/1000;
+			z_idx = roundf((v[5] - env_min_z) / cell_size*1000)/1000;
 			U[x_idx][y_idx][z_idx] = v[0];
 			V[x_idx][y_idx][z_idx] = v[1];
 			W[x_idx][y_idx][z_idx] = v[2];
@@ -507,10 +511,11 @@ int main(int argc, char **argv){
     {
         findDimensions(CADfiles[i]);
     }
-
-    std::vector<std::vector<std::vector<int> > > env((env_max_y - env_min_y) / cell_size,
-                                                    std::vector<std::vector<int> >((env_max_x - env_min_x) / cell_size,
-                                                                                    std::vector<int>((env_max_z - env_min_z) / cell_size, 0)));
+    std::vector<std::vector<std::vector<int> > > env(roundf((env_max_y - env_min_y) / cell_size*1000)/1000,
+                                                    std::vector<std::vector<int> >(roundf((env_max_x - env_min_x)/cell_size*1000)/1000,
+                                                                                    std::vector<int>(roundf((env_max_z - env_min_z)/cell_size*1000)/1000, 0)));
+    
+    std::cout << env[0].size() << "\n";
     for (int i = 0; i < numModels; i++)
     {
         parse(CADfiles[i], env, 1);
