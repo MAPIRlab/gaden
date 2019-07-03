@@ -102,30 +102,30 @@
   
   <group ns="PID">
     <node pkg="simulated_gas_sensor" type="simulated_gas_sensor" name="fake_pid" output="screen">
-        <param name="/sensor_model" value="30" />
-        <param name="/sensor_frame" value="pid_frame" />
-        <param name="/fixed_frame" value="map"/>
-        <param name="/noise_std" value="20.1"/>
+        <param name="sensor_model" value="30" />
+        <param name="sensor_frame" value="pid_frame" />
+        <param name="fixed_frame" value="map"/>
+        <param name="noise_std" value="20.1"/>
     </node>
   </group>
   <node pkg="tf" type="static_transform_publisher" name="pid_broadcaster" args="0.0 0.0 0.5 0 0 0 base_link pid_frame 100" />  
   
   <group ns="MOX">
     <node pkg="simulated_gas_sensor" type="simulated_gas_sensor" name="fake_mox" output="screen">
-        <param name="/sensor_model" value="2" />
-        <param name="/sensor_frame" value="mox_frame" />
-        <param name="/fixed_frame" value="map"/>
-        <param name="/noise_std" value="0.1"/>
+        <param name="sensor_model" value="2" />
+        <param name="sensor_frame" value="mox_frame" />
+        <param name="fixed_frame" value="map"/>
+        <param name="noise_std" value="0.1"/>
     </node>
   </group>
   <node pkg="tf" type="static_transform_publisher" name="mox_broadcaster" args="0.0 0.0 0.5 0 0 0 base_link mox_frame 100" />
 
   <group ns="Anemometer">
     <node pkg="simulated_anemometer" type="simulated_anemometer" name="fake_anemometer" output="screen">	        
-      <param name="/sensor_frame" value="anemometer_frame" />
-      <param name="/fixed_frame" value="map"/>
-      <param name="/noise_std" value="0.1"/>
-      <param name="/use_map_ref_system" value="true"/>
+      <param name="sensor_frame" value="anemometer_frame" />
+      <param name="fixed_frame" value="map"/>
+      <param name="noise_std" value="0.1"/>
+      <param name="use_map_ref_system" value="false"/>
     </node>
   </group>
   <node pkg="tf" type="static_transform_publisher" name="anemometer_broadcaster" args="0.0 0.0 0.5 0 0 0 base_link anemometer_frame 100" />

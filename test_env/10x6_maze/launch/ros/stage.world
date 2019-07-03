@@ -51,7 +51,7 @@ define LaserFront ranger          # Infra-red (IR) range sensor
 	
   # generic model properties
   color_rgba [ 0 0 1 0.3 ]
-  size [ 0.05 0.005 0.1 ]
+  size [ 0.050 0.005 0.100 ]
 )
 
 
@@ -70,8 +70,8 @@ define CameraFront camera          # RGB camera
 
 define robotBase position      # Mobile robot base.
 (
-  size [0.45 0.45 1.0]
-  origin [0.00 0.000 0.000 0.000]
+  size [0.450 0.450 1.000]
+  origin [0.000 0.000 0.000 0.000]
   gui_nose 1
   drive "diff"
   
@@ -98,10 +98,10 @@ define robotBase position      # Mobile robot base.
   )
     
   # Add a laser
-  LaserFront(pose [ 0.10 0.000 -0.500 0.000 ])    #pose in its parent's coordinate system
+  LaserFront(pose [ 0.100 0.000 -0.500 0.000 ])    #pose in its parent's coordinate system
   
   #Add a camera
-  CameraFront(pose [ -0.20 0.000 0.6 0.000 ])    #pose in its parent's coordinate system
+  CameraFront(pose [ -0.200 0.000 0.600 0.000 ])    #pose in its parent's coordinate system
   
   #LOCALIZATION
   # Report error-free position in world coordinates
@@ -131,10 +131,10 @@ floorMap                     # load an environment bitmap
   name "SimulatedMap"
   
   bitmap "../../occupancy.pgm"
-  size [11.0 12.0 3.00]           #m  
-  pose [ 0.0 0.0 0.000 0.000 ]    #Coordinates (m) of the Center of the image_map
+  size [10.400 6.400 3.000]            # [m]
+  pose [ 5.000 3.000 0.000 0.000 ]     # Coordinates (m) of the Center of the image_map
 )
 
 # throw in a robot
-robotBase( pose [ 2.0 3.0 0.000 0.000 ] name "SimRobot" color "blue")
+robotBase( pose [ 8.836 3.062 0.000 177.161 ] name "SimRobot" color "blue")     # In degrees!
 
