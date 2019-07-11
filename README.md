@@ -14,7 +14,7 @@ This folder contains all the cad models that define the environment. For conveni
 * **launch**:
 This folder includes the launch and configuration files for testing GADEN and a simple Robotics simulation environment using [Stage](http://wiki.ros.org/stage). Concretely, the files included are:
 
-    1. **GADEN_preprocessing**: A launch file in charge of loading the CAD models (.stl) and CFD wind data to generate the Occupancy3D grid map and format the wind flows to the cubic-grid format used in GADEN. This must be the first launch file to run as it is a pre-processing stage necessary for the simulation.
+    1. **GADEN_preprocessing**: A launch file in charge of loading the CAD models (.stl ASCII) and CFD wind data to generate the Occupancy3D grid map and format the wind flows to the cubic-grid format used in GADEN. This must be the first launch file to run as it is a pre-processing stage necessary for the simulation.
 
     2. **GADEN**: This launch file is the one responsible for running the gas dispersal simulation, saving the results to the designated folder (see params). This script represents the core of GADEN.
 
