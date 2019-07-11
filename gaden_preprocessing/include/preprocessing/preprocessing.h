@@ -42,10 +42,10 @@ bool pointInTriangle(const Eigen::Vector3f& query_point,
 bool parallel (std::vector<double> &vec);
 
 //these are for printing the results on files
-void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > > env, int scale);
-void printWind(std::vector<std::vector<std::vector<double> > > U,
-                std::vector<std::vector<std::vector<double> > > V,
-                std::vector<std::vector<std::vector<double> > > W, std::string filename);
+void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > > &env, int scale);
+void printWind(std::vector<std::vector<std::vector<double> > > &U,
+                std::vector<std::vector<std::vector<double> > > &V,
+                std::vector<std::vector<std::vector<double> > > &W, std::string filename);
 
 //these are for parsing the stl files and generating a 3D occupancy map
 void occupy(std::vector<std::vector<std::vector<int> > >& env,

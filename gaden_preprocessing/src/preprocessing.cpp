@@ -1,6 +1,6 @@
 #include "preprocessing/preprocessing.h"
 
-void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > > env, int scale)
+void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > > &env, int scale)
 {
     std::ofstream outfile(filename.c_str());
     if (filename.find(".pgm") != std::string::npos)
@@ -54,10 +54,9 @@ void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > >
         }
     }
 }
-void printWind(std::vector<std::vector<std::vector<double> > > U,
-                std::vector<std::vector<std::vector<double> > > V,
-                std::vector<std::vector<std::vector<double> > > W, std::string filename){
-    
+void printWind(std::vector<std::vector<std::vector<double> > > &U,
+                std::vector<std::vector<std::vector<double> > > &V,
+                std::vector<std::vector<std::vector<double> > > &W, std::string filename){
     std::ofstream fileU(boost::str(boost::format("%s_U") % filename).c_str());
     std::ofstream fileV(boost::str(boost::format("%s_V") % filename).c_str());
     std::ofstream fileW(boost::str(boost::format("%s_W") % filename).c_str());
@@ -150,7 +149,7 @@ std::vector<Eigen::Vector3d> cubePoints(const Eigen::Vector3d &query_point){
     return points;
 }
 
-bool planeIntersects(Eigen::Vector3d n, double d, const Eigen::Vector3d& query_point,const std::vector<Eigen::Vector3d>& cube){
+bool planeIntersects(Eigen::Vector3d& n, double d, const Eigen::Vector3d& query_point,const std::vector<Eigen::Vector3d>& cube){
     bool allPositive = true;
     bool allNegative = true;
     for (int i=0;i<cube.size();i++){
@@ -223,13 +222,13 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
         double y3 = points[i][2][1];
         double z3 = points[i][2][2];
 
-        int min_x = roundf((min_val(x1,x2,x3)-env_min_x)/cell_size*1000)/1000;
-        int min_y = roundf((min_val(y1,y2,y3)-env_min_y)/cell_size*1000)/1000;
-        int min_z = roundf((min_val(z1,z2,z3)-env_min_z)/cell_size*1000)/1000;
+        int min_x = roundf((min_val(x1,x2,x3)-env_min_x)/cell_size*100000)/100000;
+        int min_y = roundf((min_val(y1,y2,y3)-env_min_y)/cell_size*100000)/100000;
+        int min_z = roundf((min_val(z1,z2,z3)-env_min_z)/cell_size*100000)/100000;
 
-        int max_x = roundf((max_val(x1,x2,x3)-env_min_x)/cell_size*1000)/1000;
-        int max_y = roundf((max_val(y1,y2,y3)-env_min_y)/cell_size*1000)/1000;
-        int max_z = roundf((max_val(z1,z2,z3)-env_min_z)/cell_size*1000)/1000;
+        int max_x = roundf((max_val(x1,x2,x3)-env_min_x)/cell_size*100000)/100000;
+        int max_y = roundf((max_val(y1,y2,y3)-env_min_y)/cell_size*100000)/100000;
+        int max_z = roundf((max_val(z1,z2,z3)-env_min_z)/cell_size*100000)/100000;
 
         int value=val;
         bool isParallel = parallel(normals[i]);
@@ -298,11 +297,11 @@ void parse(std::string filename, std::vector<std::vector<std::vector<int> > >& e
             double aux;
             std::stringstream ss(line);
             ss >> std::skipws >>  aux; 
-            normals[i][0] = roundf(aux * 1000) / 1000;
+            normals[i][0] = roundf(aux * 100000) / 100000;
             ss >> std::skipws >>  aux; 
-            normals[i][1] = roundf(aux * 1000) / 1000;
+            normals[i][1] = roundf(aux * 100000) / 100000;
             ss >> std::skipws >>  aux; 
-            normals[i][2] = roundf(aux * 1000) / 1000;
+            normals[i][2] = roundf(aux * 100000) / 100000;
             std::getline(infile, line);
 
             for(int j=0;j<3;j++){
@@ -311,11 +310,17 @@ void parse(std::string filename, std::vector<std::vector<std::vector<int> > >& e
                 line.erase(0, pos + 7);
                 std::stringstream ss(line);
                 ss >> std::skipws >>  aux; 
-                points[i][j][0] = roundf(aux * 1000) / 1000;
+                points[i][j][0] = roundf(aux * 100000) / 100000;
                 ss >> std::skipws >>  aux; 
-                points[i][j][1] = roundf(aux * 1000) / 1000;
+                points[i][j][1] = roundf(aux * 100000) / 100000;
                 ss >> std::skipws >>  aux; 
-                points[i][j][2] = roundf(aux * 1000) / 1000;
+                points[i][j][2] = roundf(aux * 100000) / 100000;
+                env_max_x = env_max_x>=points[i][j][0]?env_max_x:points[i][j][0];
+                env_max_y = env_max_y>=points[i][j][1]?env_max_y:points[i][j][1];
+                env_max_z = env_max_z>=points[i][j][2]?env_max_z:points[i][j][2];
+                env_min_x = env_min_x<=points[i][j][0]?env_min_x:points[i][j][0];
+                env_min_y = env_min_y<=points[i][j][1]?env_min_y:points[i][j][1];
+                env_min_z = env_min_z<=points[i][j][2]?env_min_z:points[i][j][2];
             }
             i++;
             //skipping lines here makes checking for the end of the file more convenient
@@ -323,54 +328,18 @@ void parse(std::string filename, std::vector<std::vector<std::vector<int> > >& e
             std::getline(infile, line);
             while(std::getline(infile, line)&&line.length()==0);
     }
+    
+    env.resize(roundf((env_max_y - env_min_y) / cell_size*100000)/100000);
+    for(int i =0;i<env.size();i++){
+        env[i].resize(roundf((env_max_x - env_min_x)/cell_size*100000)/100000);
+        for(int j=0;j<env[i].size();j++){
+            env[i][j].resize(roundf((env_max_z - env_min_z)/cell_size*100000)/100000);
+        }
+    }
+
     //OK, we have read the data, let's do something with it
     occupy(env, points, normals, val);
 
-}
-void findDimensions(std::string filename){
-    if (FILE *file = fopen(filename.c_str(), "r"))
-    {
-        //File exists!, keep going!
-        fclose(file);
-    }else{
-        std::cout<< "File " << filename << " does not exist\n";
-    }
-
-    //let's read the data
-    std::string line;
-    std::ifstream infile(filename.c_str());
-    std::getline(infile, line);
-    int i =0;
-    while (line.find("endsolid")==std::string::npos)
-        {
-            while (std::getline(infile, line) && line.find("outer loop") == std::string::npos);
-
-            for(int j=0;j<3;j++){
-                double x, y, z;
-                std::getline(infile, line);
-                size_t pos = line.find("vertex ");
-                line.erase(0, pos + 7);
-                std::stringstream ss(line);
-                double aux;
-                ss >> std::skipws >>  aux; 
-                x = roundf(aux * 1000) / 1000;
-                ss >> std::skipws >>  aux; 
-                y = roundf(aux * 1000) / 1000;
-                ss >> std::skipws >>  aux; 
-                z = roundf(aux * 1000) / 1000;
-                env_max_x = env_max_x>=x?env_max_x:x;
-                env_max_y = env_max_y>=y?env_max_y:y;
-                env_max_z = env_max_z>=z?env_max_z:z;
-                env_min_x = env_min_x<=x?env_min_x:x;
-                env_min_y = env_min_y<=y?env_min_y:y;
-                env_min_z = env_min_z<=z?env_min_z:z;
-            }
-            i++;
-            //skipping three lines here makes checking for the end of the file more convenient
-            std::getline(infile, line);
-            std::getline(infile, line);
-            while(std::getline(infile, line)&&line.length()==0);
-    }
 }
 void openFoam_to_gaden(std::string filename, std::vector<std::vector<std::vector<int> > >& env)
 {
@@ -399,9 +368,9 @@ void openFoam_to_gaden(std::string filename, std::vector<std::vector<std::vector
 				line.erase(0, pos + 1);
 			}
 			//assign each of the points we have information about to the nearest cell
-			x_idx = roundf((v[3] - env_min_x) / cell_size*1000)/1000;
-			y_idx = roundf((v[4] - env_min_y) / cell_size*1000)/1000;
-			z_idx = roundf((v[5] - env_min_z) / cell_size*1000)/1000;
+			x_idx = roundf((v[3] - env_min_x) / cell_size*100000)/100000;
+			y_idx = roundf((v[4] - env_min_y) / cell_size*100000)/100000;
+			z_idx = roundf((v[5] - env_min_z) / cell_size*100000)/100000;
 			U[x_idx][y_idx][z_idx] = v[0];
 			V[x_idx][y_idx][z_idx] = v[1];
 			W[x_idx][y_idx][z_idx] = v[2];
@@ -475,6 +444,20 @@ int main(int argc, char **argv){
     ros::Publisher pub = nh.advertise<std_msgs::Bool>("preprocessing_done",5,true);
 
     private_nh.param<double>("cell_size", cell_size, 0.1); //size of the cells
+
+    //stl file with the model of the outlets
+    std::string outlet; int numOutletModels;
+
+    //path to the csv file where we want to write the occupancy map
+    std::string output;
+    private_nh.param<std::string>("output_path", output, "");
+
+    //--------------------------
+
+        //OCCUPANCY
+
+    //--------------------------
+
     private_nh.param<int>("number_of_models", numModels, 1); // number of CAD models
     
     std::vector<std::string> CADfiles;     
@@ -485,37 +468,7 @@ int main(int argc, char **argv){
         CADfiles.push_back(filename.c_str());
     }
 
-    //stl file with the model of the outlets
-    std::string outlet; int numOutletModels;
-    private_nh.param<int>("number_of_outlet_models", numOutletModels, 1); // number of CAD models
-
-    std::vector<std::string> outletFiles;     
-    for(int i = 0; i< numOutletModels; i++){
-        std::string paramName = boost::str( boost::format("outlets_model_%i") % i); //each of the stl models
-        std::string filename;
-        private_nh.param<std::string>(paramName, filename, "");
-        outletFiles.push_back(filename.c_str());
-    }
-
-    //path to the point cloud files with the wind data
-    std::string windFileName;
-    private_nh.param<std::string>("wind_files", windFileName, "");
-
-    //path to the csv file where we want to write the occupancy map
-    std::string output;
-    private_nh.param<std::string>("output_path", output, "");
-
-    //OCCUPANCY
-
-    for (int i = 0; i < CADfiles.size(); i++)
-    {
-        findDimensions(CADfiles[i]);
-    }
-    std::vector<std::vector<std::vector<int> > > env(roundf((env_max_y - env_min_y) / cell_size*1000)/1000,
-                                                    std::vector<std::vector<int> >(roundf((env_max_x - env_min_x)/cell_size*1000)/1000,
-                                                                                    std::vector<int>(roundf((env_max_z - env_min_z)/cell_size*1000)/1000, 0)));
-    
-    std::cout << env[0].size() << "\n";
+    std::vector<std::vector<std::vector<int> > > env;
     for (int i = 0; i < numModels; i++)
     {
         parse(CADfiles[i], env, 1);
@@ -539,6 +492,22 @@ int main(int argc, char **argv){
 
     printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 10);
     
+    //--------------------------
+
+        //OUTLETS
+
+    //--------------------------
+
+    private_nh.param<int>("number_of_outlet_models", numOutletModels, 1); // number of CAD models
+
+    std::vector<std::string> outletFiles;     
+    for(int i = 0; i< numOutletModels; i++){
+        std::string paramName = boost::str( boost::format("outlets_model_%i") % i); //each of the stl models
+        std::string filename;
+        private_nh.param<std::string>(paramName, filename, "");
+        outletFiles.push_back(filename.c_str());
+    }
+
     for (int i=0;i<numOutletModels; i++){
         parse(outletFiles[i], env, 2);
     }  
@@ -551,14 +520,62 @@ int main(int argc, char **argv){
     //output - path, occupancy vector, scale
     printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), env, 1);
     printYaml(output);
-    //WIND
+
+    //-------------------------
+
+        //WIND
+
+    //-------------------------
+
+    bool uniformWind;
+    private_nh.param<bool>("uniformWind", uniformWind, false);
+
+    //path to the point cloud files with the wind data
+    std::string windFileName;
+    private_nh.param<std::string>("wind_files", windFileName, "");
     int idx = 0;
-    while (FILE *file = fopen(boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str(), "r"))
-    {
-        fclose(file);
-        openFoam_to_gaden(boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str(), env);
-        idx++;
+
+    if(uniformWind){
+
+        //let's parse the file
+        std::ifstream infile(windFileName);
+        std::string line;
+
+        std::vector<std::vector<std::vector<double> > > U(env[0].size(), std::vector<std::vector<double> >(env.size(), std::vector<double>(env[0][0].size())));
+        std::vector<std::vector<std::vector<double> > > V(env[0].size(), std::vector<std::vector<double> >(env.size(), std::vector<double>(env[0][0].size())));
+        std::vector<std::vector<std::vector<double> > > W(env[0].size(), std::vector<std::vector<double> >(env.size(), std::vector<double>(env[0][0].size())));
+        while(std::getline(infile, line)){
+            std::vector<double> v;
+            for (int i = 0; i < 3; i++)
+			{
+				size_t pos = line.find(",");
+				v.push_back(atof(line.substr(0, pos).c_str()));
+				line.erase(0, pos + 1);
+			}
+
+            for(int i = 0; i< env[0].size();i++){
+                for(int j = 0; j< env.size();j++){
+                    for(int k = 0; k< env[0][0].size();k++){
+                        if(env[j][i][k]==5){
+                            U[i][j][k] = v[0];
+                            V[i][j][k] = v[1];
+                            W[i][j][k] = v[2];
+                        }
+                    }
+                }
+            }
+            printWind(U,V,W, boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str());
+            idx++;
+        }
+    }else{
+        while (FILE *file = fopen(boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str(), "r"))
+        {
+            fclose(file);
+            openFoam_to_gaden(boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str(), env);
+            idx++;
+        }
     }
+    
     
 
     ROS_INFO("Preprocessing done");
