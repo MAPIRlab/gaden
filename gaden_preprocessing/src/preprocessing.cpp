@@ -244,7 +244,7 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
                 (yLimit&&y1==max_y)||
                 (zLimit&&z1==max_z)
                 &&!env[y1][x1][z1]==1){
-                    env[y1][x1][z1]=4;
+                    env[y1][x1][z1]=(val==1?4:val);
             }else{
                 env[y1][x1][z1] = val;
             }
@@ -255,7 +255,7 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
                 (yLimit&&y2==max_y)||
                 (zLimit&&z2==max_z)
                 &&!env[y2][x2][z2]==1){
-                    env[y2][x2][z2]=4;
+                    env[y2][x2][z2]=(val==1?4:val);
             }else{
                 env[y2][x2][z2] = val;
             }
@@ -266,7 +266,7 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
                 (yLimit&&y3==max_y)||
                 (zLimit&&z3==max_z)
                 &&!env[y3][x3][z3]==1){
-                    env[y3][x3][z3]=4;
+                    env[y3][x3][z3]=(val==1?4:val);
             }else{
                 env[y3][x3][z3] = val;
             }
@@ -291,7 +291,7 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
                             (yLimit&&col==max_y)||
                             (zLimit&&height==max_z)
                             &&!env[col][row][height]==1){
-                                env[col][row][height]=4;
+                                env[col][row][height]=(val==1?4:val);
                         }else{
                             env[col][row][height] = val;
                         }
