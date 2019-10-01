@@ -546,9 +546,9 @@ int main(int argc, char **argv){
     {
         findDimensions(CADfiles[i]);
     }
-    std::vector<std::vector<std::vector<int> > > env(roundf((env_max_y-env_min_y)*(roundFactor))/(cell_size*(roundFactor)),
-                                                    std::vector<std::vector<int> >(roundf((env_max_x - env_min_x)*(roundFactor))/(cell_size*(roundFactor)),
-                                                                                    std::vector<int>(roundf((env_max_z - env_min_z)*(roundFactor))/(cell_size*(roundFactor)), 0)));
+    std::vector<std::vector<std::vector<int> > > env(ceil((env_max_y-env_min_y)*(roundFactor)/(cell_size*(roundFactor))),
+                                                    std::vector<std::vector<int> >(ceil((env_max_x - env_min_x)*(roundFactor)/(cell_size*(roundFactor))),
+                                                                                    std::vector<int>(ceil((env_max_z - env_min_z)*(roundFactor)/(cell_size*(roundFactor))), 0)));
 
     for (int i = 0; i < numModels; i++)
     {
