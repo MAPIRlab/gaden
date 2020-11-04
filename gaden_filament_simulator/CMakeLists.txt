@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 2.8.3)
 project(gaden_filament_simulator CXX)
 
 set(CMAKE_CXX_FLAGS "-lboost_iostreams -std=c++11 -fopenmp ${CMAKE_CXX_FLAGS}")
-set(CMAKE_BUILD_TYPE "Debug")
 find_package(catkin REQUIRED COMPONENTS
 	roscpp
 	visualization_msgs
