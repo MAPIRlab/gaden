@@ -453,7 +453,7 @@ void openFoam_to_gaden(std::string filename, std::vector<std::vector<std::vector
 void fill(int x, int y, int z, std::vector<std::vector<std::vector<int> > >& env, int val, int empty){
     std::queue<Eigen::Vector3i> q;
     q.push(Eigen::Vector3i(x, y, z));
-    env[x][y][1]=val;
+    env[x][y][z]=val;
     while(!q.empty()){
         Eigen::Vector3i point = q.front();
         q.pop();
@@ -546,6 +546,9 @@ int main(int argc, char **argv){
     {
         findDimensions(CADfiles[i]);
     }
+
+    //x and y are interchanged!!!!!! it goes env[y][x][z]
+    //I cannot for the life of me remember why I did that, but there must have been a reason
     std::vector<std::vector<std::vector<int> > > env(ceil((env_max_y-env_min_y)*(roundFactor)/(cell_size*(roundFactor))),
                                                     std::vector<std::vector<int> >(ceil((env_max_x - env_min_x)*(roundFactor)/(cell_size*(roundFactor))),
                                                                                     std::vector<int>(ceil((env_max_z - env_min_z)*(roundFactor)/(cell_size*(roundFactor))), 0)));
@@ -564,8 +567,8 @@ int main(int argc, char **argv){
     private_nh.param<double>("empty_point_z", empty_point_z, 1);
 
     std::cout<<"Filling...\n";
-    fill((empty_point_x-env_min_x)/cell_size,
-        (empty_point_y-env_min_y)/cell_size,
+    fill((empty_point_y-env_min_y)/cell_size,
+        (empty_point_x-env_min_x)/cell_size,
         (empty_point_z-env_min_z)/cell_size, 
         env, 3, 0);
     clean(env);
@@ -593,8 +596,8 @@ int main(int argc, char **argv){
         parse(outletFiles[i], env, 2);
     }  
 
-    fill((empty_point_x-env_min_x)/cell_size,
-        (empty_point_y-env_min_y)/cell_size,
+    fill((empty_point_y-env_min_y)/cell_size,
+        (empty_point_x-env_min_x)/cell_size,
         (empty_point_z-env_min_z)/cell_size, 
         env, 5, 3);
 
@@ -617,7 +620,7 @@ int main(int argc, char **argv){
     int idx = 0;
 
     if(uniformWind){
-
+        
         //let's parse the file
         std::ifstream infile(windFileName);
         std::string line;
