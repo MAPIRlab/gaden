@@ -483,7 +483,6 @@ void CFilamentSimulator::add_new_filaments(double radius_arround_source)
 			filaments_to_release=0;
 		}
     }
-
     for (int i=0; i<filaments_to_release; i++)
 	{
 		//Set position of new filament within the especified radius arround the gas source location
@@ -551,15 +550,6 @@ void CFilamentSimulator::update_gas_concentration_from_filament(int fil_i)
 
                         if (!path_is_obstructed)
                         {
-                            if (path_is_obstructed)
-                            {
-                                //Point is not valid! Instead of ignoring it, add its concentration to the filament center location
-                                //This avoids "loosing" gas concentration as filaments get close to obstacles (e.g. the floor)
-                                x = filaments[fil_i].pose_x;
-                                y = filaments[fil_i].pose_y;
-                                z = filaments[fil_i].pose_z;
-                            }
-
                             //Get 3D cell of the evaluated point
                             int x_idx = floor( (x-env_min_x)/cell_size );
                             int y_idx = floor( (y-env_min_y)/cell_size );
@@ -769,6 +759,10 @@ void CFilamentSimulator::update_filament_location(int i)
 					mtx.lock();
 					filaments[i].pose_z = newpos_z;
 					mtx.unlock();	
+				}else if(check_pose_with_environment(filament.pose_x, filament.pose_y, newpos_z ) == 2){
+					mtx.lock();
+					filaments[i].valid = false;
+					mtx.unlock();
 				}
 
 

@@ -197,7 +197,7 @@ bool pointInTriangle(const Eigen::Vector3d& query_point,
     //we consider that the triangle goes through the cell if the proyection of the center 
     //is inside the triangle AND the plane of the triangle intersects the cube of the cell
     
-    return (anyProyectionInTriangle && (parallel||planeIntersects(n, query_point,cube)));
+    return (anyProyectionInTriangle && (parallel||planeIntersects(n, triangle_vertex_0, cube)));
 }
 
 bool parallel (std::vector<double> &vec){
