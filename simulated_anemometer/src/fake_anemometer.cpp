@@ -174,7 +174,7 @@ int main( int argc, char** argv )
                 else
                 {
                     // for simulations
-                    wind_direction = downWind_direction_map;
+                    wind_direction = angles::normalize_angle(downWind_direction_map);
                 }
 
 
@@ -193,6 +193,7 @@ int main( int argc, char** argv )
                     anemo_msg.header.frame_id = input_fixed_frame.c_str();
                 else
                     anemo_msg.header.frame_id = input_sensor_frame.c_str();
+
 				anemo_msg.sensor_label = "Fake_Anemo";
                 anemo_msg.wind_direction = wind_direction;  //rad
                 anemo_msg.wind_speed = wind_speed;	 //m/s
@@ -222,11 +223,18 @@ int main( int argc, char** argv )
 				
                 //Add inverted wind marker --> DownWind
 				wind_point_inv.header.stamp = ros::Time::now();
+				wind_point_inv.header.frame_id=anemo_msg.header.frame_id;
 				wind_point_inv.points.clear();
 				wind_point_inv.id = 1;  //unique identifier for each arrow
-				wind_point_inv.pose.position.x = 0.0;
-				wind_point_inv.pose.position.y = 0.0;
-				wind_point_inv.pose.position.z = 0.0;
+				if(use_map_ref_system){
+					wind_point_inv.pose.position.x = x_pos;
+					wind_point_inv.pose.position.y = y_pos;
+					wind_point_inv.pose.position.z = z_pos;
+				}else{
+					wind_point_inv.pose.position.x = 0.0;
+					wind_point_inv.pose.position.y = 0.0;
+					wind_point_inv.pose.position.z = 0.0;
+				}
                 wind_point_inv.pose.orientation = tf::createQuaternionMsgFromYaw(wind_direction+3.1416);
 				wind_point_inv.scale.x = 2*sqrt(pow(u,2)+pow(v,2));	  //arrow lenght
 				wind_point_inv.scale.y = 0.1;	  //arrow width
