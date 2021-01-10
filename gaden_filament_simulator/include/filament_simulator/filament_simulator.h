@@ -110,7 +110,7 @@ public:
     std::string results_location;       //Location for results logfiles
     double      results_time_step;      //(sec) Time increment between saving results
     double      results_min_time;       //(sec) time after which start saving results
-
+    bool writeConcentrations;
     boost::mutex mtx;
 
 
