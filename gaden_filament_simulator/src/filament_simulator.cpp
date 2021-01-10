@@ -130,6 +130,7 @@ CFilamentSimulator::CFilamentSimulator()
 	filament_marker.color.a = 1;
 	
 	
+	charArray =  new char[C.size()*C[0].size()*C[0][0].size()*50];
 }
 
 
@@ -884,7 +885,6 @@ void CFilamentSimulator::save_state_to_file()
 	//and we dont store every line directly in a stream because that is very slow.
 	//The fixed size of the array allows us to significantly speed up the process, but could lead to
 	//overflowing errors, so we have to use a very pesimistic estimation of the space we need 
-	char* charArray = new char[C.size()*C[0].size()*C[0][0].size()*50];
 
 	//Write header
 	//--------------
@@ -987,7 +987,6 @@ void CFilamentSimulator::save_state_to_file()
 
 	std::ofstream fi(out_filename);
 	boost::iostreams::copy(inbuf,fi);
-	delete[] charArray;
 }
 
 

@@ -146,6 +146,7 @@ protected:
     double env_cell_numMoles;        //Number of moles in a cell (3D volume)
 
 
+	char* charArray;
 };
 
 #endif
