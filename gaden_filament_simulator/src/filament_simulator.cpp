@@ -92,9 +92,10 @@ CFilamentSimulator::CFilamentSimulator()
 
 	//The moles of target_gas in a Filament are distributted following a 3D Gaussian
 	//Given the ppm value at the center of the filament, we approximate the total number of gas moles in that filament.
-	filament_numMoles_of_gas = ( sqrt(8*pow(3.14159,3))*pow(filament_initial_std,3) ) * filament_ppm_center/pow(10,6);   //[cm³]
-	double numMoles_in_cm3 = envPressure/(R*envTemperature);   //[mol/cm³]
-	filament_numMoles_of_gas = filament_numMoles_of_gas * numMoles_in_cm3; //[moles_target_gas/filament] This is a CTE parameter!!
+	double numMoles_in_cm3 = envPressure/(R*envTemperature);   //[mol of all gases/cm³]
+	double filament_moles_cm3_center = filament_ppm_center/pow(10,6)* numMoles_in_cm3; //[moles of target gas / cm³]
+	filament_numMoles_of_gas =  filament_moles_cm3_center * ( sqrt(8*pow(3.14159,3))*pow(filament_initial_std,3) );   //total number of moles in a filament
+	
 
     if (verbose) ROS_INFO("[filament] filament_initial_vol [cm3]: %f",filament_initial_vol);
     if (verbose) ROS_INFO("[filament] env_cell_vol [cm3]: %f",env_cell_vol);
@@ -946,7 +947,7 @@ void CFilamentSimulator::save_state_to_file()
 	}
 	else{
 		count += sprintf(&charArray[count],"Filaments\n");
-		count += sprintf(&charArray[count], "%.7f\n",1000000*filament_numMoles_of_gas/(env_cell_numMoles/env_cell_vol));
+		count += sprintf(&charArray[count], "%.7f %.7f\n", filament_numMoles_of_gas, (env_cell_numMoles/env_cell_vol));
 		if(!wind_notified){
 			count += sprintf(&charArray[count],"Wind\n");
 			int u, v, w;
