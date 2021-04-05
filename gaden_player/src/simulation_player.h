@@ -17,9 +17,24 @@
 #include <fstream>
 #include <string>
 #include <time.h>
+#include <map>
 
 #include <boost/iostreams/filter/zlib.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/iostreams/copy.hpp>
+
+struct Vec4{
+    public:
+        double x, y, z, w;
+        Vec4(double a, double b, double c, double d){
+            x=a;
+            y=b;
+            z=c;
+            w=d;
+        }
+};
+
 // CLASS for every simulation to run. If two gas sources are needed, just create 2 instances!
 class sim_obj
 {
@@ -39,18 +54,46 @@ public:
     double          env_min_z;              //[m]
     double          env_max_z;              //[m]
     bool            load_wind_data;
-    std::vector<std::vector<std::vector<double> > > C;  //3D Gas concentration
-    std::vector<std::vector<std::vector<double> > > U;  //3D Wind U
-    std::vector<std::vector<std::vector<double> > > V;  //3D Wind V
-    std::vector<std::vector<std::vector<double> > > W;  //3D Wind W
+    std::vector<double> C;  //3D Gas concentration
+    std::vector<double> U;  //3D Wind U
+    std::vector<double> V;  //3D Wind V
+    std::vector<double> W;  //3D Wind W
     bool            first_reading;
+
+    bool            filament_log;
+    double total_moles_in_filament;
+    double num_moles_all_gases_in_cm3;
+    std::map<int, Vec4> activeFilaments;
 
     //methods
     void configure_environment();
     void load_data_from_logfile(int sim_iteration);
+    void load_ascii_file(std::stringstream &decompressed);
+    void load_binary_file(std::stringstream &decompressed);
     void get_gas_concentration(float x, float y, float z, std::string &gas_name, double &gas_conc);
+    double concentration_from_filament(float x, float y, float z, Vec4 fil);
     void get_wind_value(float x, float y, float z, double &u, double &v, double &w);
     void get_concentration_as_markers(visualization_msgs::Marker &mkr_points);
+    
+    void read_headers(std::stringstream &inbuf, std::string &line);
+    void load_wind_file(int wind_index);
+    int last_wind_idx=-1;
+    void read_concentration_line(std::string line);
+
+    int indexFrom3D(int x, int y, int z);
+
+    std::string gasTypesByCode[10] = {
+        "ethanol",
+		"methane",
+		"hydrogen",
+		"propanol",
+		"chlorine",
+		"flurorine",
+		"acetone",
+		"neon",
+		"helium",
+		"hot_air"
+    };
 };
 
 

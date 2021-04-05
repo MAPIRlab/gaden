@@ -1,0 +1,26 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "",
+        "limitSymbolsToIncludedHeaders": true
+      },
+      "includePath": [
+        "/home/pepe/catkin_ws/devel/include/**",
+        "/opt/ros/kinetic/include/**",
+        "/home/pepe/catkin_ws/src/ViMantic-master/vision_opencv/cv_bridge/include/**",
+        "/home/pepe/catkin_ws/src/darknet_ros/darknet_ros/include/**",
+        "/home/pepe/catkin_ws/src/olfaction/gaden/gaden_environment/include/**",
+        "/home/pepe/catkin_ws/src/olfaction/gaden/gaden_filament_simulator/include/**",
+        "/home/pepe/catkin_ws/src/olfaction/gaden/gaden_preprocessing/include/**",
+        "/home/pepe/catkin_ws/src/olfaction/gas_source_localization/gsl_actionserver/include/**",
+        "/home/pepe/catkin_ws/src/ViMantic-master/vision_opencv/image_geometry/include/**",
+        "/home/pepe/catkin_ws/src/topology_graph/include/**",
+        "/home/pepe/catkin_ws/src/ViMantic-master/vision_msgs/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS"
+    }
+  ],
+  "version": 4
+}

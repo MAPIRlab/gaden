@@ -156,6 +156,7 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     private_nh.param<bool>("allow_looping", allow_looping, false);
     private_nh.param<int>("loop_from_iteration", loop_from_iteration, 1);
     private_nh.param<int>("loop_to_iteration", loop_to_iteration, 1);
+    
 }
 
 
@@ -221,164 +222,278 @@ sim_obj::sim_obj(std::string filepath, bool load_wind_info)
     source_pos_x = source_pos_y = source_pos_z = 0.0; //m
     load_wind_data = load_wind_info;
     first_reading = true;
+    filament_log=false;
 }
 
 sim_obj::~sim_obj(){}
 
 
+void sim_obj::read_concentration_line(std::string line){
+    size_t pos;
+    double conc, u, v, w;
+    int x, y, z;
+    //A line has the format x y z conc u v w
+    pos = line.find(" ");
+    x = atoi(line.substr(0, pos).c_str());
+    line.erase(0, pos + 1);
+
+    pos = line.find(" ");
+    y = atoi(line.substr(0, pos).c_str());
+    line.erase(0, pos + 1);
+
+    pos = line.find(" ");
+    z = atoi(line.substr(0, pos).c_str());
+    line.erase(0, pos + 1);
+
+    pos = line.find(" ");
+    conc = atof(line.substr(0, pos).c_str());
+    line.erase(0, pos + 1);
+
+    pos = line.find(" ");
+    u = atof(line.substr(0, pos).c_str());
+    line.erase(0, pos + 1);
+
+    pos = line.find(" ");
+    v = atof(line.substr(0, pos).c_str());
+    w = atof(line.substr(pos + 1).c_str());
+
+    //Save data to internal storage
+    C[indexFrom3D(x,y,z)] = conc / 1000;
+    if (load_wind_data)
+    {
+        U[indexFrom3D(x,y,z)] = u / 1000;
+        V[indexFrom3D(x,y,z)] = v / 1000;
+        W[indexFrom3D(x,y,z)] = w / 1000;
+    }
+}
+
+void sim_obj::read_headers(std::stringstream &inbuf, std::string &line){
+    std::getline(inbuf, line); 
+    //Line 1 (min values of environment)
+    size_t pos = line.find(" ");
+    line.erase(0, pos + 1);
+    pos = line.find(" ");
+    env_min_x = atof(line.substr(0, pos).c_str());
+    line.erase(0, pos + 1);
+    pos = line.find(" ");
+    env_min_y = atof(line.substr(0, pos).c_str());
+    env_min_z = atof(line.substr(pos + 1).c_str());
+
+    std::getline(inbuf, line); 
+    //Line 2 (max values of environment)
+    pos = line.find(" ");
+    line.erase(0, pos + 1);
+    pos = line.find(" ");
+    env_max_x = atof(line.substr(0, pos).c_str());
+    line.erase(0, pos + 1);
+    pos = line.find(" ");
+    env_max_y = atof(line.substr(0, pos).c_str());
+    env_max_z = atof(line.substr(pos + 1).c_str());
+
+    std::getline(inbuf, line); 
+    //Get Number of cells (X,Y,Z)
+    pos = line.find(" ");
+    line.erase(0, pos + 1);
+
+    pos = line.find(" ");
+    environment_cells_x = atoi(line.substr(0, pos).c_str());
+    line.erase(0, pos + 1);
+    pos = line.find(" ");
+    environment_cells_y = atoi(line.substr(0, pos).c_str());
+    environment_cells_z = atoi(line.substr(pos + 1).c_str());
+
+    std::getline(inbuf, line); 
+    //Get Cell_size
+    pos = line.find(" ");
+    line.erase(0, pos + 1);
+
+    pos = line.find(" ");
+    environment_cell_size = atof(line.substr(0, pos).c_str());
+
+    std::getline(inbuf, line); 
+    //Get GasSourceLocation
+    pos = line.find(" ");
+    line.erase(0, pos + 1);
+    pos = line.find(" ");
+    source_pos_x = atof(line.substr(0, pos).c_str());
+    line.erase(0, pos + 1);
+
+    pos = line.find(" ");
+    source_pos_y = atof(line.substr(0, pos).c_str());
+    source_pos_z = atof(line.substr(pos + 1).c_str());
+
+    std::getline(inbuf, line); 
+    //Get Gas_Type
+    pos = line.find(" ");
+    gas_type = line.substr(pos + 1);
+    //Configure instances
+    configure_environment();
+
+    std::getline(inbuf, line); 
+    std::getline(inbuf, line); 
+    std::getline(inbuf, line);
+}
+
 //Load a new file with Gas+Wind data
 void sim_obj::load_data_from_logfile(int sim_iteration)
 {
-    std::string line;
-    int line_counter = 0;
-    std::string filename = boost::str( boost::format("%s%i") % simulation_filename.c_str() % sim_iteration);
-
-    //Open file
-    if (FILE *file = fopen(filename.c_str(), "r"))
-    {
-        //File exists!, keep going!
-        fclose(file);
-    }else{
-        std::cout<< "File " << filename << " does not exist\n";
+    std::string filename = boost::str( boost::format("%s/iteration_%i") % simulation_filename.c_str() % sim_iteration);
+    FILE* fileCheck;
+    if ((fileCheck =fopen(filename.c_str(),"rb"))==NULL){
+        ROS_ERROR("File %s does not exist\n", filename.c_str());
+        return;
     }
+    fclose(fileCheck);
 
-    std::ifstream infile(filename.c_str(), std::ios_base::binary);
-    boost::iostreams::filtering_istream inbuf;
+    std::ifstream infile(filename, std::ios_base::binary);
+    boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
     inbuf.push(boost::iostreams::zlib_decompressor());
     inbuf.push(infile);
+
+    std::stringstream decompressed;
+    boost::iostreams::copy(inbuf,decompressed);
+    
+    //if the file starts with a 1, the contents are in binary
+    int check=0;
+    decompressed.read((char*) &check, sizeof(int));
+    if (check==1){
+        filament_log=true;
+        load_binary_file(decompressed);
+    }
+    else
+        load_ascii_file(decompressed);
+}
+
+void sim_obj::load_ascii_file(std::stringstream& decompressed){
+    std::string line;
+
     size_t pos;
     double conc, u, v, w;
     int x, y, z;
 
-    while (std::getline(inbuf, line))
+    if (first_reading)
     {
-        line_counter++;
-        //ROS_INFO("Reading Line %i", line_counter);
-        //ROS_INFO("%s",line.c_str());
-
-        if (first_reading && (line_counter == 1))
-        {
-            //Line 1 (min values of environment)
-            size_t pos = line.find(" ");
-            line.erase(0, pos + 1);
-            pos = line.find(" ");
-            env_min_x = atof(line.substr(0, pos).c_str());
-            line.erase(0, pos + 1);
-            pos = line.find(" ");
-            env_min_y = atof(line.substr(0, pos).c_str());
-            env_min_z = atof(line.substr(pos + 1).c_str());
-        }
-        else if (first_reading && (line_counter == 2))
-        {
-            //Line 2 (max values of environment)
-            pos = line.find(" ");
-            line.erase(0, pos + 1);
-            pos = line.find(" ");
-            env_max_x = atof(line.substr(0, pos).c_str());
-            line.erase(0, pos + 1);
-            pos = line.find(" ");
-            env_max_y = atof(line.substr(0, pos).c_str());
-            env_max_z = atof(line.substr(pos + 1).c_str());
-        }
-        else if (first_reading && (line_counter == 3))
-        {
-            //Get Number of cells (X,Y,Z)
-            pos = line.find(" ");
-            line.erase(0, pos + 1);
-
-            pos = line.find(" ");
-            environment_cells_x = atoi(line.substr(0, pos).c_str());
-            line.erase(0, pos + 1);
-            pos = line.find(" ");
-            environment_cells_y = atoi(line.substr(0, pos).c_str());
-            environment_cells_z = atoi(line.substr(pos + 1).c_str());
-        }
-        else if (first_reading && (line_counter == 4))
-        {
-            //Get Cell_size
-            pos = line.find(" ");
-            line.erase(0, pos + 1);
-
-            pos = line.find(" ");
-            environment_cell_size = atof(line.substr(0, pos).c_str());
-        }
-        else if (first_reading && (line_counter == 5))
-        {
-            //Get GasSourceLocation
-            pos = line.find(" ");
-            line.erase(0, pos + 1);
-
-            pos = line.find(" ");
-            source_pos_x = atof(line.substr(0, pos).c_str());
-            line.erase(0, pos + 1);
-
-            pos = line.find(" ");
-            source_pos_y = atof(line.substr(0, pos).c_str());
-            source_pos_z = atof(line.substr(pos + 1).c_str());
-        }
-        else if (first_reading && (line_counter == 6))
-        {
-            //Get Gas_Type
-            pos = line.find(" ");
-            gas_type = line.substr(pos + 1);
-            //Configure instances
-            configure_environment();
-        }
-        else if (line_counter > 7)
-        {
-            //A line has the format x y z conc u v w
-            pos = line.find(" ");
-            x = atoi(line.substr(0, pos).c_str());
-            line.erase(0, pos + 1);
-
-            pos = line.find(" ");
-            y = atoi(line.substr(0, pos).c_str());
-            line.erase(0, pos + 1);
-
-            pos = line.find(" ");
-            z = atoi(line.substr(0, pos).c_str());
-            line.erase(0, pos + 1);
-
-            pos = line.find(" ");
-            conc = atof(line.substr(0, pos).c_str());
-            line.erase(0, pos + 1);
-
-            pos = line.find(" ");
-            u = atof(line.substr(0, pos).c_str());
-            line.erase(0, pos + 1);
-
-            pos = line.find(" ");
-            v = atof(line.substr(0, pos).c_str());
-            w = atof(line.substr(pos + 1).c_str());
-
-            //Save data to internal storage
-            C[x][y][z] = conc / 1000;
-            if (load_wind_data)
-            {
-                U[x][y][z] = u / 1000;
-                V[x][y][z] = v / 1000;
-                W[x][y][z] = w / 1000;
-            }
+        read_headers(decompressed, line);
+        first_reading=false;
+    }
+    else{
+        //if already initialized, skip the header
+        for(int i=0; i<8; i++){
+            std::getline(decompressed, line);
         }
     }
-    infile.close();
-    if (first_reading)
-        first_reading = false;
+
+    do
+    {
+        read_concentration_line(line);
+    }while (std::getline(decompressed, line));
+
 }
 
+void sim_obj::load_binary_file(std::stringstream& decompressed){
+    
+    if(first_reading){
+        double bufferD [5];
+        decompressed.read((char*) &env_min_x, sizeof(double));
+        decompressed.read((char*) &env_min_y, sizeof(double));
+        decompressed.read((char*) &env_min_z, sizeof(double));
+
+        decompressed.read((char*) &env_max_x, sizeof(double));
+        decompressed.read((char*) &env_max_y, sizeof(double));
+        decompressed.read((char*) &env_max_z, sizeof(double));
+
+        decompressed.read((char*) &environment_cells_x, sizeof(int));
+        decompressed.read((char*) &environment_cells_y, sizeof(int));
+        decompressed.read((char*) &environment_cells_z, sizeof(int));
+
+        decompressed.read((char*) &environment_cell_size, sizeof(double));
+        
+        decompressed.read((char*) &bufferD, 5*sizeof(double));
+        int gt;
+        decompressed.read((char*) &gt, sizeof(int));
+        gas_type=gasTypesByCode[gt];
+
+        decompressed.read((char*) &total_moles_in_filament, sizeof(double));
+        decompressed.read((char*) &num_moles_all_gases_in_cm3, sizeof(double));
+
+        configure_environment();
+        first_reading=false;
+    }else{
+        //skip headers
+        decompressed.seekg(14*sizeof(double) + 5*sizeof(int));
+    }
+
+    int wind_index;
+    decompressed.read((char*) &wind_index, sizeof(int));
+
+    activeFilaments.clear();
+    int filament_index;
+    double x, y, z, stdDev;
+    while(decompressed.peek()!=EOF){
+
+        decompressed.read((char*) &filament_index, sizeof(int));
+        decompressed.read((char*) &x, sizeof(double));
+        decompressed.read((char*) &y, sizeof(double));
+        decompressed.read((char*) &z, sizeof(double));
+        decompressed.read((char*) &stdDev, sizeof(double));
+
+        std::pair<int, Vec4> pair(filament_index, Vec4(x, y, z, stdDev));
+        activeFilaments.insert(pair);
+    }
+
+    load_wind_file(wind_index);
+
+}
+
+void sim_obj::load_wind_file(int wind_index){
+    if(wind_index==last_wind_idx)
+        return;
+    last_wind_idx=wind_index;
+
+    std::ifstream infile(boost::str( boost::format("%s/wind/wind_iteration_%i") % simulation_filename.c_str() % wind_index), std::ios_base::binary);
+    infile.read((char*) U.data(), sizeof(double)* U.size());
+    infile.read((char*) V.data(), sizeof(double)* U.size());
+    infile.read((char*) W.data(), sizeof(double)* U.size());
+    
+}
 
 //Get Gas concentration at lcoation (x,y,z)
 void sim_obj::get_gas_concentration(float x, float y, float z, std::string &gas_name, double &gas_conc)
 {
-    //Get cell idx from point location
-    int xx,yy,zz;
-    xx = (int)ceil((x - env_min_x)/environment_cell_size);
-    yy = (int)ceil((y - env_min_y)/environment_cell_size);
-    zz = (int)ceil((z - env_min_z)/environment_cell_size);
+    if(filament_log){
+        gas_conc=0;
+        for(auto it = activeFilaments.begin(); it!=activeFilaments.end(); it++){
+            Vec4 fil = it->second;
+            double dist = sqrt((x-fil.x)*(x-fil.x) + (y-fil.y)*(y-fil.y) + (z-fil.z)*(z-fil.z) );
 
-    //Get gas concentration from that cell
-    gas_conc = C[xx][yy][zz];
+            if(dist < fil.w*5/100){
+                gas_conc += concentration_from_filament(x, y, z, fil);
+            }
+        }
+    }else{
+        //Get cell idx from point location
+        int xx,yy,zz;
+        xx = (int)ceil((x - env_min_x)/environment_cell_size);
+        yy = (int)ceil((y - env_min_y)/environment_cell_size);
+        zz = (int)ceil((z - env_min_z)/environment_cell_size);
+        //Get gas concentration from that cell
+        gas_conc = C[indexFrom3D(xx,yy,zz)];
+    }
+
     gas_name = gas_type;
+}
+
+double sim_obj::concentration_from_filament(float x, float y, float z, Vec4 filament){
+    //calculate how much gas concentration does one filament contribute to the queried location
+    double sigma = filament.w;
+    double distance_cm = 100 * sqrt( pow(x-filament.x,2) + pow(y-filament.y,2) + pow(z-filament.z,2) );
+
+    double num_moles_target_cm3 = (total_moles_in_filament /
+        (sqrt(8*pow(M_PI,3)) * pow(sigma,3) )) * exp( -pow(distance_cm,2)/(2*pow(sigma,2)) );
+
+    double ppm = num_moles_target_cm3/num_moles_all_gases_in_cm3 * 1000000; //parts of target gas per million
+
+    return ppm;
 }
 
 //Get Wind concentration at lcoation (x,y,z)
@@ -393,14 +508,14 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
         zz = (int)ceil((z - env_min_z)/environment_cell_size);
 
         //Set wind vectors from that cell
-        u = U[xx][yy][zz];
-        v = V[xx][yy][zz];
-        w = W[xx][yy][zz];
+        u = U[indexFrom3D(xx,yy,zz)];
+        v = V[indexFrom3D(xx,yy,zz)];
+        w = W[indexFrom3D(xx,yy,zz)];
     }
     else
     {
         if (verbose)
-            ROS_WARN("[Plyer] Request to provide Wind information when No Wind data is available!!");
+            ROS_WARN("[Player] Request to provide Wind information when No Wind data is available!!");
     }
 }
 
@@ -417,131 +532,124 @@ void sim_obj::configure_environment()
 
 
     //Resize Gas Concentration container
-    C.resize(environment_cells_x);
-    for (int i = 0; i < environment_cells_x; ++i)
-    {
-        C[i].resize(environment_cells_y);
-        for (int j = 0; j < environment_cells_y; ++j)
-        {
-            C[i][j].resize(environment_cells_z);
-        }
-    }
+    C.resize(environment_cells_x * environment_cells_y * environment_cells_z);
+    
 
     //Resize Wind info container (if necessary)
     if (load_wind_data)
     {
 
-        U.resize(environment_cells_x);
-        for (int i = 0; i < environment_cells_x; ++i)
-        {
-            U[i].resize(environment_cells_y);
-            for (int j = 0; j < environment_cells_y; ++j)
-            {
-                U[i][j].resize(environment_cells_z);
-            }
-        }
-
-        V.resize(environment_cells_x);
-        for (int i = 0; i < environment_cells_x; ++i)
-        {
-            V[i].resize(environment_cells_y);
-            for (int j = 0; j < environment_cells_y; ++j)
-            {
-                V[i][j].resize(environment_cells_z);
-            }
-        }
-
-        W.resize(environment_cells_x);
-        for (int i = 0; i < environment_cells_x; ++i)
-        {
-            W[i].resize(environment_cells_y);
-            for (int j = 0; j < environment_cells_y; ++j)
-            {
-                W[i][j].resize(environment_cells_z);
-            }
-        }
+        U.resize(environment_cells_x * environment_cells_y * environment_cells_z);
+        V.resize(environment_cells_x * environment_cells_y * environment_cells_z);
+        W.resize(environment_cells_x * environment_cells_y * environment_cells_z); 
     }
 }
 
 
 void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_points)
 {
-    //For every cell, generate as much "marker points" as [ppm]
-    for (int i=0;i<environment_cells_x;i++)
-    {
-        for (int j=0;j<environment_cells_y;j++)
+    if(!filament_log){
+        //For every cell, generate as much "marker points" as [ppm]
+        for (int i=0;i<environment_cells_x;i++)
         {
-            for (int k=0;k<environment_cells_z;k++)
+            for (int j=0;j<environment_cells_y;j++)
             {
-                geometry_msgs::Point p; //Location of point
-                std_msgs::ColorRGBA color;  //Color of point
-
-                double gas_value = C[i][j][k]*1;
-
-                for (int N=0;N<(int)round(gas_value/2);N++)
+                for (int k=0;k<environment_cells_z;k++)
                 {
-                    //Set point position (corner of the cell + random)
-                    p.x = env_min_x + (i+0.5)*environment_cell_size + ((rand()%100)/100.0f)*environment_cell_size;
-                    p.y = env_min_y + (j+0.5)*environment_cell_size + ((rand()%100)/100.0f)*environment_cell_size;
-                    p.z = env_min_z + (k+0.5)*environment_cell_size + ((rand()%100)/100.0f)*environment_cell_size;
+                    geometry_msgs::Point p; //Location of point
+                    std_msgs::ColorRGBA color;  //Color of point
 
-                    //Set color of particle according to gas type
-                    color.a = 1.0;
-                    if (!strcmp(gas_type.c_str(),"ethanol"))
+                    double gas_value = C[indexFrom3D(i,j,k)];
+
+                    for (int N=0;N<(int)round(gas_value/2);N++)
                     {
-                        color.r=0.2; color.g=0.9; color.b=0;
-                    }
-                    else if (!strcmp(gas_type.c_str(),"methane"))
-                    {
-                        color.r=0.9; color.g=0.1; color.b=0.1;
-                    }
-                    else if (!strcmp(gas_type.c_str(),"hydrogen"))
-                    {
-                        color.r=0.2; color.g=0.1; color.b=0.9;
-                    }
-                    else if (!strcmp(gas_type.c_str(),"propanol"))
-                    {
-                        color.r=0.8; color.g=0.8; color.b=0;
-                    }
-                    else if (!strcmp(gas_type.c_str(),"chlorine"))
-                    {
-                        color.r=0.8; color.g=0; color.b=0.8;
-                    }
-                    else if (!strcmp(gas_type.c_str(),"flurorine"))
-                    {
-                        color.r=0.0; color.g=0.8; color.b=0.8;
-                    }
-                    else if (!strcmp(gas_type.c_str(),"acetone"))
-                    {
-                        color.r=0.9; color.g=0.2; color.b=0.2;
-                    }
-                    else if (!strcmp(gas_type.c_str(),"neon"))
-                    {
-                        color.r=0.9; color.g=0; color.b=0;
-                    }
-                    else if (!strcmp(gas_type.c_str(),"helium"))
-                    {
-                        color.r=0.9; color.g=0; color.b=0;
-                    }
-                    else if (!strcmp(gas_type.c_str(),"hot_air"))
-                    {
-                        color.r=0.9; color.g=0; color.b=0;
-                    }
-                    else
-                    {
-                        ROS_INFO("[player] Setting Defatul Color");
-                        color.r = 0.9; color.g = 0;color.b = 0;
+                        //Set point position (corner of the cell + random)
+                        p.x = env_min_x + (i+0.5)*environment_cell_size + ((rand()%100)/100.0f)*environment_cell_size;
+                        p.y = env_min_y + (j+0.5)*environment_cell_size + ((rand()%100)/100.0f)*environment_cell_size;
+                        p.z = env_min_z + (k+0.5)*environment_cell_size + ((rand()%100)/100.0f)*environment_cell_size;
+
+                        //Set color of particle according to gas type
+                        color.a = 1.0;
+                        if (!strcmp(gas_type.c_str(),"ethanol"))
+                        {
+                            color.r=0.2; color.g=0.9; color.b=0;
+                        }
+                        else if (!strcmp(gas_type.c_str(),"methane"))
+                        {
+                            color.r=0.9; color.g=0.1; color.b=0.1;
+                        }
+                        else if (!strcmp(gas_type.c_str(),"hydrogen"))
+                        {
+                            color.r=0.2; color.g=0.1; color.b=0.9;
+                        }
+                        else if (!strcmp(gas_type.c_str(),"propanol"))
+                        {
+                            color.r=0.8; color.g=0.8; color.b=0;
+                        }
+                        else if (!strcmp(gas_type.c_str(),"chlorine"))
+                        {
+                            color.r=0.8; color.g=0; color.b=0.8;
+                        }
+                        else if (!strcmp(gas_type.c_str(),"flurorine"))
+                        {
+                            color.r=0.0; color.g=0.8; color.b=0.8;
+                        }
+                        else if (!strcmp(gas_type.c_str(),"acetone"))
+                        {
+                            color.r=0.9; color.g=0.2; color.b=0.2;
+                        }
+                        else if (!strcmp(gas_type.c_str(),"neon"))
+                        {
+                            color.r=0.9; color.g=0; color.b=0;
+                        }
+                        else if (!strcmp(gas_type.c_str(),"helium"))
+                        {
+                            color.r=0.9; color.g=0; color.b=0;
+                        }
+                        else if (!strcmp(gas_type.c_str(),"hot_air"))
+                        {
+                            color.r=0.9; color.g=0; color.b=0;
+                        }
+                        else
+                        {
+                            ROS_INFO("[player] Setting Defatul Color");
+                            color.r = 0.9; color.g = 0;color.b = 0;
+                        }
+
+                        //Add particle marker
+                        mkr_points.points.push_back(p);
+                        mkr_points.colors.push_back(color);
                     }
 
-                    //Add particle marker
-                    mkr_points.points.push_back(p);
-                    mkr_points.colors.push_back(color);
                 }
+            }
+        }
 
+    }
+    else{
+        for(auto it = activeFilaments.begin(); it!=activeFilaments.end(); it++){
+            geometry_msgs::Point p; //Location of point
+            std_msgs::ColorRGBA color;  //Color of point
+
+            Vec4 filament = it->second;
+            for (int i=0; i<10; i++){
+                p.x=(filament.x-filament.w/100)+((rand()%100)/100.0f)*filament.w/100*2;
+                p.y=(filament.y-filament.w/100)+((rand()%100)/100.0f)*filament.w/100*2;
+                p.z=(filament.z-filament.w/100)+((rand()%100)/100.0f)*filament.w/100*2;
+
+                color.a=1;
+                color.r=0;
+                color.g=1;
+                color.b=0;
+                //Add particle marker
+                mkr_points.points.push_back(p);
+                mkr_points.colors.push_back(color);
             }
         }
     }
-
 }
 
+int sim_obj::indexFrom3D(int x, int y, int z){
+	return x + y*environment_cells_x + z*environment_cells_x*environment_cells_y;
+}
 

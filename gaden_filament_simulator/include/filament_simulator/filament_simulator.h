@@ -110,15 +110,15 @@ public:
     std::string results_location;       //Location for results logfiles
     double      results_time_step;      //(sec) Time increment between saving results
     double      results_min_time;       //(sec) time after which start saving results
-    bool writeConcentrations;
+    bool wind_finished;
     boost::mutex mtx;
 
 
 protected:
     void loadNodeParameters();
     void initSimulator();
-    void configure3DMatrix(std::vector< std::vector< std::vector<double> > > &A);
-    void read_3D_file(std::string filename, std::vector< std::vector< std::vector<double> > > &A, bool hasHeader);
+    void configure3DMatrix(std::vector< double > &A);
+    void read_3D_file(std::string filename, std::vector< double > &A, bool hasHeader);
     int check_pose_with_environment(double pose_x, double pose_y, double pose_z);
     bool check_environment_for_obstacle(double start_x, double start_y, double start_z, double end_x, double end_y, double end_z);
     double random_number(double min_val, double max_val);
@@ -130,11 +130,11 @@ protected:
 
     //Vars
     ros::NodeHandle n;
-    std::vector< std::vector< std::vector<double> > > U, V, W, C, Env;
+    std::vector< double > U, V, W, C, Env;
     std::vector<CFilament> filaments;
     visualization_msgs::Marker filament_marker;
     bool wind_notified;    
-
+    int last_wind_idx=-1;
     // SpecificGravity [dimensionless] with respect AIR
     double SpecificGravity[10];
 
@@ -145,8 +145,7 @@ protected:
     double filament_numMoles_of_gas; //Number of moles of target gas in a filament
     double env_cell_numMoles;        //Number of moles in a cell (3D volume)
 
-
-	char* charArray;
+    int indexFrom3D(int x, int y, int z);
 };
 
 #endif
