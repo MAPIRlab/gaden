@@ -12,12 +12,20 @@ find_package(catkin REQUIRED COMPONENTS
     olfaction_msgs
     tf
     pcl_ros
+    gaden_player
 )
 
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
 
 catkin_package(
-        DEPENDS roscpp visualization_msgs std_msgs olfaction_msgs nav_msgs tf
+    DEPENDS
+    roscpp
+    visualization_msgs
+    std_msgs
+    olfaction_msgs
+    nav_msgs
+    tf
+    gaden_player
 )
 
 include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})

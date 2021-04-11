@@ -4,19 +4,29 @@ cmake_minimum_required(VERSION 2.8.3)
 project(simulated_gas_sensor)
 # Load catkin and all dependencies required for this package
 # TODO: remove all from COMPONENTS that are not catkin packages.
-find_package(catkin REQUIRED COMPONENTS
-    roscpp
-    visualization_msgs
-    std_msgs
-    nav_msgs
-    olfaction_msgs
-    tf
-    pcl_ros)
+find_package(
+	catkin REQUIRED COMPONENTS
+	roscpp
+	visualization_msgs
+	std_msgs
+	nav_msgs
+	olfaction_msgs
+	tf
+	pcl_ros
+	gaden_player
+)
 
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
 
 catkin_package(
-        DEPENDS roscpp visualization_msgs std_msgs olfaction_msgs nav_msgs tf
+	DEPENDS 
+	roscpp
+	visualization_msgs
+	std_msgs
+	olfaction_msgs
+	nav_msgs
+	tf
+	gaden_player
 )
 
 include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
