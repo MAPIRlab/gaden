@@ -1,4 +1,45 @@
-#include "preprocessing/preprocessing.h"
+#include <ros/ros.h>
+#include <std_msgs/Bool.h>
+#include <string>
+#include <fstream>
+#include <stdlib.h> 
+#include <vector>
+#include <sstream>
+#include <iostream>
+#include <eigen3/Eigen/Dense>
+#include <boost/format.hpp>
+#include <boost/thread/mutex.hpp>
+#include <queue>
+#include <stack>
+#include <TriangleBoxIntersection.h>
+
+enum cell_state {non_initialized=0, empty=1, occupied=2, outlet=3, edge=4};
+
+//dimensions of the enviroment [m]
+double env_min_x; 
+double env_min_y; 
+double env_min_z;
+double env_max_x; 
+double env_max_y; 
+double env_max_z;
+double roundFactor;
+//length of the sides of the cell [m]
+double cell_size;
+
+
+
+std::vector<std::vector<std::vector<int> > > env;
+
+bool compare_cell(int x, int y, int z, cell_state value){
+    if(x<0 || x>=env.size() ||
+        y<0 || y>=env[0].size() ||
+        z<0 || z>=env[0][0].size()){
+            return false;
+    }
+    else{
+        return env[x][y][z]==value;
+    }
+}
 
 void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > > env, int scale)
 {
@@ -16,7 +57,7 @@ void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > >
                 {
                     for (int i = 0; i < scale; i++)
                     {
-                        outfile << (env[row][col][0] == 3 ? 1 : 0) << " ";
+                        outfile << (env[row][col][0] == cell_state::empty? 1 : 0) << " ";
                     }
                 }
                 outfile << "\n";
@@ -40,10 +81,9 @@ void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > >
                     {
                         for (int i = 0; i < scale; i++)
                         {
-                            outfile << (env[row][col][height]==0?1:
-                                            (env[row][col][height]==3?2:
-                                            (env[row][col][height]==5?0:
-                                                env[row][col][height])))
+                            outfile << (env[row][col][height]==cell_state::empty? 0 :
+                                    (env[row][col][height]==cell_state::outlet? 2 :
+                                    1))
                                     << " ";
                         }
                     }
@@ -93,10 +133,7 @@ void printYaml(std::string output){
 
 double min_val(double x, double y, double z) {
 
-    double min = 99999;
-
-    if (x < min)
-        min=x;
+    double min =x;
     if (y < min)
         min=y;
     if(z < min)
@@ -106,10 +143,7 @@ double min_val(double x, double y, double z) {
 }
 double max_val(double x, double y, double z) {
 
-    double max = -99999;
-
-    if (x > max)
-        max=x;
+    double max= x;
     if (y > max)
         max=y;
     if(z > max)
@@ -118,7 +152,7 @@ double max_val(double x, double y, double z) {
     return max;
 }
 bool eq(double x, double y){
-    return std::abs(x-y)<0.0001;
+    return std::abs(x-y)<0.01;
 }
 
 std::vector<Eigen::Vector3d> cubePoints(const Eigen::Vector3d &query_point){
@@ -151,22 +185,10 @@ std::vector<Eigen::Vector3d> cubePoints(const Eigen::Vector3d &query_point){
     return points;
 }
 
-bool planeIntersects(Eigen::Vector3d& n, const Eigen::Vector3d& planePoint,const std::vector<Eigen::Vector3d>& cube){
-    bool allPositive = true;
-    bool allNegative = true;
-    for (int i=0;i<cube.size();i++){
-        double signo = n.dot(cube[i]-planePoint);
-        allPositive = allPositive&&(signo>0);
-        allNegative = allNegative&&(signo<0);
-    } 
-    return !allPositive&&!allNegative;
-}
-
 bool pointInTriangle(const Eigen::Vector3d& query_point,
                      const Eigen::Vector3d& triangle_vertex_0,
                      const Eigen::Vector3d& triangle_vertex_1,
-                     const Eigen::Vector3d& triangle_vertex_2,
-                     bool parallel)
+                     const Eigen::Vector3d& triangle_vertex_2)
 {
     // u=P2−P1
     Eigen::Vector3d u = triangle_vertex_1 - triangle_vertex_0;
@@ -197,7 +219,7 @@ bool pointInTriangle(const Eigen::Vector3d& query_point,
     //we consider that the triangle goes through the cell if the proyection of the center 
     //is inside the triangle AND the plane of the triangle intersects the cube of the cell
     
-    return (anyProyectionInTriangle && (parallel||planeIntersects(n, triangle_vertex_0, cube)));
+    return anyProyectionInTriangle;
 }
 
 bool parallel (std::vector<double> &vec){
@@ -209,11 +231,15 @@ bool parallel (std::vector<double> &vec){
                 &&eq(vec[1],0));
 }
 
-void occupy(std::vector<std::vector<std::vector<int> > >& env,
-            std::vector<std::vector<std::vector<double> > > &points, 
-            std::vector<std::vector<double> > &normals, int val){
+void occupy(std::vector<std::vector<std::vector<double> > > &points,
+std::vector<std::vector<double> > &normals,
+            cell_state value_to_write){
 
+    std::cout<<"Processing the mesh...\n0%\n";
+    int numberOfProcessedTriangles=0; //for logging, doesn't actually do anything
+    boost::mutex mtx;
     //Let's occupy the enviroment!
+    #pragma omp parallel for
     for(int i= 0;i<points.size();i++){
         //We try to find all the cells that some triangle goes through
         int x1 = roundf((points[i][0][0]-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
@@ -234,44 +260,17 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
         int max_y = max_val(y1,y2,y3);
         int max_z = max_val(z1,z2,z3);
 
+        //is the triangle right at the boundary between two cells (in any axis)?
+        bool xLimit = eq(std::fmod(max_val(points[i][0][0],points[i][1][0],points[i][2][0])-env_min_x, cell_size),0)
+            ||eq(std::fmod(max_val(points[i][0][0],points[i][1][0],points[i][2][0])-env_min_x, cell_size),cell_size);
+
+        bool yLimit = eq(std::fmod(max_val(points[i][0][1],points[i][1][1],points[i][2][1])-env_min_y, cell_size),0)
+            ||eq(std::fmod(max_val(points[i][0][1],points[i][1][1],points[i][2][1])-env_min_y, cell_size),cell_size);
+            
+        bool zLimit = eq(std::fmod(max_val(points[i][0][2],points[i][1][2],points[i][2][2])-env_min_z, cell_size),0)
+            ||eq(std::fmod(max_val(points[i][0][2],points[i][1][2],points[i][2][2])-env_min_z, cell_size),cell_size);
+
         bool isParallel =parallel(normals[i]);
-        bool xLimit = eq(std::fmod(max_val(points[i][0][0],points[i][1][0],points[i][2][0])-env_min_x, cell_size),0)||eq(std::fmod(max_val(points[i][0][0],points[i][1][0],points[i][2][0])-env_min_x, cell_size),cell_size);
-        bool yLimit = eq(std::fmod(max_val(points[i][0][1],points[i][1][1],points[i][2][1])-env_min_y, cell_size),0)||eq(std::fmod(max_val(points[i][0][1],points[i][1][1],points[i][2][1])-env_min_y, cell_size),cell_size);
-        bool zLimit = eq(std::fmod(max_val(points[i][0][2],points[i][1][2],points[i][2][2])-env_min_z, cell_size),0)||eq(std::fmod(max_val(points[i][0][2],points[i][1][2],points[i][2][2])-env_min_z, cell_size),cell_size);
-
-        if(x1<env[0].size()&&y1<env.size()&&z1<env[0][0].size()){
-            if((xLimit&&x1==max_x)||
-                (yLimit&&y1==max_y)||
-                (zLimit&&z1==max_z)
-                &&!env[y1][x1][z1]==1){
-                    env[y1][x1][z1]=(val==1?4:val);
-            }else{
-                env[y1][x1][z1] = val;
-            }
-        }
-
-        if(x2<env[0].size()&&y2<env.size()&&z2<env[0][0].size()){
-            if((xLimit&&x2==max_x)||
-                (yLimit&&y2==max_y)||
-                (zLimit&&z2==max_z)
-                &&!env[y2][x2][z2]==1){
-                    env[y2][x2][z2]=(val==1?4:val);
-            }else{
-                env[y2][x2][z2] = val;
-            }
-        }
-
-        if(x3<env[0].size()&&y3<env.size()&&z3<env[0][0].size()){
-            if((xLimit&&x3==max_x)||
-                (yLimit&&y3==max_y)||
-                (zLimit&&z3==max_z)
-                &&!env[y3][x3][z3]==1){
-                    env[y3][x3][z3]=(val==1?4:val);
-            }else{
-                env[y3][x3][z3] = val;
-            }
-        }
-        
         for (int row = min_x; row <= max_x && row < env[0].size(); row++)
         {
             for (int col = min_y; col <= max_y && col < env.size(); col++)
@@ -279,30 +278,63 @@ void occupy(std::vector<std::vector<std::vector<int> > >& env,
                 for (int height = min_z; height <= max_z && height < env[0][0].size(); height++)
                 {
                     //check if the triangle goes through this cell
-                    if (pointInTriangle(Eigen::Vector3d(row * cell_size + env_min_x+cell_size/2,
+                    //special case for triangles that are parallel to the coordinate axes because the discretization can cause
+                    //problems if they fall right on the boundary of two cells
+                    if (
+                        (isParallel && pointInTriangle(Eigen::Vector3d(row * cell_size + env_min_x+cell_size/2,
                                                         col * cell_size + env_min_y+cell_size/2,
                                                         height * cell_size + env_min_z+cell_size/2),
                                         Eigen::Vector3d(points[i][0][0], points[i][0][1], points[i][0][2]),
                                         Eigen::Vector3d(points[i][1][0], points[i][1][1], points[i][1][2]),
-                                        Eigen::Vector3d(points[i][2][0], points[i][2][1], points[i][2][2]),
-                                        isParallel))
+                                        Eigen::Vector3d(points[i][2][0], points[i][2][1], points[i][2][2])))
+                    || 
+                    triBoxOverlap(
+                            Eigen::Vector3d(row * cell_size + env_min_x+cell_size/2,
+                                col * cell_size + env_min_y+cell_size/2,
+                                height * cell_size + env_min_z+cell_size/2),
+                            Eigen::Vector3d(cell_size/2, cell_size/2, cell_size/2),
+                            Eigen::Vector3d(points[i][0][0], points[i][0][1], points[i][0][2]),
+                                    Eigen::Vector3d(points[i][1][0], points[i][1][1], points[i][1][2]),
+                                    Eigen::Vector3d(points[i][2][0], points[i][2][1], points[i][2][2])))
                     {
-                        if((xLimit&&row==max_x)||
-                            (yLimit&&col==max_y)||
-                            (zLimit&&height==max_z)
-                            &&!env[col][row][height]==1){
-                                env[col][row][height]=(val==1?4:val);
-                        }else{
-                            env[col][row][height] = val;
+                        mtx.lock();
+                        env[col][row][height] = value_to_write;
+                        if(value_to_write==cell_state::occupied){
+                            //if the "limit" flags are activated, AND we are on the offending cells, 
+                            //AND the cell has not previously marked as normally occupied by a different triangle
+                            //AND the cells are not on the very limit of the environment, mark the cell as "edge" for later cleanup
+                            bool limitOfproblematicTriangle=(xLimit&&row==max_x)||
+                                (yLimit&&col==max_y)||
+                                (zLimit&&height==max_z);
+
+                            bool endOfTheEnvironment = (col>0 || col<env.size() ||
+                                row>0 || row<env[0].size() ||
+                                height>0 ||  height<env[0][0].size());
+
+                            if( !endOfTheEnvironment &&
+                                limitOfproblematicTriangle && 
+                                env[col][row][height]!=cell_state::occupied){
+                                    env[col][row][height]=cell_state::edge;
+                            }
                         }
+                        mtx.unlock();
+
                     }
                 }
             }
         }
+
+        //log progress
+        if(i>numberOfProcessedTriangles+points.size()/10){
+            mtx.lock();
+            std::cout<<(100*i)/points.size()<<"%\n";
+            numberOfProcessedTriangles=i;
+            mtx.unlock();
+        }
     }
 }  
 
-void parse(std::string filename, std::vector<std::vector<std::vector<int> > >& env, int val){
+void parse(std::string filename, cell_state value_to_write){
     
     if (FILE *file = fopen(filename.c_str(), "r"))
     {
@@ -364,7 +396,7 @@ void parse(std::string filename, std::vector<std::vector<std::vector<int> > >& e
             while(std::getline(infile, line)&&line.length()==0);
     }
     //OK, we have read the data, let's do something with it
-    occupy(env, points, normals, val);
+    occupy(points, normals, value_to_write);
 
 }
 void findDimensions(std::string filename){
@@ -411,8 +443,14 @@ void findDimensions(std::string filename){
             std::getline(infile, line);
             while(std::getline(infile, line)&&line.length()==0);
     }
+    std::cout<<"Dimensions are:\n"<<
+    "x: ("<<env_min_x<<", "<<env_max_x<<")\n"<<
+    "y: ("<<env_min_y<<", "<<env_max_y<<")\n"<<
+    "z: ("<<env_min_z<<", "<<env_max_z<<")\n";
+
+
 }
-void openFoam_to_gaden(std::string filename, std::vector<std::vector<std::vector<int> > >& env)
+void openFoam_to_gaden(std::string filename)
 {
 
 	//let's parse the file
@@ -450,57 +488,63 @@ void openFoam_to_gaden(std::string filename, std::vector<std::vector<std::vector
     printWind(U,V,W,filename);
 }
 
-void fill(int x, int y, int z, std::vector<std::vector<std::vector<int> > >& env, int val, int empty){
+void fill(int x, int y, int z, cell_state new_value, cell_state value_to_overwrite){
     std::queue<Eigen::Vector3i> q;
     q.push(Eigen::Vector3i(x, y, z));
-    env[x][y][z]=val;
+    env[x][y][z]=new_value;
     while(!q.empty()){
         Eigen::Vector3i point = q.front();
         q.pop();
-        if(point[0]+1<env.size()&&env[point[0]+1][point[1]][point[2]]==empty){ // x+1, y, z
-            env[point[0]+1][point[1]][point[2]]=val;
-            q.push(Eigen::Vector3i(point[0]+1,point[1],point[2]));
+        if(compare_cell(point.x()+1, point.y(), point.z(), value_to_overwrite)){ // x+1, y, z
+            env[point.x()+1][point.y()][point.z()]=new_value;
+            q.push(Eigen::Vector3i(point.x()+1, point.y(), point.z()));
         }
-        if(point[0]>0&&env[point[0]-1][point[1]][point[2]]==empty){ //x-1, y, z
-            env[point[0]-1][point[1]][point[2]]=val;
-            q.push(Eigen::Vector3i(point[0]-1,point[1],point[2]));
+
+        if(compare_cell(point.x()-1, point.y(), point.z(), value_to_overwrite)){ // x-1, y, z
+            env[point.x()-1][point.y()][point.z()]=new_value;
+            q.push(Eigen::Vector3i(point.x()-1, point.y(), point.z()));
         }
-        if(point[1]+1<env[0].size()&&env[point[0]][point[1]+1][point[2]]==empty){ //x, y+1, z
-            env[point[0]][point[1]+1][point[2]]=val;
-            q.push(Eigen::Vector3i(point[0],point[1]+1,point[2]));
+
+        if(compare_cell(point.x(), point.y()+1, point.z(), value_to_overwrite)){ // x, y+1, z
+            env[point.x()][point.y()+1][point.z()]=new_value;
+            q.push(Eigen::Vector3i(point.x(), point.y()+1, point.z()));
         }
-        if(point[1]>0&&env[point[0]][point[1]-1][point[2]]==empty){ //x, y-1, z
-            env[point[0]][point[1]-1][point[2]]=val;
-            q.push(Eigen::Vector3i(point[0],point[1]-1,point[2]));
+
+        if(compare_cell(point.x(), point.y()-1, point.z(), value_to_overwrite)){ // x, y-1, z
+            env[point.x()][point.y()-1][point.z()]=new_value;
+            q.push(Eigen::Vector3i(point.x(), point.y()-1, point.z()));
         }
-        if(point[2]+1<env[0][0].size()&&env[point[0]][point[1]][point[2]+1]==empty){ //x, y, z+1
-            env[point[0]][point[1]][point[2]+1]=val;
-            q.push(Eigen::Vector3i(point[0],point[1],point[2]+1));
+
+        if(compare_cell(point.x(), point.y(), point.z()+1, value_to_overwrite)){ // x, y, z+1
+            env[point.x()][point.y()][point.z()+1]=new_value;
+            q.push(Eigen::Vector3i(point.x(), point.y(), point.z()+1));
         }
-        if(point[2]>0&&env[point[0]][point[1]][point[2]-1]==empty){ //x, y, z-1
-            env[point[0]][point[1]][point[2]-1]=val;
-            q.push(Eigen::Vector3i(point[0],point[1],point[2]-1));
+
+        if(compare_cell(point.x(), point.y(), point.z()-1, value_to_overwrite)){ // x, y, z-1
+            env[point.x()][point.y()][point.z()-1]=new_value;
+            q.push(Eigen::Vector3i(point.x(), point.y(), point.z()-1));
         }
     }
 }
 
-void clean(std::vector<std::vector<std::vector<int> > >& env){
-    std::stack<Eigen::Vector3i> st;
+void clean(){
     for(int col=0;col<env.size();col++){
         for(int row=0;row<env[0].size();row++){
             for(int height=0;height<env[0][0].size();height++){
-                if(env[col][row][height]==4){
-                    if((col<env.size()-1&&env[col+1][row][height]==3)||
-                            (row<env[0].size()-1&&env[col][row+1][height]==3)||
-                            (height<env[0][0].size()-1&&env[col][row][height+1]==3)||
-                            (col<env.size()-1&&row<env[0].size()-1&&env[col+1][row+1][height]==3
-                                &&env[col][row+1][height]==4
-                                &&env[col+1][row][height]==4))
+                
+                if(env[col][row][height]==cell_state::edge){
+
+                    if(compare_cell(col+1, row, height, cell_state::empty)||
+                        compare_cell(col, row+1, height, cell_state::empty)||
+                        compare_cell(col, row, height+1, cell_state::empty)||
+                        (compare_cell(col+1, row+1, height, cell_state::empty)
+                            &&env[col][row+1][height]==cell_state::edge
+                            &&env[col+1][row][height]==cell_state::edge))
                     {
-                        env[col][row][height]=3;
+                        env[col][row][height]=cell_state::empty;
                     }else
                     {
-                        env[col][row][height]=1;
+                        env[col][row][height]=cell_state::occupied;
                     }
                     
                 }
@@ -509,6 +553,8 @@ void clean(std::vector<std::vector<std::vector<int> > >& env){
         }
     }
 }
+
+
 int main(int argc, char **argv){
     ros::init(argc, argv, "preprocessing");
     int numModels;
@@ -518,7 +564,7 @@ int main(int argc, char **argv){
 
     private_nh.param<double>("cell_size", cell_size, 1); //size of the cells
 
-    roundFactor=1000.0/cell_size;
+    roundFactor=100.0/cell_size;
     //stl file with the model of the outlets
     std::string outlet; int numOutletModels;
 
@@ -549,16 +595,17 @@ int main(int argc, char **argv){
 
     //x and y are interchanged!!!!!! it goes env[y][x][z]
     //I cannot for the life of me remember why I did that, but there must have been a reason
-    std::vector<std::vector<std::vector<int> > > env(ceil((env_max_y-env_min_y)*(roundFactor)/(cell_size*(roundFactor))),
+    env = std::vector<std::vector<std::vector<int> > > (ceil((env_max_y-env_min_y)*(roundFactor)/(cell_size*(roundFactor))),
                                                     std::vector<std::vector<int> >(ceil((env_max_x - env_min_x)*(roundFactor)/(cell_size*(roundFactor))),
                                                                                     std::vector<int>(ceil((env_max_z - env_min_z)*(roundFactor)/(cell_size*(roundFactor))), 0)));
 
+    ros::Time start = ros::Time::now();
     for (int i = 0; i < numModels; i++)
     {
-        parse(CADfiles[i], env, 1);
+        parse(CADfiles[i], cell_state::occupied);
     }
       
-
+    std::cout <<"Took "<< ros::Time::now().toSec()-start.toSec()<<" seconds \n";
     double empty_point_x;
     private_nh.param<double>("empty_point_x", empty_point_x, 1);
     double empty_point_y;
@@ -566,16 +613,6 @@ int main(int argc, char **argv){
     double empty_point_z;
     private_nh.param<double>("empty_point_z", empty_point_z, 1);
 
-    std::cout<<"Filling...\n";
-    fill((empty_point_y-env_min_y)/cell_size,
-        (empty_point_x-env_min_x)/cell_size,
-        (empty_point_z-env_min_z)/cell_size, 
-        env, 3, 0);
-    clean(env);
-
-
-    printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 10);
-    
     //--------------------------
 
         //OUTLETS
@@ -593,13 +630,22 @@ int main(int argc, char **argv){
     }
 
     for (int i=0;i<numOutletModels; i++){
-        parse(outletFiles[i], env, 2);
+        parse(outletFiles[i], cell_state::outlet);
     }  
 
+    std::cout<<"Filling...\n";
+    //Mark all the empty cells reachable from the empty_point as aux_empty
+    //the ones that cannot be reached will be marked as occupied when printing
     fill((empty_point_y-env_min_y)/cell_size,
         (empty_point_x-env_min_x)/cell_size,
         (empty_point_z-env_min_z)/cell_size, 
-        env, 5, 3);
+        cell_state::empty, cell_state::non_initialized);
+    
+    //get rid of the cells marked as "edge", since those are not truly occupied
+    clean();
+
+
+    printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 10);
 
     //output - path, occupancy vector, scale
     printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), env, 1);
@@ -640,7 +686,7 @@ int main(int argc, char **argv){
             for(int i = 0; i< env[0].size();i++){
                 for(int j = 0; j< env.size();j++){
                     for(int k = 0; k< env[0][0].size();k++){
-                        if(env[j][i][k]==5){
+                        if(env[j][i][k]==cell_state::empty){
                             U[i][j][k] = v[0];
                             V[i][j][k] = v[1];
                             W[i][j][k] = v[2];
@@ -655,7 +701,7 @@ int main(int argc, char **argv){
         while (FILE *file = fopen(boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str(), "r"))
         {
             fclose(file);
-            openFoam_to_gaden(boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str(), env);
+            openFoam_to_gaden(boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str());
             idx++;
         }
     }
