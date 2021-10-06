@@ -420,7 +420,7 @@ void sim_obj::load_binary_file(std::stringstream& decompressed){
         first_reading=false;
     }else{
         //skip headers
-        decompressed.seekg(14*sizeof(double) + 5*sizeof(int));
+        decompressed.seekg(14*sizeof(double) + 5*sizeof(int), std::ios_base::cur);
     }
 
     int wind_index;
