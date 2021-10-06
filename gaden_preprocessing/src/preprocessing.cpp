@@ -12,19 +12,48 @@
 #include <queue>
 #include <stack>
 #include <TriangleBoxIntersection.h>
+#include <stdint.h>
+
 
 enum cell_state {non_initialized=0, empty=1, occupied=2, outlet=3, edge=4};
 
+struct Point{
+    float x; float y; float z;
+    Point(){}
+    Point(float x, float y, float z){
+        this->x = x; this->y =y; this->z=z;
+    }
+};
+struct Triangle{
+    Point p1; Point p2; Point p3;
+    Triangle(){}
+    Triangle(Point p1, Point p2, Point p3){
+        this->p1=p1; this->p2=p2; this->p3=p3;
+    }
+    Point& operator[](int i){
+        if(i==0)
+            return p1;
+        else if (i==1)
+            return p2;
+        else if(i==2)
+            return p3;
+        else{
+            std::cout<<"Indexing error when accessing the points in triangle! Index must be >= 2";
+            return p1;
+        }
+    }
+};
+
 //dimensions of the enviroment [m]
-double env_min_x; 
-double env_min_y; 
-double env_min_z;
-double env_max_x; 
-double env_max_y; 
-double env_max_z;
-double roundFactor;
+float env_min_x; 
+float env_min_y; 
+float env_min_z;
+float env_max_x; 
+float env_max_y; 
+float env_max_z;
+float roundFactor;
 //length of the sides of the cell [m]
-double cell_size;
+float cell_size;
 
 
 
@@ -119,6 +148,9 @@ void printWind(std::vector<std::vector<std::vector<double> > > U,
         fileV << ";\n";
         fileW << ";\n";
     }
+    fileU.close();
+    fileV.close();
+    fileW.close();
 }
 
 void printYaml(std::string output){
@@ -129,11 +161,12 @@ void printYaml(std::string output){
         << "occupied_thresh: 0.9\n" 
         << "free_thresh: 0.1\n" 
         << "negate: 0";
+    yaml.close();
 }
 
-double min_val(double x, double y, double z) {
+float min_val(float x, float y, float z) {
 
-    double min =x;
+    float min =x;
     if (y < min)
         min=y;
     if(z < min)
@@ -141,9 +174,9 @@ double min_val(double x, double y, double z) {
 
     return min;
 }
-double max_val(double x, double y, double z) {
+float max_val(float x, float y, float z) {
 
-    double max= x;
+    float max= x;
     if (y > max)
         max=y;
     if(z > max)
@@ -151,7 +184,7 @@ double max_val(double x, double y, double z) {
 
     return max;
 }
-bool eq(double x, double y){
+bool eq(float x, float y){
     return std::abs(x-y)<0.01;
 }
 
@@ -203,10 +236,10 @@ bool pointInTriangle(const Eigen::Vector3d& query_point,
         Eigen::Vector3d w = vec - triangle_vertex_0;
         // Barycentric coordinates of the projection P′of P onto T:
         // γ=[(u×w)⋅n]/n²
-        double gamma = u.cross(w).dot(n) / n.dot(n);
+        float gamma = u.cross(w).dot(n) / n.dot(n);
         // β=[(w×v)⋅n]/n²
-        double beta = w.cross(v).dot(n) / n.dot(n);
-        double alpha = 1 - gamma - beta;
+        float beta = w.cross(v).dot(n) / n.dot(n);
+        float alpha = 1 - gamma - beta;
         // The point P′ lies inside T if:
         bool proyectionInTriangle= ((0 <= alpha) && (alpha <= 1) &&
                 (0 <= beta)  && (beta  <= 1) &&
@@ -222,17 +255,17 @@ bool pointInTriangle(const Eigen::Vector3d& query_point,
     return anyProyectionInTriangle;
 }
 
-bool parallel (std::vector<double> &vec){
-    return (eq(vec[1],0)
-                &&eq(vec[2],0))||
-           (eq(vec[0],0)
-                &&eq(vec[2],0))||
-           (eq(vec[0],0)
-                &&eq(vec[1],0));
+bool parallel (const Point &vec){
+    return (eq(vec.y,0)
+                &&eq(vec.z,0))||
+           (eq(vec.x,0)
+                &&eq(vec.z,0))||
+           (eq(vec.x,0)
+                &&eq(vec.y,0));
 }
 
-void occupy(std::vector<std::vector<std::vector<double> > > &points,
-std::vector<std::vector<double> > &normals,
+void occupy(std::vector<Triangle> &triangles,
+const std::vector<Point> &normals,
             cell_state value_to_write){
 
     std::cout<<"Processing the mesh...\n0%\n";
@@ -240,17 +273,17 @@ std::vector<std::vector<double> > &normals,
     boost::mutex mtx;
     //Let's occupy the enviroment!
     #pragma omp parallel for
-    for(int i= 0;i<points.size();i++){
+    for(int i= 0;i<triangles.size();i++){
         //We try to find all the cells that some triangle goes through
-        int x1 = roundf((points[i][0][0]-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
-        int y1 = roundf((points[i][0][1]-env_min_y)*(roundFactor))/(cell_size*(roundFactor));
-        int z1 = roundf((points[i][0][2]-env_min_z)*(roundFactor))/(cell_size*(roundFactor));
-        int x2 = roundf((points[i][1][0]-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
-        int y2 = roundf((points[i][1][1]-env_min_y)*(roundFactor))/(cell_size*(roundFactor));
-        int z2 = roundf((points[i][1][2]-env_min_z)*(roundFactor))/(cell_size*(roundFactor));
-        int x3 = roundf((points[i][2][0]-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
-        int y3 = roundf((points[i][2][1]-env_min_y)*(roundFactor))/(cell_size*(roundFactor));
-        int z3 = roundf((points[i][2][2]-env_min_z)*(roundFactor))/(cell_size*(roundFactor));
+        int x1 = roundf((triangles[i].p1.x-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
+        int y1 = roundf((triangles[i].p1.y-env_min_y)*(roundFactor))/(cell_size*(roundFactor));
+        int z1 = roundf((triangles[i].p1.z-env_min_z)*(roundFactor))/(cell_size*(roundFactor));
+        int x2 = roundf((triangles[i].p2.x-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
+        int y2 = roundf((triangles[i].p2.y-env_min_y)*(roundFactor))/(cell_size*(roundFactor));
+        int z2 = roundf((triangles[i].p2.z-env_min_z)*(roundFactor))/(cell_size*(roundFactor));
+        int x3 = roundf((triangles[i].p3.x-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
+        int y3 = roundf((triangles[i].p3.y-env_min_y)*(roundFactor))/(cell_size*(roundFactor));
+        int z3 = roundf((triangles[i].p3.z-env_min_z)*(roundFactor))/(cell_size*(roundFactor));
 
         int min_x = min_val(x1,x2,x3);
         int min_y = min_val(y1,y2,y3);
@@ -261,14 +294,14 @@ std::vector<std::vector<double> > &normals,
         int max_z = max_val(z1,z2,z3);
 
         //is the triangle right at the boundary between two cells (in any axis)?
-        bool xLimit = eq(std::fmod(max_val(points[i][0][0],points[i][1][0],points[i][2][0])-env_min_x, cell_size),0)
-            ||eq(std::fmod(max_val(points[i][0][0],points[i][1][0],points[i][2][0])-env_min_x, cell_size),cell_size);
+        bool xLimit = eq(std::fmod(max_val(triangles[i][0].x,triangles[i][1].x,triangles[i][2].x)-env_min_x, cell_size),0)
+            ||eq(std::fmod(max_val(triangles[i][0].x,triangles[i][1].x,triangles[i][2].x)-env_min_x, cell_size),cell_size);
 
-        bool yLimit = eq(std::fmod(max_val(points[i][0][1],points[i][1][1],points[i][2][1])-env_min_y, cell_size),0)
-            ||eq(std::fmod(max_val(points[i][0][1],points[i][1][1],points[i][2][1])-env_min_y, cell_size),cell_size);
+        bool yLimit = eq(std::fmod(max_val(triangles[i][0].y,triangles[i][1].y,triangles[i][2].y)-env_min_y, cell_size),0)
+            ||eq(std::fmod(max_val(triangles[i][0].y,triangles[i][1].y,triangles[i][2].y)-env_min_y, cell_size),cell_size);
             
-        bool zLimit = eq(std::fmod(max_val(points[i][0][2],points[i][1][2],points[i][2][2])-env_min_z, cell_size),0)
-            ||eq(std::fmod(max_val(points[i][0][2],points[i][1][2],points[i][2][2])-env_min_z, cell_size),cell_size);
+        bool zLimit = eq(std::fmod(max_val(triangles[i][0].z,triangles[i][1].z,triangles[i][2].z)-env_min_z, cell_size),0)
+            ||eq(std::fmod(max_val(triangles[i][0].z,triangles[i][1].z,triangles[i][2].z)-env_min_z, cell_size),cell_size);
 
         bool isParallel =parallel(normals[i]);
         for (int row = min_x; row <= max_x && row < env[0].size(); row++)
@@ -284,18 +317,18 @@ std::vector<std::vector<double> > &normals,
                         (isParallel && pointInTriangle(Eigen::Vector3d(row * cell_size + env_min_x+cell_size/2,
                                                         col * cell_size + env_min_y+cell_size/2,
                                                         height * cell_size + env_min_z+cell_size/2),
-                                        Eigen::Vector3d(points[i][0][0], points[i][0][1], points[i][0][2]),
-                                        Eigen::Vector3d(points[i][1][0], points[i][1][1], points[i][1][2]),
-                                        Eigen::Vector3d(points[i][2][0], points[i][2][1], points[i][2][2])))
+                                        Eigen::Vector3d(triangles[i][0].x, triangles[i][0].y, triangles[i][0].z),
+                                        Eigen::Vector3d(triangles[i][1].x, triangles[i][1].y, triangles[i][1].z),
+                                        Eigen::Vector3d(triangles[i][2].x, triangles[i][2].y, triangles[i][2].z)))
                     || 
                     triBoxOverlap(
                             Eigen::Vector3d(row * cell_size + env_min_x+cell_size/2,
                                 col * cell_size + env_min_y+cell_size/2,
                                 height * cell_size + env_min_z+cell_size/2),
                             Eigen::Vector3d(cell_size/2, cell_size/2, cell_size/2),
-                            Eigen::Vector3d(points[i][0][0], points[i][0][1], points[i][0][2]),
-                                    Eigen::Vector3d(points[i][1][0], points[i][1][1], points[i][1][2]),
-                                    Eigen::Vector3d(points[i][2][0], points[i][2][1], points[i][2][2])))
+                            Eigen::Vector3d(triangles[i][0].x, triangles[i][0].y, triangles[i][0].z),
+                                    Eigen::Vector3d(triangles[i][1].x, triangles[i][1].y, triangles[i][1].z),
+                                    Eigen::Vector3d(triangles[i][2].x, triangles[i][2].y, triangles[i][2].z)))
                     {
                         mtx.lock();
                         env[col][row][height] = value_to_write;
@@ -325,9 +358,9 @@ std::vector<std::vector<double> > &normals,
         }
 
         //log progress
-        if(i>numberOfProcessedTriangles+points.size()/10){
+        if(i>numberOfProcessedTriangles+triangles.size()/10){
             mtx.lock();
-            std::cout<<(100*i)/points.size()<<"%\n";
+            std::cout<<(100*i)/triangles.size()<<"%\n";
             numberOfProcessedTriangles=i;
             mtx.unlock();
         }
@@ -336,45 +369,55 @@ std::vector<std::vector<double> > &normals,
 
 void parse(std::string filename, cell_state value_to_write){
     
+    bool ascii = false;
     if (FILE *file = fopen(filename.c_str(), "r"))
     {
         //File exists!, keep going!
+        char buffer[6];
+        fgets(buffer, 6, file);
+        if(std::string(buffer).find("solid")!=std::string::npos)
+            ascii=true;
         fclose(file);
     }else{
         std::cout<< "File " << filename << " does not exist\n";
     }
     
-    //first, we count how many triangles there are (we need to do this before reading the data 
-    // to create a vector of the right size)
-    std::ifstream countfile(filename.c_str());
-    std::string line;
-    int count = 0;
+    std::vector<Triangle> triangles;
+    std::vector<Point> normals;
 
-    while (std::getline(countfile, line)){
-        if(line.find("facet normal") != std::string::npos){
-            count++;
+    if(ascii){
+        //first, we count how many triangles there are (we need to do this before reading the data 
+        // to create a vector of the right size)
+        std::ifstream countfile(filename.c_str());
+        std::string line;
+        int count = 0;
+
+        while (std::getline(countfile, line)){
+            if(line.find("facet normal") != std::string::npos){
+                count++;
+            }
         }
-    }
-    //each points[i] contains one the three vertices of triangle i
-    std::vector<std::vector<std::vector<double> > >points(count, std::vector<std::vector<double> > (3, std::vector<double>(3)));
-    std::vector<std::vector<double> > normals(count, std::vector<double>(3));
-    //let's read the data
-    std::ifstream infile(filename.c_str());
-    std::getline(infile, line);
-    int i =0;
-    while (line.find("endsolid")==std::string::npos)
+        countfile.close();
+        //each points[i] contains one the three vertices of triangle i
+        triangles.resize(count);
+        normals.resize(count);
+        //let's read the data
+        std::ifstream infile(filename.c_str());
+        std::getline(infile, line);
+        int i =0;
+        while (line.find("endsolid")==std::string::npos)
         {
             while (line.find("facet normal") == std::string::npos){std::getline(infile, line);}
             size_t pos = line.find("facet");
             line.erase(0, pos + 12);
-            double aux;
+            float aux;
             std::stringstream ss(line);
             ss >> std::skipws >>  aux; 
-            normals[i][0] = roundf(aux * roundFactor) / roundFactor;
+            normals[i].x = roundf(aux * roundFactor) / roundFactor;
             ss >> std::skipws >>  aux; 
-            normals[i][1] = roundf(aux * roundFactor) / roundFactor;
+            normals[i].y = roundf(aux * roundFactor) / roundFactor;
             ss >> std::skipws >>  aux; 
-            normals[i][2] = roundf(aux * roundFactor) / roundFactor;
+            normals[i].z = roundf(aux * roundFactor) / roundFactor;
             std::getline(infile, line);
 
             for(int j=0;j<3;j++){
@@ -383,47 +426,77 @@ void parse(std::string filename, cell_state value_to_write){
                 line.erase(0, pos + 7);
                 std::stringstream ss(line);
                 ss >> std::skipws >>  aux; 
-                points[i][j][0] = roundf(aux * roundFactor) / roundFactor;
+                triangles[i][j].x = roundf(aux * roundFactor) / roundFactor;
                 ss >> std::skipws >>  aux; 
-                points[i][j][1] = roundf(aux * roundFactor) / roundFactor;
+                triangles[i][j].y = roundf(aux * roundFactor) / roundFactor;
                 ss >> std::skipws >>  aux; 
-                points[i][j][2] = roundf(aux * roundFactor) / roundFactor;
+                triangles[i][j].z = roundf(aux * roundFactor) / roundFactor;
             }
             i++;
             //skipping lines here makes checking for the end of the file more convenient
             std::getline(infile, line);
             std::getline(infile, line);
             while(std::getline(infile, line)&&line.length()==0);
+        }
+        infile.close();
     }
+    else{
+        std::ifstream infile(filename.c_str(), std::ios_base::binary);
+        infile.seekg(80 * sizeof(uint8_t), std::ios_base::cur); //skip the header
+        uint32_t num_triangles;
+        infile.read((char*) &num_triangles, sizeof(uint32_t));
+        triangles.resize(num_triangles);
+        normals.resize(num_triangles);
+
+        for(int i = 0; i < num_triangles; i++){
+            infile.read((char*) &normals[i], 3 * sizeof(float)); //read the normal vector
+            
+            for(int j=0; j<3;j++){
+                infile.read((char*) &triangles[i][j], 3 * sizeof(float)); //read the point
+            }
+
+            infile.seekg(sizeof(uint16_t), std::ios_base::cur); //skip the attribute data
+        }
+        infile.close();
+    }
+    
     //OK, we have read the data, let's do something with it
-    occupy(points, normals, value_to_write);
+    occupy(triangles, normals, value_to_write);
 
 }
+
 void findDimensions(std::string filename){
+    bool ascii = false;
     if (FILE *file = fopen(filename.c_str(), "r"))
     {
         //File exists!, keep going!
+        char buffer[6];
+        fgets(buffer, 6, file);
+        if(std::string(buffer).find("solid")!=std::string::npos)
+            ascii=true;
         fclose(file);
     }else{
         std::cout<< "File " << filename << " does not exist\n";
     }
 
-    //let's read the data
-    std::string line;
-    std::ifstream infile(filename.c_str());
-    std::getline(infile, line);
-    int i =0;
-    while (line.find("endsolid")==std::string::npos)
+
+    if(ascii){
+        //let's read the data
+        std::string line;
+        std::ifstream infile(filename.c_str());
+        std::getline(infile, line);
+        int i =0;
+        while (line.find("endsolid")==std::string::npos)
         {
             while (std::getline(infile, line) && line.find("outer loop") == std::string::npos);
 
             for(int j=0;j<3;j++){
-                double x, y, z;
+                float x, y, z;
                 std::getline(infile, line);
                 size_t pos = line.find("vertex ");
                 line.erase(0, pos + 7);
                 std::stringstream ss(line);
-                double aux;
+                float aux;
                 ss >> std::skipws >>  aux; 
                 x = roundf(aux * roundFactor) / roundFactor;
                 ss >> std::skipws >>  aux; 
@@ -442,7 +515,33 @@ void findDimensions(std::string filename){
             std::getline(infile, line);
             std::getline(infile, line);
             while(std::getline(infile, line)&&line.length()==0);
+        }
+        infile.close();
     }
+    else{
+        std::ifstream infile(filename.c_str(), std::ios_base::binary);
+        infile.seekg(80 * sizeof(uint8_t), std::ios_base::cur); //skip the header
+        uint32_t num_triangles;
+        infile.read((char*) &num_triangles, sizeof(uint32_t));
+        for(int i = 0; i < num_triangles; i++){
+            infile.seekg(3 * sizeof(float), std::ios_base::cur); //skip the normal vector
+            for(int j=0; j<3;j++){
+                float x, y ,z;
+                infile.read((char*) &x, sizeof(float));
+                infile.read((char*) &y, sizeof(float));
+                infile.read((char*) &z, sizeof(float));
+                env_max_x = env_max_x>=x?env_max_x:x;
+                env_max_y = env_max_y>=y?env_max_y:y;
+                env_max_z = env_max_z>=z?env_max_z:z;
+                env_min_x = env_min_x<=x?env_min_x:x;
+                env_min_y = env_min_y<=y?env_min_y:y;
+                env_min_z = env_min_z<=z?env_min_z:z;
+            }
+            
+            infile.seekg(sizeof(uint16_t), std::ios_base::cur); //skip the attribute data
+        }
+    }
+    
     std::cout<<"Dimensions are:\n"<<
     "x: ("<<env_min_x<<", "<<env_max_x<<")\n"<<
     "y: ("<<env_min_y<<", "<<env_max_y<<")\n"<<
@@ -477,14 +576,15 @@ void openFoam_to_gaden(std::string filename)
 				line.erase(0, pos + 1);
 			}
 			//assign each of the points we have information about to the nearest cell
-			x_idx = roundf((v[3] - env_min_x) / cell_size*roundFactor)/roundFactor;
-			y_idx = roundf((v[4] - env_min_y) / cell_size*roundFactor)/roundFactor;
-			z_idx = roundf((v[5] - env_min_z) / cell_size*roundFactor)/roundFactor;
+			x_idx = (int)roundf((v[3] - env_min_x) / cell_size*roundFactor)/roundFactor;
+			y_idx = (int)roundf((v[4] - env_min_y) / cell_size*roundFactor)/roundFactor;
+			z_idx = (int)roundf((v[5] - env_min_z) / cell_size*roundFactor)/roundFactor;
 			U[x_idx][y_idx][z_idx] = v[0];
 			V[x_idx][y_idx][z_idx] = v[1];
 			W[x_idx][y_idx][z_idx] = v[2];
 		}
 	}
+    infile.close();
     printWind(U,V,W,filename);
 }
 
@@ -562,7 +662,7 @@ int main(int argc, char **argv){
     ros::NodeHandle private_nh("~");
     ros::Publisher pub = nh.advertise<std_msgs::Bool>("preprocessing_done",5,true);
 
-    private_nh.param<double>("cell_size", cell_size, 1); //size of the cells
+    private_nh.param<float>("cell_size", cell_size, 1); //size of the cells
 
     roundFactor=100.0/cell_size;
     //stl file with the model of the outlets
@@ -606,12 +706,12 @@ int main(int argc, char **argv){
     }
       
     std::cout <<"Took "<< ros::Time::now().toSec()-start.toSec()<<" seconds \n";
-    double empty_point_x;
-    private_nh.param<double>("empty_point_x", empty_point_x, 1);
-    double empty_point_y;
-    private_nh.param<double>("empty_point_y", empty_point_y, 1);
-    double empty_point_z;
-    private_nh.param<double>("empty_point_z", empty_point_z, 1);
+    float empty_point_x;
+    private_nh.param<float>("empty_point_x", empty_point_x, 1);
+    float empty_point_y;
+    private_nh.param<float>("empty_point_y", empty_point_y, 1);
+    float empty_point_z;
+    private_nh.param<float>("empty_point_z", empty_point_z, 1);
 
     //--------------------------
 
@@ -694,6 +794,7 @@ int main(int argc, char **argv){
                     }
                 }
             }
+            infile.close();
             printWind(U,V,W, boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str());
             idx++;
         }
