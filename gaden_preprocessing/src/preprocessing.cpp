@@ -54,7 +54,7 @@ float env_max_z;
 float roundFactor;
 //length of the sides of the cell [m]
 float cell_size;
-
+float floor_height;
 
 
 std::vector<std::vector<std::vector<int> > > env;
@@ -70,84 +70,97 @@ bool compare_cell(int x, int y, int z, cell_state value){
     }
 }
 
-void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > > env, int scale)
+void printMap(std::string filename, int scale){
+    std::ofstream outfile(filename.c_str());
+    outfile << "P2\n"
+            << scale *  env[0].size() << " " << scale * env.size() << "\n" <<"1\n";
+    //things are repeated to scale them up (the image is too small!)
+
+    int height = (floor_height-env_min_z)/cell_size; //a xy slice of the 3D environment is used as a geometric map for navigation
+    
+    for (int row = env.size()-1; row >= 0; row--)
+    {
+        for (int j = 0; j < scale; j++)
+        {
+            for (int col = 0; col <env[0].size() ; col++)
+            {
+                for (int i = 0; i < scale; i++)
+                {
+                    outfile << (env[row][col][height] == cell_state::empty? 1 : 0) << " ";
+                }
+            }
+            outfile << "\n";
+        }
+    }
+    outfile.close();
+
+
+    std::cout<<"\n\n\nChange these values in the launch/ros/stage.world if you want to use the main_simbot \nfloorMap size:\n";
+    std::cout<<(env_max_x-env_min_x)<<" ";
+    std::cout<<(env_max_y-env_min_y)<<" ";
+    std::cout<<(env_max_z-env_min_z)<<"\n";
+
+    std::cout<<"\nfloorMap pose:\n";
+
+
+    std::cout<<(env_max_x-env_min_x)/2+env_min_x<<" ";
+    std::cout<<(env_max_y-env_min_y)/2+env_min_y<<" ";
+    std::cout<<floor_height<<"\n";
+
+}
+
+void printEnv(std::string filename, int scale)
 {
     std::ofstream outfile(filename.c_str());
-    if (filename.find(".pgm") != std::string::npos)
+    
+    outfile <<  "#env_min(m) " << env_min_x << " " << env_min_y << " " << env_min_z << "\n";
+    outfile <<  "#env_max(m) " << env_max_x << " " << env_max_y << " " << env_max_z << "\n";
+    outfile <<  "#num_cells " << env[0].size() << " " << env.size() << " " << env[0][0].size() << "\n";
+    outfile <<  "#cell_size(m) " << cell_size << "\n";
+    //things are repeated to scale them up (the image is too small!)
+    for (int height = 0; height < env[0][0].size(); height++)
     {
-        outfile << "P2\n"
-                << scale *  env[0].size() << " " << scale * env.size() << "\n" <<"1\n";
-        //things are repeated to scale them up (the image is too small!)
-        for (int row = env.size()-1; row >= 0; row--)
+        for (int col = 0; col <env[0].size(); col++)
         {
             for (int j = 0; j < scale; j++)
             {
-                for (int col = 0; col <env[0].size() ; col++)
+                for (int row = 0; row <env.size(); row++)
                 {
                     for (int i = 0; i < scale; i++)
                     {
-                        outfile << (env[row][col][0] == cell_state::empty? 1 : 0) << " ";
+                        outfile << (env[row][col][height]==cell_state::empty? 0 :
+                                (env[row][col][height]==cell_state::outlet? 2 :
+                                1))
+                                << " ";
                     }
                 }
                 outfile << "\n";
             }
         }
+        outfile << ";\n";
     }
-    else
-    {
-        outfile <<  "#env_min(m) " << env_min_x << " " << env_min_y << " " << env_min_z << "\n";
-        outfile <<  "#env_max(m) " << env_max_x << " " << env_max_y << " " << env_max_z << "\n";
-        outfile <<  "#num_cells " << env[0].size() << " " << env.size() << " " << env[0][0].size() << "\n";
-        outfile <<  "#cell_size(m) " << cell_size << "\n";
-        //things are repeated to scale them up (the image is too small!)
-        for (int height = 0; height < env[0][0].size(); height++)
-        {
-            for (int col = 0; col <env[0].size(); col++)
-            {
-                for (int j = 0; j < scale; j++)
-                {
-                    for (int row = 0; row <env.size(); row++)
-                    {
-                        for (int i = 0; i < scale; i++)
-                        {
-                            outfile << (env[row][col][height]==cell_state::empty? 0 :
-                                    (env[row][col][height]==cell_state::outlet? 2 :
-                                    1))
-                                    << " ";
-                        }
-                    }
-                    outfile << "\n";
-                }
-            }
-            outfile << ";\n";
-        }
-    }
+    outfile.close();
 }
-void printWind(std::vector<std::vector<std::vector<double> > > U,
-                std::vector<std::vector<std::vector<double> > > V,
-                std::vector<std::vector<std::vector<double> > > W, std::string filename){
+
+void printWind(std::vector<double> U,
+                std::vector<double> V,
+                std::vector<double> W, std::string filename){
     
     std::ofstream fileU(boost::str(boost::format("%s_U") % filename).c_str());
     std::ofstream fileV(boost::str(boost::format("%s_V") % filename).c_str());
     std::ofstream fileW(boost::str(boost::format("%s_W") % filename).c_str());
-    for (int height = 0; height < U[0][0].size(); height++)
-    {
-        for (int col = 0; col < U.size(); col++)
-        {
-            for (int row = 0; row < U[0].size(); row++)
-            {
-                fileU << U[col][row][height] << " ";
-                fileV << V[col][row][height] << " ";
-                fileW << W[col][row][height] << " ";
-            }
-            fileU << "\n";
-            fileV << "\n";
-            fileW << "\n";
-        }
-        fileU << ";\n";
-        fileV << ";\n";
-        fileW << ";\n";
-    }
+    
+    //this code is a header to let the filament_simulator know the file is in binary
+    int code=999;
+
+    fileU.write((char*) &code, sizeof(int));
+    fileV.write((char*) &code, sizeof(int));
+    fileW.write((char*) &code, sizeof(int));
+
+    fileU.write((char*) U.data(), sizeof(double) * U.size());
+    fileV.write((char*) V.data(), sizeof(double) * V.size());
+    fileW.write((char*) W.data(), sizeof(double) * W.size());
+
     fileU.close();
     fileV.close();
     fileW.close();
@@ -157,7 +170,7 @@ void printYaml(std::string output){
     std::ofstream yaml(boost::str(boost::format("%s/occupancy.yaml") % output.c_str()));
     yaml << "image: occupancy.pgm\n" 
         << "resolution: " << cell_size/10 
-        << "\norigin: [" << env_min_x << ", " << env_min_y << ", " << env_min_z << "]\n"
+        << "\norigin: [" << env_min_x << ", " << env_min_y << ", " << 0 << "]\n"
         << "occupied_thresh: 0.9\n" 
         << "free_thresh: 0.1\n" 
         << "negate: 0";
@@ -549,6 +562,11 @@ void findDimensions(std::string filename){
 
 
 }
+
+int indexFrom3D(int x, int y, int z){
+	return x + y*env[0].size() + z*env[0].size()*env.size();
+}
+
 void openFoam_to_gaden(std::string filename)
 {
 
@@ -558,9 +576,9 @@ void openFoam_to_gaden(std::string filename)
 
 	//ignore the first line (column names)
 	std::getline(infile, line);
-    std::vector<std::vector<std::vector<double> > > U(env[0].size(), std::vector<std::vector<double> >(env.size(), std::vector<double>(env[0][0].size())));
-    std::vector<std::vector<std::vector<double> > > V(env[0].size(), std::vector<std::vector<double> >(env.size(), std::vector<double>(env[0][0].size())));
-    std::vector<std::vector<std::vector<double> > > W(env[0].size(), std::vector<std::vector<double> >(env.size(), std::vector<double>(env[0][0].size())));
+    std::vector<double> U(env[0].size()*env.size()*env[0][0].size());
+    std::vector<double> V(env[0].size()*env.size()*env[0][0].size());
+    std::vector<double> W(env[0].size()*env.size()*env[0][0].size());
     std::vector<double> v(6);
 	int x_idx = 0;
 	int y_idx = 0;
@@ -579,9 +597,9 @@ void openFoam_to_gaden(std::string filename)
 			x_idx = (int)roundf((v[3] - env_min_x) / cell_size*roundFactor)/roundFactor;
 			y_idx = (int)roundf((v[4] - env_min_y) / cell_size*roundFactor)/roundFactor;
 			z_idx = (int)roundf((v[5] - env_min_z) / cell_size*roundFactor)/roundFactor;
-			U[x_idx][y_idx][z_idx] = v[0];
-			V[x_idx][y_idx][z_idx] = v[1];
-			W[x_idx][y_idx][z_idx] = v[2];
+			U[ indexFrom3D(x_idx, y_idx,z_idx) ] = v[0];
+			V[ indexFrom3D(x_idx, y_idx,z_idx) ] = v[1];
+			W[ indexFrom3D(x_idx, y_idx,z_idx) ] = v[2];
 		}
 	}
     infile.close();
@@ -744,11 +762,11 @@ int main(int argc, char **argv){
     //get rid of the cells marked as "edge", since those are not truly occupied
     clean();
 
-
-    printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 10);
+    private_nh.param<float>("floor_height", floor_height, 0); // number of CAD models
+    printMap(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), 10);
 
     //output - path, occupancy vector, scale
-    printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), env, 1);
+    printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), 1);
     printYaml(output);
 
     //-------------------------
@@ -771,9 +789,9 @@ int main(int argc, char **argv){
         std::ifstream infile(windFileName);
         std::string line;
 
-        std::vector<std::vector<std::vector<double> > > U(env[0].size(), std::vector<std::vector<double> >(env.size(), std::vector<double>(env[0][0].size())));
-        std::vector<std::vector<std::vector<double> > > V(env[0].size(), std::vector<std::vector<double> >(env.size(), std::vector<double>(env[0][0].size())));
-        std::vector<std::vector<std::vector<double> > > W(env[0].size(), std::vector<std::vector<double> >(env.size(), std::vector<double>(env[0][0].size())));
+        std::vector<double> U(env[0].size()*env.size()*env[0][0].size());
+        std::vector<double> V(env[0].size()*env.size()*env[0][0].size());
+        std::vector<double> W(env[0].size()*env.size()*env[0][0].size());
         while(std::getline(infile, line)){
             std::vector<double> v;
             for (int i = 0; i < 3; i++)
@@ -787,9 +805,10 @@ int main(int argc, char **argv){
                 for(int j = 0; j< env.size();j++){
                     for(int k = 0; k< env[0][0].size();k++){
                         if(env[j][i][k]==cell_state::empty){
-                            U[i][j][k] = v[0];
-                            V[i][j][k] = v[1];
-                            W[i][j][k] = v[2];
+                           
+                            U[ indexFrom3D(i, j, k) ] = v[0];
+                            V[ indexFrom3D(i, j, k) ] = v[1];
+                            W[ indexFrom3D(i, j, k) ] = v[2];
                         }
                     }
                 }

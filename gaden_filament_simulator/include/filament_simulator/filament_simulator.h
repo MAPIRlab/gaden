@@ -118,7 +118,7 @@ protected:
     void loadNodeParameters();
     void initSimulator();
     void configure3DMatrix(std::vector< double > &A);
-    void read_3D_file(std::string filename, std::vector< double > &A, bool hasHeader);
+    void read_3D_file(std::string filename, std::vector< double > &A, bool hasHeader, bool binary);
     int check_pose_with_environment(double pose_x, double pose_y, double pose_z);
     bool check_environment_for_obstacle(double start_x, double start_y, double start_z, double end_x, double end_y, double end_z);
     double random_number(double min_val, double max_val);

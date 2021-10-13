@@ -285,7 +285,7 @@ void CFilamentSimulator::initSimulator()
 		//Files exist!, keep going!
 		fclose(file);
         if (verbose) ROS_INFO("[filament] Loading 3D Occupancy GridMap");
-		read_3D_file(occupancy3D_data, Env, true);
+		read_3D_file(occupancy3D_data, Env, true, false);
 	}
 	else
 	{
@@ -320,14 +320,14 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 		return;
 
 	//configure filenames to read
-	std::string U_filemane = boost::str( boost::format("%s%i.csv_U") % wind_files_location % idx );
-	std::string V_filemane = boost::str( boost::format("%s%i.csv_V") % wind_files_location % idx );
-	std::string W_filemane = boost::str( boost::format("%s%i.csv_W") % wind_files_location % idx );
+	std::string U_filename = boost::str( boost::format("%s%i.csv_U") % wind_files_location % idx );
+	std::string V_filename = boost::str( boost::format("%s%i.csv_V") % wind_files_location % idx );
+	std::string W_filename = boost::str( boost::format("%s%i.csv_W") % wind_files_location % idx );
 
-    if (verbose) ROS_INFO("Reading Wind Snapshot %s",U_filemane.c_str());
+    if (verbose) ROS_INFO("Reading Wind Snapshot %s",U_filename.c_str());
 
     //read data to 3D matrices
-	if (FILE *file = fopen(U_filemane.c_str(), "r"))
+	if (FILE *file = fopen(U_filename.c_str(), "r"))
 	{
 		//Files exist!, keep going!
 		fclose(file);
@@ -335,9 +335,16 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 		last_wind_idx=idx;
         if (verbose) ROS_INFO("[filament] Loading Wind Snapshot %i", idx);
 
-		read_3D_file(U_filemane, U, false);
-		read_3D_file(V_filemane, V, false);
-		read_3D_file(W_filemane, W, false);
+		//binary format files start with the code "999"
+		std::ifstream ist(U_filename, std::ios_base::binary);
+		int check=0;
+    	ist.read((char*) &check, sizeof(int));
+		ist.close();
+
+		read_3D_file(U_filename, U, false, (check==999));
+		read_3D_file(V_filename, V, false, (check==999));
+		read_3D_file(W_filename, W, false, (check==999));
+		
 		if(!wind_finished){
 			//dump the binary wind data to file
 			std::string out_filename = boost::str( boost::format("%s/wind/wind_iteration_%i") % results_location % idx);
@@ -347,7 +354,6 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 				exit(1);
 			}
 			fclose(file);
-
 			std::ofstream wind_File(out_filename.c_str());
 			wind_File.write((char*) U.data(), sizeof(double) * U.size());
 			wind_File.write((char*) V.data(), sizeof(double) * V.size());
@@ -360,7 +366,7 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 		//No more wind data. Keep current info.
 		if (!wind_notified)
 		{
-			ROS_WARN("[filament] File %s Does Not Exists!",U_filemane.c_str());
+			ROS_WARN("[filament] File %s Does Not Exists!",U_filename.c_str());
 			ROS_WARN("[filament] No more wind data available. Using last Wind snapshopt as SteadyState.");
 			wind_notified = true;
 			wind_finished = true;
@@ -374,8 +380,16 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 //==========================//
 //                          //
 //==========================//
-void CFilamentSimulator::read_3D_file(std::string filename, std::vector< double > &A, bool hasHeader=false)
+void CFilamentSimulator::read_3D_file(std::string filename, std::vector< double > &A, bool hasHeader, bool binary)
 {
+	if(binary){
+		std::ifstream infile(filename, std::ios_base::binary);
+		infile.seekg(sizeof(int));
+    	infile.read((char*) A.data(), sizeof(double)* A.size());
+		infile.close();
+		return;
+	}
+
 	//open file
 	std::ifstream infile(filename.c_str());
 	std::string line;
@@ -480,7 +494,9 @@ void CFilamentSimulator::read_3D_file(std::string filename, std::vector< double 
 		}
 	}
     //End of file.
-    if (verbose) ROS_INFO("End of File");
+    if (verbose) 
+		ROS_INFO("End of File");
+	infile.close();
 }
 
 

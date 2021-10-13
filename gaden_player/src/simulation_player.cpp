@@ -362,6 +362,7 @@ void sim_obj::load_data_from_logfile(int sim_iteration)
     }
     else
         load_ascii_file(decompressed);
+    infile.close();
 }
 
 void sim_obj::load_ascii_file(std::stringstream& decompressed){
@@ -420,7 +421,7 @@ void sim_obj::load_binary_file(std::stringstream& decompressed){
         first_reading=false;
     }else{
         //skip headers
-        decompressed.seekg(14*sizeof(double) + 5*sizeof(int), std::ios_base::cur);
+        decompressed.seekg(14*sizeof(double) + 5*sizeof(int));
     }
 
     int wind_index;
@@ -454,7 +455,7 @@ void sim_obj::load_wind_file(int wind_index){
     infile.read((char*) U.data(), sizeof(double)* U.size());
     infile.read((char*) V.data(), sizeof(double)* U.size());
     infile.read((char*) W.data(), sizeof(double)* U.size());
-    
+    infile.close();
 }
 
 //Get Gas concentration at lcoation (x,y,z)
