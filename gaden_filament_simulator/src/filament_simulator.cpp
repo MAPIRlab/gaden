@@ -996,7 +996,6 @@ int main(int argc, char **argv)
 	//--------------
 	// LOOP
 	//--------------	
-    ros::Rate r(100);
 	while (ros::ok() && (sim.current_simulation_step<sim.numSteps) )
 	{
 		//ROS_INFO("[filament] Simulating step %i (sim_time = %.2f)", sim.current_simulation_step, sim.sim_time);
@@ -1044,7 +1043,6 @@ int main(int argc, char **argv)
 		sim.sim_time = sim.sim_time + sim.time_step;	//sec
 		sim.current_simulation_step++;
 
-		r.sleep();
 		ros::spinOnce();
 	}
 }
