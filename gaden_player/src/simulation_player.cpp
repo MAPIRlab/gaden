@@ -461,13 +461,21 @@ void sim_obj::load_wind_file(int wind_index){
 //Get Gas concentration at lcoation (x,y,z)
 void sim_obj::get_gas_concentration(float x, float y, float z, std::string &gas_name, double &gas_conc)
 {
+    if(x<env_min_x|| x>env_max_x
+        || y<env_min_y|| y>env_max_y
+        || z<env_min_z|| z>env_max_z)
+    {
+        ROS_ERROR("Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
+        return;
+    }
     if(filament_log){
         gas_conc=0;
         for(auto it = activeFilaments.begin(); it!=activeFilaments.end(); it++){
             Vec4 fil = it->second;
-            double dist = sqrt((x-fil.x)*(x-fil.x) + (y-fil.y)*(y-fil.y) + (z-fil.z)*(z-fil.z) );
+            double distSQR = (x-fil.x)*(x-fil.x) + (y-fil.y)*(y-fil.y) + (z-fil.z)*(z-fil.z);
 
-            if(dist < fil.w*5/100){
+            double limitDistance = fil.w*5/100;
+            if(distSQR < limitDistance * limitDistance){
                 gas_conc += concentration_from_filament(x, y, z, fil);
             }
         }
@@ -502,6 +510,13 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
 {
     if (load_wind_data)
     {
+        if(x<env_min_x|| x>env_max_x
+            || y<env_min_y|| y>env_max_y
+            || z<env_min_z|| z>env_max_z)
+        {
+            ROS_ERROR("Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
+            return;
+        }
         //Get cell idx from point location
         int xx,yy,zz;
         xx = (int)ceil((x - env_min_x)/environment_cell_size);
@@ -633,10 +648,10 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_point
             std_msgs::ColorRGBA color;  //Color of point
 
             Vec4 filament = it->second;
-            for (int i=0; i<10; i++){
-                p.x=(filament.x-filament.w/100)+((rand()%100)/100.0f)*filament.w/100*2;
-                p.y=(filament.y-filament.w/100)+((rand()%100)/100.0f)*filament.w/100*2;
-                p.z=(filament.z-filament.w/100)+((rand()%100)/100.0f)*filament.w/100*2;
+            for (int i=0; i<5; i++){
+                p.x=(filament.x)+((std::rand()%1000)/1000.0 -0.5) * filament.w/200;
+                p.y=(filament.y)+((std::rand()%1000)/1000.0 -0.5) * filament.w/200;
+                p.z=(filament.z)+((std::rand()%1000)/1000.0 -0.5) * filament.w/200;
 
                 color.a=1;
                 color.r=0;

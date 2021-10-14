@@ -522,10 +522,13 @@ void CFilamentSimulator::add_new_filaments(double radius_arround_source)
     }
     for (int i=0; i<filaments_to_release; i++)
 	{
-		//Set position of new filament within the especified radius arround the gas source location
-		double x = gas_source_pos_x + random_number(-1,1)*radius_arround_source;
-		double y = gas_source_pos_y + random_number(-1,1)*radius_arround_source;
-		double z = gas_source_pos_z + random_number(-1,1)*radius_arround_source;
+		double x, y, z;
+		do{
+			//Set position of new filament within the especified radius arround the gas source location
+			x = gas_source_pos_x + random_number(-1,1)*radius_arround_source;
+			y = gas_source_pos_y + random_number(-1,1)*radius_arround_source;
+			z = gas_source_pos_z + random_number(-1,1)*radius_arround_source;
+		}while(check_pose_with_environment(x,y,z)!=0);
 
 		/*Instead of adding new filaments to the filaments vector on each iteration (push_back)
 		  we had initially resized the filaments vector to the max number of filaments (numSteps*numFilaments_step)
@@ -656,9 +659,9 @@ int CFilamentSimulator::check_pose_with_environment(double pose_x, double pose_y
 		return 1;
 
 	//Get 3D cell of the point
-	int x_idx = floor( (pose_x-env_min_x)/cell_size );
-	int y_idx = floor( (pose_y-env_min_y)/cell_size );
-	int z_idx = floor( (pose_z-env_min_z)/cell_size );
+	int x_idx = (pose_x-env_min_x)/cell_size;
+	int y_idx = (pose_y-env_min_y)/cell_size;
+	int z_idx = (pose_z-env_min_z)/cell_size;
 
 	if (x_idx >= env_cells_x || y_idx >= env_cells_y || z_idx >= env_cells_z)
 		return 1;

@@ -393,6 +393,7 @@ void parse(std::string filename, cell_state value_to_write){
         fclose(file);
     }else{
         std::cout<< "File " << filename << " does not exist\n";
+        return;
     }
     
     std::vector<Triangle> triangles;
@@ -490,6 +491,7 @@ void findDimensions(std::string filename){
         fclose(file);
     }else{
         std::cout<< "File " << filename << " does not exist\n";
+        return;
     }
 
 
