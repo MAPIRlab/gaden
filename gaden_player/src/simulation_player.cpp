@@ -152,6 +152,7 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     
     // Initial iteration
     private_nh.param<int>("initial_iteration", initial_iteration, 1);
+    private_nh.param<std::string>("occupancyFile", occupancyFile, "");
     // Loop
     private_nh.param<bool>("allow_looping", allow_looping, false);
     private_nh.param<int>("loop_from_iteration", loop_from_iteration, 1);
@@ -475,7 +476,7 @@ void sim_obj::get_gas_concentration(float x, float y, float z, std::string &gas_
             double distSQR = (x-fil.x)*(x-fil.x) + (y-fil.y)*(y-fil.y) + (z-fil.z)*(z-fil.z);
 
             double limitDistance = fil.w*5/100;
-            if(distSQR < limitDistance * limitDistance){
+            if(distSQR < limitDistance * limitDistance && check_environment_for_obstacle(x, y, z, fil.x, fil.y, fil.z)){
                 gas_conc += concentration_from_filament(x, y, z, fil);
             }
         }
@@ -503,6 +504,72 @@ double sim_obj::concentration_from_filament(float x, float y, float z, Vec4 fila
     double ppm = num_moles_target_cm3/num_moles_all_gases_in_cm3 * 1000000; //parts of target gas per million
 
     return ppm;
+}
+
+bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, double start_z,
+													   double   end_x, double   end_y, double end_z)
+{
+	const bool PATH_OBSTRUCTED = true;
+	const bool PATH_UNOBSTRUCTED = false;
+
+
+	// Check whether one of the points is outside the valid environment or is not free
+	if(check_pose_with_environment(start_x, start_y, start_z) != 0)   { return PATH_OBSTRUCTED; }
+	if(check_pose_with_environment(  end_x, end_y  ,   end_z) != 0)   { return PATH_OBSTRUCTED; }
+
+
+	// Calculate normal displacement vector
+	double vector_x = end_x - start_x;
+	double vector_y = end_y - start_y;
+	double vector_z = end_z - start_z;
+	double distance = sqrt(vector_x*vector_x + vector_y*vector_y + vector_z*vector_z);
+	vector_x = vector_x/distance;
+	vector_y = vector_y/distance;
+	vector_z = vector_z/distance;
+
+
+	// Traverse path
+	int steps = ceil( distance / environment_cell_size );	// Make sure no two iteration steps are separated more than 1 cell
+	double increment = distance/steps;
+
+	for(int i=1; i<steps-1; i++)
+	{
+		// Determine point in space to evaluate
+		double pose_x = start_x + vector_x*increment*i;
+		double pose_y = start_y + vector_y*increment*i;
+		double pose_z = start_z + vector_z*increment*i;
+
+
+		// Determine cell to evaluate (some cells might get evaluated twice due to the current code
+		int x_idx = floor( (pose_x-env_min_x)/environment_cell_size );
+		int y_idx = floor( (pose_y-env_min_y)/environment_cell_size );
+		int z_idx = floor( (pose_z-env_min_z)/environment_cell_size );
+
+
+		// Check if the cell is occupied
+		if(Env[indexFrom3D(x_idx,y_idx,z_idx)] != 0) { return PATH_OBSTRUCTED; }
+	}
+
+	// Direct line of sight confirmed!
+	return PATH_UNOBSTRUCTED;
+}
+
+int sim_obj::check_pose_with_environment(double pose_x, double pose_y, double pose_z)
+{
+	//1.1 Check that pose is within the boundingbox environment
+	if (pose_x<env_min_x || pose_x>env_max_x || pose_y<env_min_y || pose_y>env_max_y || pose_z<env_min_z || pose_z>env_max_z)
+		return 1;
+
+	//Get 3D cell of the point
+	int x_idx = (pose_x-env_min_x)/environment_cell_size;
+	int y_idx = (pose_y-env_min_y)/environment_cell_size;
+	int z_idx = (pose_z-env_min_z)/environment_cell_size;
+
+	if (x_idx >= environment_cells_x || y_idx >= environment_cells_y || z_idx >= environment_cells_z)
+		return 1;
+
+	//1.2. Return cell occupancy (0=free, 1=obstacle, 2=outlet)
+	return Env[indexFrom3D(x_idx,y_idx,z_idx)];
 }
 
 //Get Wind concentration at lcoation (x,y,z)
@@ -536,6 +603,64 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
 }
 
 
+void sim_obj::readEnvFile()
+{
+    if(occupancyFile==""){
+        ROS_ERROR(" [GADEN_PLAYER] No occupancy file specified. Use the parameter \"occupancyFile\" to input the path to the OccupancyGrid3D.csv file.\n");
+        return;
+    }
+    Env.resize(environment_cells_x * environment_cells_y * environment_cells_z);
+
+	//open file
+	std::ifstream infile(occupancyFile.c_str());
+	std::string line;
+
+    //discard the header
+    std::getline(infile, line);
+    std::getline(infile, line);
+    std::getline(infile, line);
+    std::getline(infile, line);
+
+    int x_idx = 0;
+	int y_idx = 0;
+	int z_idx = 0;
+
+	while ( std::getline(infile, line) )
+	{
+		std::stringstream ss(line);
+		if (z_idx >=environment_cells_z)
+		{
+			ROS_ERROR("Trying to read:[%s]",line.c_str());
+		}
+
+		if (line == ";")
+		{
+			//New Z-layer
+			z_idx++;
+			x_idx = 0;
+			y_idx = 0;
+		}
+		else
+		{   //New line with constant x_idx and all the y_idx values
+			while (!ss.fail())
+			{
+				double f;
+				ss >> f;		//get one double value
+				if (!ss.fail())
+				{
+					Env[indexFrom3D(x_idx,y_idx,z_idx)] = f;
+					y_idx++;
+				}
+			}
+
+			//Line has ended
+			x_idx++;
+			y_idx = 0;
+		}
+	}
+    infile.close();
+}
+
 //Init instances (for running multiple simulations)
 void sim_obj::configure_environment()
 {
@@ -559,6 +684,7 @@ void sim_obj::configure_environment()
         V.resize(environment_cells_x * environment_cells_y * environment_cells_z);
         W.resize(environment_cells_x * environment_cells_y * environment_cells_z); 
     }
+    readEnvFile();
 }
 
 

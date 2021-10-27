@@ -1026,7 +1026,7 @@ int main(int argc, char **argv)
 
 		//1. Create new filaments close to the source location
 		//   On each iteration num_filaments (See params) are created
-		sim.add_new_filaments(sim.cell_size/2);
+		sim.add_new_filaments(sim.cell_size);
 		
 		//2. Publish markers for RVIZ
 		sim.publish_markers();
