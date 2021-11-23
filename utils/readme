@@ -1,0 +1,12 @@
+Some scripts that may make your life a bit easier when post-processing openFoam simulations.
+
+paraview.py automates the paraview step (unsurprisingly) of the usual GADEN workflow. 
+In order to use it, you might need to modify your pythonpath environment variable to include the paraview site-packages (wherever those are in your system).
+Usage is:
+    python paraview.py path/to/file.foam path/to/output/folder [-d]
+    The optional -d flag is to mark that the project should be open as a decomposed case. I you don't know if your is, check wether it has multiple "processorN" subfolders. If it does have them, it is decomposed.
+
+Now, depending on the paraview version you are using, the names of the output files might look like "file0.1.csv" instead of "file_1.csv". That is a problem for the gaden_preprocessing node.
+To correct it, use the batch_rename.sh script. 
+Usage:
+ ./batch_rename.sh path/to/wind_fle/folder
