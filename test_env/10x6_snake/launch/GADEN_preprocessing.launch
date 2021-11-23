@@ -25,6 +25,8 @@
         <param name="empty_point_z" value="0.5"/>      ### (m)
             
 
+        <param name="worldFile" value="$(find test_env)/$(arg scenario)/launch/ros/stage.world"/>      ### leave empty if you dont want it to be automatically modified
+        
         #Wind Data (the node will append _i.csv to the name that is specified here)
         <param name="wind_files" value="$(find test_env)/$(arg scenario)/wind_simulations/05ms/wind_at_cell_centers"/>
 

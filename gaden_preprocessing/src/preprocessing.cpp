@@ -70,6 +70,34 @@ bool compare_cell(int x, int y, int z, cell_state value){
     }
 }
 
+void changeWorldFile(std::string filename){
+    std::ifstream input(filename);
+    std::stringstream ss;
+    std::string line;
+    while(getline(input, line)){
+        if(line.substr(0,8)=="floorMap"){
+            //ignore the floorMap bit, we are replacing it entirely
+            while(getline(input, line) && line!=")"){}
+
+            ss<< 
+            "floorMap                     # load an environment bitmap\n"<<
+            "(\n"<<
+                "  name \"SimulatedMap\"\n"<< 
+                "  bitmap \"../../occupancy.pgm\"\n"<<
+                "  size ["<<(env_max_x-env_min_x)<<" "<<(env_max_y-env_min_y)<<" "<<(env_max_z-env_min_z) <<"]           #m \n"<< 
+                "  pose ["<<(env_max_x-env_min_x)/2+env_min_x<<" "<<(env_max_y-env_min_y)/2+env_min_y<<" "<<floor_height<<" 0]    #Coordinates (m) of the Center of the image_map\n"<<
+            ")\n";
+        }
+        else{
+            ss<<line<<"\n";
+        }
+    }
+    input.close();
+    std::ofstream out(filename);
+    out<<ss.rdbuf();
+    out.close();
+}
+
 void printMap(std::string filename, int scale){
     std::ofstream outfile(filename.c_str());
     outfile << "P2\n"
@@ -93,19 +121,6 @@ void printMap(std::string filename, int scale){
         }
     }
     outfile.close();
-
-
-    std::cout<<"\n\n\nChange these values in the launch/ros/stage.world if you want to use the main_simbot \nfloorMap size:\n";
-    std::cout<<(env_max_x-env_min_x)<<" ";
-    std::cout<<(env_max_y-env_min_y)<<" ";
-    std::cout<<(env_max_z-env_min_z)<<"\n";
-
-    std::cout<<"\nfloorMap pose:\n";
-
-
-    std::cout<<(env_max_x-env_min_x)/2+env_min_x<<" ";
-    std::cout<<(env_max_y-env_min_y)/2+env_min_y<<" ";
-    std::cout<<floor_height<<"\n";
 
 }
 
@@ -767,6 +782,11 @@ int main(int argc, char **argv){
     private_nh.param<float>("floor_height", floor_height, 0); // number of CAD models
     printMap(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), 10);
 
+    std::string worldFile;
+    private_nh.param<std::string>("worldFile", worldFile, ""); // number of CAD models
+    if(worldFile!="")
+        changeWorldFile(worldFile);
+
     //output - path, occupancy vector, scale
     printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), 1);
     printYaml(output);
@@ -833,10 +853,6 @@ int main(int argc, char **argv){
     ROS_INFO("Preprocessing done");
     std_msgs::Bool b;
     b.data=true;
-    ros::Rate r(0.1);
-    while(ros::ok()){
-        pub.publish(b);
-        r.sleep();
-    }
+    pub.publish(b);
     
 }
