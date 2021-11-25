@@ -489,7 +489,6 @@ void sim_obj::get_gas_concentration(float x, float y, float z, std::string &gas_
         //Get gas concentration from that cell
         gas_conc = C[indexFrom3D(xx,yy,zz)];
     }
-
     gas_name = gas_type;
 }
 
@@ -509,13 +508,9 @@ double sim_obj::concentration_from_filament(float x, float y, float z, Vec4 fila
 bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, double start_z,
 													   double   end_x, double   end_y, double end_z)
 {
-	const bool PATH_OBSTRUCTED = true;
-	const bool PATH_UNOBSTRUCTED = false;
-
-
 	// Check whether one of the points is outside the valid environment or is not free
-	if(check_pose_with_environment(start_x, start_y, start_z) != 0)   { return PATH_OBSTRUCTED; }
-	if(check_pose_with_environment(  end_x, end_y  ,   end_z) != 0)   { return PATH_OBSTRUCTED; }
+	if(check_pose_with_environment(start_x, start_y, start_z) != 0)   { return false; }
+	if(check_pose_with_environment(  end_x, end_y  ,   end_z) != 0)   { return false; }
 
 
 	// Calculate normal displacement vector
@@ -547,11 +542,11 @@ bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, dou
 
 
 		// Check if the cell is occupied
-		if(Env[indexFrom3D(x_idx,y_idx,z_idx)] != 0) { return PATH_OBSTRUCTED; }
+		if(Env[indexFrom3D(x_idx,y_idx,z_idx)] != 0) { return false; }
 	}
 
 	// Direct line of sight confirmed!
-	return PATH_UNOBSTRUCTED;
+	return true;
 }
 
 int sim_obj::check_pose_with_environment(double pose_x, double pose_y, double pose_z)

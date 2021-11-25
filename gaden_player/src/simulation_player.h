@@ -89,7 +89,7 @@ public:
 
     int indexFrom3D(int x, int y, int z);
 
-    std::string gasTypesByCode[10] = {
+    std::string gasTypesByCode[13] = {
         "ethanol",
 		"methane",
 		"hydrogen",
@@ -99,7 +99,10 @@ public:
 		"acetone",
 		"neon",
 		"helium",
-		"hot_air"
+		"hot_air",
+		"biogas",
+		"carbon dioxide",
+		"carbon monoxide"
     };
 };
 
