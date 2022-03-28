@@ -183,7 +183,7 @@ int main( int argc, char** argv )
                 NormalDistribution gaussian_dist(0.0,noise_std);
                 GaussianGenerator generator(rng, gaussian_dist);
                 wind_direction = wind_direction + generator();
-                wind_speed = wind_speed + generator();
+                wind_speed = std::max(0.0, wind_speed + generator()*wind_speed);
 
 
                 //Publish 2D Anemometer readings

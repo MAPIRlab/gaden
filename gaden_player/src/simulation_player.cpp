@@ -43,7 +43,13 @@ bool get_gas_value_srv(gaden_player::GasPosition::Request  &req, gaden_player::G
 bool get_wind_value_srv(gaden_player::WindPosition::Request  &req, gaden_player::WindPosition::Response &res)
 {
     //Since the wind fields are identical among different instances, return just the information from instance[0]
-    player_instances[0].get_wind_value(req.x, req.y, req.z, res.u, res.v, res.w);
+    for(int i = 0; i<req.x.size(); i++){
+        double u, v, w;
+        player_instances[0].get_wind_value(req.x[i], req.y[i], req.z[i], u, v, w);
+        res.u.push_back(u);
+        res.v.push_back(v);
+        res.w.push_back(w);
+    }
     return true;
 }
 
@@ -152,6 +158,7 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     
     // Initial iteration
     private_nh.param<int>("initial_iteration", initial_iteration, 1);
+    private_nh.param<std::string>("occupancyFile", occupancyFile, "");
     // Loop
     private_nh.param<bool>("allow_looping", allow_looping, false);
     private_nh.param<int>("loop_from_iteration", loop_from_iteration, 1);
@@ -362,6 +369,7 @@ void sim_obj::load_data_from_logfile(int sim_iteration)
     }
     else
         load_ascii_file(decompressed);
+    infile.close();
 }
 
 void sim_obj::load_ascii_file(std::stringstream& decompressed){
@@ -420,7 +428,7 @@ void sim_obj::load_binary_file(std::stringstream& decompressed){
         first_reading=false;
     }else{
         //skip headers
-        decompressed.seekg(14*sizeof(double) + 5*sizeof(int), std::ios_base::cur);
+        decompressed.seekg(14*sizeof(double) + 5*sizeof(int));
     }
 
     int wind_index;
@@ -454,19 +462,27 @@ void sim_obj::load_wind_file(int wind_index){
     infile.read((char*) U.data(), sizeof(double)* U.size());
     infile.read((char*) V.data(), sizeof(double)* U.size());
     infile.read((char*) W.data(), sizeof(double)* U.size());
-    
+    infile.close();
 }
 
 //Get Gas concentration at lcoation (x,y,z)
 void sim_obj::get_gas_concentration(float x, float y, float z, std::string &gas_name, double &gas_conc)
 {
+    if(x<env_min_x|| x>env_max_x
+        || y<env_min_y|| y>env_max_y
+        || z<env_min_z|| z>env_max_z)
+    {
+        ROS_ERROR("Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
+        return;
+    }
     if(filament_log){
         gas_conc=0;
         for(auto it = activeFilaments.begin(); it!=activeFilaments.end(); it++){
             Vec4 fil = it->second;
-            double dist = sqrt((x-fil.x)*(x-fil.x) + (y-fil.y)*(y-fil.y) + (z-fil.z)*(z-fil.z) );
+            double distSQR = (x-fil.x)*(x-fil.x) + (y-fil.y)*(y-fil.y) + (z-fil.z)*(z-fil.z);
 
-            if(dist < fil.w*5/100){
+            double limitDistance = fil.w*5/100;
+            if(distSQR < limitDistance * limitDistance && check_environment_for_obstacle(x, y, z, fil.x, fil.y, fil.z)){
                 gas_conc += concentration_from_filament(x, y, z, fil);
             }
         }
@@ -479,7 +495,6 @@ void sim_obj::get_gas_concentration(float x, float y, float z, std::string &gas_
         //Get gas concentration from that cell
         gas_conc = C[indexFrom3D(xx,yy,zz)];
     }
-
     gas_name = gas_type;
 }
 
@@ -496,11 +511,80 @@ double sim_obj::concentration_from_filament(float x, float y, float z, Vec4 fila
     return ppm;
 }
 
+bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, double start_z,
+													   double   end_x, double   end_y, double end_z)
+{
+	// Check whether one of the points is outside the valid environment or is not free
+	if(check_pose_with_environment(start_x, start_y, start_z) != 0)   { return false; }
+	if(check_pose_with_environment(  end_x, end_y  ,   end_z) != 0)   { return false; }
+
+
+	// Calculate normal displacement vector
+	double vector_x = end_x - start_x;
+	double vector_y = end_y - start_y;
+	double vector_z = end_z - start_z;
+	double distance = sqrt(vector_x*vector_x + vector_y*vector_y + vector_z*vector_z);
+	vector_x = vector_x/distance;
+	vector_y = vector_y/distance;
+	vector_z = vector_z/distance;
+
+
+	// Traverse path
+	int steps = ceil( distance / environment_cell_size );	// Make sure no two iteration steps are separated more than 1 cell
+	double increment = distance/steps;
+
+	for(int i=1; i<steps-1; i++)
+	{
+		// Determine point in space to evaluate
+		double pose_x = start_x + vector_x*increment*i;
+		double pose_y = start_y + vector_y*increment*i;
+		double pose_z = start_z + vector_z*increment*i;
+
+
+		// Determine cell to evaluate (some cells might get evaluated twice due to the current code
+		int x_idx = floor( (pose_x-env_min_x)/environment_cell_size );
+		int y_idx = floor( (pose_y-env_min_y)/environment_cell_size );
+		int z_idx = floor( (pose_z-env_min_z)/environment_cell_size );
+
+
+		// Check if the cell is occupied
+		if(Env[indexFrom3D(x_idx,y_idx,z_idx)] != 0) { return false; }
+	}
+
+	// Direct line of sight confirmed!
+	return true;
+}
+
+int sim_obj::check_pose_with_environment(double pose_x, double pose_y, double pose_z)
+{
+	//1.1 Check that pose is within the boundingbox environment
+	if (pose_x<env_min_x || pose_x>env_max_x || pose_y<env_min_y || pose_y>env_max_y || pose_z<env_min_z || pose_z>env_max_z)
+		return 1;
+
+	//Get 3D cell of the point
+	int x_idx = (pose_x-env_min_x)/environment_cell_size;
+	int y_idx = (pose_y-env_min_y)/environment_cell_size;
+	int z_idx = (pose_z-env_min_z)/environment_cell_size;
+
+	if (x_idx >= environment_cells_x || y_idx >= environment_cells_y || z_idx >= environment_cells_z)
+		return 1;
+
+	//1.2. Return cell occupancy (0=free, 1=obstacle, 2=outlet)
+	return Env[indexFrom3D(x_idx,y_idx,z_idx)];
+}
+
 //Get Wind concentration at lcoation (x,y,z)
 void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, double &w)
 {
     if (load_wind_data)
     {
+        if(x<env_min_x|| x>env_max_x
+            || y<env_min_y|| y>env_max_y
+            || z<env_min_z|| z>env_max_z)
+        {
+            ROS_ERROR("Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
+            return;
+        }
         //Get cell idx from point location
         int xx,yy,zz;
         xx = (int)ceil((x - env_min_x)/environment_cell_size);
@@ -519,6 +603,64 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
     }
 }
 
+
+void sim_obj::readEnvFile()
+{
+    if(occupancyFile==""){
+        ROS_ERROR(" [GADEN_PLAYER] No occupancy file specified. Use the parameter \"occupancyFile\" to input the path to the OccupancyGrid3D.csv file.\n");
+        return;
+    }
+    Env.resize(environment_cells_x * environment_cells_y * environment_cells_z);
+
+	//open file
+	std::ifstream infile(occupancyFile.c_str());
+	std::string line;
+
+    //discard the header
+    std::getline(infile, line);
+    std::getline(infile, line);
+    std::getline(infile, line);
+    std::getline(infile, line);
+
+    int x_idx = 0;
+	int y_idx = 0;
+	int z_idx = 0;
+
+	while ( std::getline(infile, line) )
+	{
+		std::stringstream ss(line);
+		if (z_idx >=environment_cells_z)
+		{
+			ROS_ERROR("Trying to read:[%s]",line.c_str());
+		}
+
+		if (line == ";")
+		{
+			//New Z-layer
+			z_idx++;
+			x_idx = 0;
+			y_idx = 0;
+		}
+		else
+		{   //New line with constant x_idx and all the y_idx values
+			while (!ss.fail())
+			{
+				double f;
+				ss >> f;		//get one double value
+				if (!ss.fail())
+				{
+					Env[indexFrom3D(x_idx,y_idx,z_idx)] = f;
+					y_idx++;
+				}
+			}
+
+			//Line has ended
+			x_idx++;
+			y_idx = 0;
+		}
+	}
+    infile.close();
+}
 
 //Init instances (for running multiple simulations)
 void sim_obj::configure_environment()
@@ -543,6 +685,7 @@ void sim_obj::configure_environment()
         V.resize(environment_cells_x * environment_cells_y * environment_cells_z);
         W.resize(environment_cells_x * environment_cells_y * environment_cells_z); 
     }
+    readEnvFile();
 }
 
 
@@ -632,10 +775,10 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_point
             std_msgs::ColorRGBA color;  //Color of point
 
             Vec4 filament = it->second;
-            for (int i=0; i<10; i++){
-                p.x=(filament.x-filament.w/100)+((rand()%100)/100.0f)*filament.w/100*2;
-                p.y=(filament.y-filament.w/100)+((rand()%100)/100.0f)*filament.w/100*2;
-                p.z=(filament.z-filament.w/100)+((rand()%100)/100.0f)*filament.w/100*2;
+            for (int i=0; i<5; i++){
+                p.x=(filament.x)+((std::rand()%1000)/1000.0 -0.5) * filament.w/200;
+                p.y=(filament.y)+((std::rand()%1000)/1000.0 -0.5) * filament.w/200;
+                p.z=(filament.z)+((std::rand()%1000)/1000.0 -0.5) * filament.w/200;
 
                 color.a=1;
                 color.r=0;

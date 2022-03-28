@@ -65,13 +65,20 @@ public:
     double num_moles_all_gases_in_cm3;
     std::map<int, Vec4> activeFilaments;
 
+    std::vector<uint8_t> Env;
+
     //methods
     void configure_environment();
+    void readEnvFile();
     void load_data_from_logfile(int sim_iteration);
     void load_ascii_file(std::stringstream &decompressed);
     void load_binary_file(std::stringstream &decompressed);
     void get_gas_concentration(float x, float y, float z, std::string &gas_name, double &gas_conc);
     double concentration_from_filament(float x, float y, float z, Vec4 fil);
+    bool check_environment_for_obstacle(double start_x, double start_y, double start_z,
+													   double   end_x, double   end_y, double end_z);
+    int check_pose_with_environment(double pose_x, double pose_y, double pose_z);
+
     void get_wind_value(float x, float y, float z, double &u, double &v, double &w);
     void get_concentration_as_markers(visualization_msgs::Marker &mkr_points);
     
@@ -82,7 +89,7 @@ public:
 
     int indexFrom3D(int x, int y, int z);
 
-    std::string gasTypesByCode[10] = {
+    std::string gasTypesByCode[14] = {
         "ethanol",
 		"methane",
 		"hydrogen",
@@ -92,7 +99,11 @@ public:
 		"acetone",
 		"neon",
 		"helium",
-		"hot_air"
+		"biogas",
+        "butane",
+		"carbon dioxide",
+		"carbon monoxide",
+        "smoke"
     };
 };
 
@@ -110,6 +121,7 @@ std::vector<std::string>        srv_response_gas_types;
 std::vector<double>             srv_response_gas_concs;
 int                             initial_iteration, loop_from_iteration, loop_to_iteration;
 bool                            allow_looping;
+std::string occupancyFile;
 
 //Visualization
 ros::Publisher                  marker_pub;

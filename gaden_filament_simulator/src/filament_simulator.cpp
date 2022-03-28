@@ -107,22 +107,6 @@ CFilamentSimulator::CFilamentSimulator()
     if (verbose) ROS_INFO("[filament] env_cell_numMoles [mol]: %E",env_cell_numMoles);
     if (verbose) ROS_INFO("[filament] filament_numMoles_of_gas [mol]: %E",filament_numMoles_of_gas);
 
-	// Molecular gas mass [g/mol]
-	// SpecificGravity(Air) = 1 (as reference)
-	// Specific gravity is the ratio of the density of a substance to the density of a reference substance; equivalently,
-	// it is the ratio of the mass of a substance to the mass of a reference substance for the same given volume.
-	SpecificGravity[0] = 1.0378;	  //ethanol   (heavier than air)
-    SpecificGravity[1] = 0.5537;	  //methane   (lighter than air)
-	SpecificGravity[2] = 0.0696;	  //hydrogen  (lighter than air)
-	SpecificGravity[6] = 1.4529;	  //acetone   (heavier than air)
-
-	//To be updated
-	SpecificGravity[3] = 58.124;	 //propanol   //gases heavier then air
-	SpecificGravity[4] = 70.906;	 //chlorine
-	SpecificGravity[5] = 37.996;	 //fluorine
-	SpecificGravity[7] = 20.179;	 //neon	   //gases lighter than air
-	SpecificGravity[8] = 4.002602;   //helium
-	SpecificGravity[9] = 26.966;	 //hot_air
 
 
 	//Init visualization
@@ -285,7 +269,7 @@ void CFilamentSimulator::initSimulator()
 		//Files exist!, keep going!
 		fclose(file);
         if (verbose) ROS_INFO("[filament] Loading 3D Occupancy GridMap");
-		read_3D_file(occupancy3D_data, Env, true);
+		read_3D_file(occupancy3D_data, Env, true, false);
 	}
 	else
 	{
@@ -320,14 +304,14 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 		return;
 
 	//configure filenames to read
-	std::string U_filemane = boost::str( boost::format("%s%i.csv_U") % wind_files_location % idx );
-	std::string V_filemane = boost::str( boost::format("%s%i.csv_V") % wind_files_location % idx );
-	std::string W_filemane = boost::str( boost::format("%s%i.csv_W") % wind_files_location % idx );
+	std::string U_filename = boost::str( boost::format("%s%i.csv_U") % wind_files_location % idx );
+	std::string V_filename = boost::str( boost::format("%s%i.csv_V") % wind_files_location % idx );
+	std::string W_filename = boost::str( boost::format("%s%i.csv_W") % wind_files_location % idx );
 
-    if (verbose) ROS_INFO("Reading Wind Snapshot %s",U_filemane.c_str());
+    if (verbose) ROS_INFO("Reading Wind Snapshot %s",U_filename.c_str());
 
     //read data to 3D matrices
-	if (FILE *file = fopen(U_filemane.c_str(), "r"))
+	if (FILE *file = fopen(U_filename.c_str(), "r"))
 	{
 		//Files exist!, keep going!
 		fclose(file);
@@ -335,9 +319,16 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 		last_wind_idx=idx;
         if (verbose) ROS_INFO("[filament] Loading Wind Snapshot %i", idx);
 
-		read_3D_file(U_filemane, U, false);
-		read_3D_file(V_filemane, V, false);
-		read_3D_file(W_filemane, W, false);
+		//binary format files start with the code "999"
+		std::ifstream ist(U_filename, std::ios_base::binary);
+		int check=0;
+    	ist.read((char*) &check, sizeof(int));
+		ist.close();
+
+		read_3D_file(U_filename, U, false, (check==999));
+		read_3D_file(V_filename, V, false, (check==999));
+		read_3D_file(W_filename, W, false, (check==999));
+		
 		if(!wind_finished){
 			//dump the binary wind data to file
 			std::string out_filename = boost::str( boost::format("%s/wind/wind_iteration_%i") % results_location % idx);
@@ -347,7 +338,6 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 				exit(1);
 			}
 			fclose(file);
-
 			std::ofstream wind_File(out_filename.c_str());
 			wind_File.write((char*) U.data(), sizeof(double) * U.size());
 			wind_File.write((char*) V.data(), sizeof(double) * V.size());
@@ -360,7 +350,7 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 		//No more wind data. Keep current info.
 		if (!wind_notified)
 		{
-			ROS_WARN("[filament] File %s Does Not Exists!",U_filemane.c_str());
+			ROS_WARN("[filament] File %s Does Not Exists!",U_filename.c_str());
 			ROS_WARN("[filament] No more wind data available. Using last Wind snapshopt as SteadyState.");
 			wind_notified = true;
 			wind_finished = true;
@@ -374,8 +364,16 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 //==========================//
 //                          //
 //==========================//
-void CFilamentSimulator::read_3D_file(std::string filename, std::vector< double > &A, bool hasHeader=false)
+void CFilamentSimulator::read_3D_file(std::string filename, std::vector< double > &A, bool hasHeader, bool binary)
 {
+	if(binary){
+		std::ifstream infile(filename, std::ios_base::binary);
+		infile.seekg(sizeof(int));
+    	infile.read((char*) A.data(), sizeof(double)* A.size());
+		infile.close();
+		return;
+	}
+
 	//open file
 	std::ifstream infile(filename.c_str());
 	std::string line;
@@ -480,7 +478,9 @@ void CFilamentSimulator::read_3D_file(std::string filename, std::vector< double 
 		}
 	}
     //End of file.
-    if (verbose) ROS_INFO("End of File");
+    if (verbose) 
+		ROS_INFO("End of File");
+	infile.close();
 }
 
 
@@ -506,10 +506,13 @@ void CFilamentSimulator::add_new_filaments(double radius_arround_source)
     }
     for (int i=0; i<filaments_to_release; i++)
 	{
-		//Set position of new filament within the especified radius arround the gas source location
-		double x = gas_source_pos_x + random_number(-1,1)*radius_arround_source;
-		double y = gas_source_pos_y + random_number(-1,1)*radius_arround_source;
-		double z = gas_source_pos_z + random_number(-1,1)*radius_arround_source;
+		double x, y, z;
+		do{
+			//Set position of new filament within the especified radius arround the gas source location
+			x = gas_source_pos_x + random_number(-1,1)*radius_arround_source;
+			y = gas_source_pos_y + random_number(-1,1)*radius_arround_source;
+			z = gas_source_pos_z + random_number(-1,1)*radius_arround_source;
+		}while(check_pose_with_environment(x,y,z)!=0);
 
 		/*Instead of adding new filaments to the filaments vector on each iteration (push_back)
 		  we had initially resized the filaments vector to the max number of filaments (numSteps*numFilaments_step)
@@ -640,9 +643,9 @@ int CFilamentSimulator::check_pose_with_environment(double pose_x, double pose_y
 		return 1;
 
 	//Get 3D cell of the point
-	int x_idx = floor( (pose_x-env_min_x)/cell_size );
-	int y_idx = floor( (pose_y-env_min_y)/cell_size );
-	int z_idx = floor( (pose_z-env_min_z)/cell_size );
+	int x_idx = (pose_x-env_min_x)/cell_size;
+	int y_idx = (pose_y-env_min_y)/cell_size;
+	int z_idx = (pose_z-env_min_z)/cell_size;
 
 	if (x_idx >= env_cells_x || y_idx >= env_cells_y || z_idx >= env_cells_z)
 		return 1;
@@ -980,7 +983,6 @@ int main(int argc, char **argv)
 	//--------------
 	// LOOP
 	//--------------	
-    ros::Rate r(100);
 	while (ros::ok() && (sim.current_simulation_step<sim.numSteps) )
 	{
 		//ROS_INFO("[filament] Simulating step %i (sim_time = %.2f)", sim.current_simulation_step, sim.sim_time);
@@ -1008,7 +1010,7 @@ int main(int argc, char **argv)
 
 		//1. Create new filaments close to the source location
 		//   On each iteration num_filaments (See params) are created
-		sim.add_new_filaments(sim.cell_size/2);
+		sim.add_new_filaments(sim.cell_size);
 		
 		//2. Publish markers for RVIZ
 		sim.publish_markers();
@@ -1028,7 +1030,6 @@ int main(int argc, char **argv)
 		sim.sim_time = sim.sim_time + sim.time_step;	//sec
 		sim.current_simulation_step++;
 
-		r.sleep();
 		ros::spinOnce();
 	}
 }

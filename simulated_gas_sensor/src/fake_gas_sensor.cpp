@@ -98,13 +98,13 @@ int main( int argc, char** argv )
             srv.request.z = z_pos;            
             if (client.call(srv))
             {
-/*
-                for (int i=0; i<srv.response.gas_type.size(); i++)
-                {
-                    ROS_INFO("[FakeMOX] %s:%.4f at (%.2f,%.2f,%.2f)",srv.response.gas_type[i].c_str(), srv.response.gas_conc[i],srv.request.x, srv.request.y, srv.request.z );
-                }
 
-*/
+                //for (int i=0; i<srv.response.gas_type.size(); i++)
+                //{
+                //    ROS_INFO("[FakeMOX] %s:%.4f at (%.2f,%.2f,%.2f)",srv.response.gas_type[i].c_str(), srv.response.gas_conc[i],srv.request.x, srv.request.y, srv.request.z );
+                //}
+
+
 
                 //Simulate Gas_Sensor response given this GT values of the concentration!
                 olfaction_msgs::gas_sensor sensor_msg;
@@ -121,6 +121,7 @@ int main( int argc, char** argv )
                     sensor_msg.raw_air = Sensitivity_Air[input_sensor_model]*R0[input_sensor_model];
                     sensor_msg.calib_A = sensitivity_lineloglog[input_sensor_model][0][0];  //Calib for Ethanol
                     sensor_msg.calib_B = sensitivity_lineloglog[input_sensor_model][0][1];  //Calib for Ethanol
+                    sensor_msg.r0 = R0[input_sensor_model];
                     break;
                 case 1:  //MOX TGS2600
                     sensor_msg.technology = sensor_msg.TECH_MOX;
@@ -131,6 +132,7 @@ int main( int argc, char** argv )
                     sensor_msg.raw_air = Sensitivity_Air[input_sensor_model]*R0[input_sensor_model];
                     sensor_msg.calib_A = sensitivity_lineloglog[input_sensor_model][0][0];  //Calib for Ethanol
                     sensor_msg.calib_B = sensitivity_lineloglog[input_sensor_model][0][1];  //Calib for Ethanol
+                    sensor_msg.r0 = R0[input_sensor_model];
                     break;
                 case 2:  //MOX TGS2611
                     sensor_msg.technology = sensor_msg.TECH_MOX;
@@ -141,6 +143,7 @@ int main( int argc, char** argv )
                     sensor_msg.raw_air = Sensitivity_Air[input_sensor_model]*R0[input_sensor_model];
                     sensor_msg.calib_A = sensitivity_lineloglog[input_sensor_model][0][0];  //Calib for Ethanol
                     sensor_msg.calib_B = sensitivity_lineloglog[input_sensor_model][0][1];  //Calib for Ethanol
+                    sensor_msg.r0 = R0[input_sensor_model];
                     break;
                 case 3:  //MOX TGS2610
                     sensor_msg.technology = sensor_msg.TECH_MOX;
@@ -151,6 +154,7 @@ int main( int argc, char** argv )
                     sensor_msg.raw_air = Sensitivity_Air[input_sensor_model]*R0[input_sensor_model];
                     sensor_msg.calib_A = sensitivity_lineloglog[input_sensor_model][0][0];  //Calib for Ethanol
                     sensor_msg.calib_B = sensitivity_lineloglog[input_sensor_model][0][1];  //Calib for Ethanol
+                    sensor_msg.r0 = R0[input_sensor_model];
                     break;
                 case 4:  //MOX TGS2612
                     sensor_msg.technology = sensor_msg.TECH_MOX;
@@ -161,6 +165,7 @@ int main( int argc, char** argv )
                     sensor_msg.raw_air = Sensitivity_Air[input_sensor_model]*R0[input_sensor_model];
                     sensor_msg.calib_A = sensitivity_lineloglog[input_sensor_model][0][0];  //Calib for Ethanol
                     sensor_msg.calib_B = sensitivity_lineloglog[input_sensor_model][0][1];  //Calib for Ethanol
+                    sensor_msg.r0 = R0[input_sensor_model];
                     break;
 
 
@@ -267,9 +272,9 @@ float simulate_mox_as_line_loglog(gaden_player::GasPositionResponse GT_gas_conce
                 GT_gas_concentrations.gas_conc[i] *= 20;
             }
             */
-
+            double concentration = GT_gas_concentrations.gas_conc[i];
             //Value of RS/R0 for the given gas and concentration
-            RS_R0 = sensitivity_lineloglog[input_sensor_model][gas_id][0] * pow(GT_gas_concentrations.gas_conc[i], sensitivity_lineloglog[input_sensor_model][gas_id][1]);
+            RS_R0 = sensitivity_lineloglog[input_sensor_model][gas_id][0] * pow(concentration, sensitivity_lineloglog[input_sensor_model][gas_id][1]);
 
             //Ensure we never overpass the baseline level (max allowed)
             if (RS_R0 > Sensitivity_Air[input_sensor_model])
@@ -281,10 +286,9 @@ float simulate_mox_as_line_loglog(gaden_player::GasPositionResponse GT_gas_conce
 
         //Calculate final RS_R0 given the final resistance variation
         RS_R0 = Sensitivity_Air[input_sensor_model] - resistance_variation;
-
         //Ensure a minimum sensor resitance
         if (RS_R0 <= 0.0)
-            RS_R0 = 0.01;
+            RS_R0 = 0.001;
 
 
 
@@ -306,7 +310,6 @@ float simulate_mox_as_line_loglog(gaden_player::GasPositionResponse GT_gas_conce
         //Update values
         previous_sensor_output = sensor_output;
     }
-
     // Return Sensor response for current time instant as the Sensor Resistance in Ohms
     return (sensor_output * R0[input_sensor_model]);
 }

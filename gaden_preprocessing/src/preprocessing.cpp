@@ -54,7 +54,7 @@ float env_max_z;
 float roundFactor;
 //length of the sides of the cell [m]
 float cell_size;
-
+float floor_height;
 
 
 std::vector<std::vector<std::vector<int> > > env;
@@ -70,94 +70,121 @@ bool compare_cell(int x, int y, int z, cell_state value){
     }
 }
 
-void printEnv(std::string filename, std::vector<std::vector<std::vector<int> > > env, int scale)
+void changeWorldFile(std::string filename){
+    std::ifstream input(filename);
+    std::stringstream ss;
+    std::string line;
+    while(getline(input, line)){
+        if(line.substr(0,8)=="floorMap"){
+            //ignore the floorMap bit, we are replacing it entirely
+            while(getline(input, line) && line!=")"){}
+
+            ss<< 
+            "floorMap                     # load an environment bitmap\n"<<
+            "(\n"<<
+                "  name \"SimulatedMap\"\n"<< 
+                "  bitmap \"../../occupancy.pgm\"\n"<<
+                "  size ["<<(env_max_x-env_min_x)<<" "<<(env_max_y-env_min_y)<<" "<<(env_max_z-env_min_z) <<"]           #m \n"<< 
+                "  pose ["<<(env_max_x-env_min_x)/2+env_min_x<<" "<<(env_max_y-env_min_y)/2+env_min_y<<" "<<floor_height<<" 0]    #Coordinates (m) of the Center of the image_map\n"<<
+            ")\n";
+        }
+        else{
+            ss<<line<<"\n";
+        }
+    }
+    input.close();
+    std::ofstream out(filename);
+    out<<ss.rdbuf();
+    out.close();
+}
+
+void printMap(std::string filename, int scale){
+    std::ofstream outfile(filename.c_str());
+    outfile << "P2\n"
+            << scale *  env[0].size() << " " << scale * env.size() << "\n" <<"1\n";
+    //things are repeated to scale them up (the image is too small!)
+
+    int height = (floor_height-env_min_z)/cell_size; //a xy slice of the 3D environment is used as a geometric map for navigation
+    
+    for (int row = env.size()-1; row >= 0; row--)
+    {
+        for (int j = 0; j < scale; j++)
+        {
+            for (int col = 0; col <env[0].size() ; col++)
+            {
+                for (int i = 0; i < scale; i++)
+                {
+                    outfile << (env[row][col][height] == cell_state::empty? 1 : 0) << " ";
+                }
+            }
+            outfile << "\n";
+        }
+    }
+    outfile.close();
+
+}
+
+void printEnv(std::string filename)
 {
     std::ofstream outfile(filename.c_str());
-    if (filename.find(".pgm") != std::string::npos)
+    
+    outfile <<  "#env_min(m) " << env_min_x << " " << env_min_y << " " << env_min_z << "\n";
+    outfile <<  "#env_max(m) " << env_max_x << " " << env_max_y << " " << env_max_z << "\n";
+    outfile <<  "#num_cells " << env[0].size() << " " << env.size() << " " << env[0][0].size() << "\n";
+    outfile <<  "#cell_size(m) " << cell_size << "\n";
+    
+    for (int height = 0; height < env[0][0].size(); height++)
     {
-        outfile << "P2\n"
-                << scale *  env[0].size() << " " << scale * env.size() << "\n" <<"1\n";
-        //things are repeated to scale them up (the image is too small!)
-        for (int row = env.size()-1; row >= 0; row--)
+        for (int col = 0; col <env[0].size(); col++)
         {
-            for (int j = 0; j < scale; j++)
+            for (int row = 0; row <env.size(); row++)
             {
-                for (int col = 0; col <env[0].size() ; col++)
-                {
-                    for (int i = 0; i < scale; i++)
-                    {
-                        outfile << (env[row][col][0] == cell_state::empty? 1 : 0) << " ";
-                    }
-                }
-                outfile << "\n";
+                outfile << (env[row][col][height]==cell_state::empty? 0 :
+                        (env[row][col][height]==cell_state::outlet? 2 :
+                        1))
+                        << " ";
+                
             }
+            outfile << "\n";
         }
+        outfile << ";\n";
     }
-    else
-    {
-        outfile <<  "#env_min(m) " << env_min_x << " " << env_min_y << " " << env_min_z << "\n";
-        outfile <<  "#env_max(m) " << env_max_x << " " << env_max_y << " " << env_max_z << "\n";
-        outfile <<  "#num_cells " << env[0].size() << " " << env.size() << " " << env[0][0].size() << "\n";
-        outfile <<  "#cell_size(m) " << cell_size << "\n";
-        //things are repeated to scale them up (the image is too small!)
-        for (int height = 0; height < env[0][0].size(); height++)
-        {
-            for (int col = 0; col <env[0].size(); col++)
-            {
-                for (int j = 0; j < scale; j++)
-                {
-                    for (int row = 0; row <env.size(); row++)
-                    {
-                        for (int i = 0; i < scale; i++)
-                        {
-                            outfile << (env[row][col][height]==cell_state::empty? 0 :
-                                    (env[row][col][height]==cell_state::outlet? 2 :
-                                    1))
-                                    << " ";
-                        }
-                    }
-                    outfile << "\n";
-                }
-            }
-            outfile << ";\n";
-        }
-    }
+    outfile.close();
 }
-void printWind(std::vector<std::vector<std::vector<float> > > U,
-                std::vector<std::vector<std::vector<float> > > V,
-                std::vector<std::vector<std::vector<float> > > W, std::string filename){
+
+void printWind(std::vector<double> U,
+                std::vector<double> V,
+                std::vector<double> W, std::string filename){
     
     std::ofstream fileU(boost::str(boost::format("%s_U") % filename).c_str());
     std::ofstream fileV(boost::str(boost::format("%s_V") % filename).c_str());
     std::ofstream fileW(boost::str(boost::format("%s_W") % filename).c_str());
-    for (int height = 0; height < U[0][0].size(); height++)
-    {
-        for (int col = 0; col < U.size(); col++)
-        {
-            for (int row = 0; row < U[0].size(); row++)
-            {
-                fileU << U[col][row][height] << " ";
-                fileV << V[col][row][height] << " ";
-                fileW << W[col][row][height] << " ";
-            }
-            fileU << "\n";
-            fileV << "\n";
-            fileW << "\n";
-        }
-        fileU << ";\n";
-        fileV << ";\n";
-        fileW << ";\n";
-    }
+    
+    //this code is a header to let the filament_simulator know the file is in binary
+    int code=999;
+
+    fileU.write((char*) &code, sizeof(int));
+    fileV.write((char*) &code, sizeof(int));
+    fileW.write((char*) &code, sizeof(int));
+
+    fileU.write((char*) U.data(), sizeof(double) * U.size());
+    fileV.write((char*) V.data(), sizeof(double) * V.size());
+    fileW.write((char*) W.data(), sizeof(double) * W.size());
+
+    fileU.close();
+    fileV.close();
+    fileW.close();
 }
 
 void printYaml(std::string output){
     std::ofstream yaml(boost::str(boost::format("%s/occupancy.yaml") % output.c_str()));
     yaml << "image: occupancy.pgm\n" 
         << "resolution: " << cell_size/10 
-        << "\norigin: [" << env_min_x << ", " << env_min_y << ", " << env_min_z << "]\n"
+        << "\norigin: [" << env_min_x << ", " << env_min_y << ", " << 0 << "]\n"
         << "occupied_thresh: 0.9\n" 
         << "free_thresh: 0.1\n" 
         << "negate: 0";
+    yaml.close();
 }
 
 float min_val(float x, float y, float z) {
@@ -369,13 +396,14 @@ void parse(std::string filename, cell_state value_to_write){
     if (FILE *file = fopen(filename.c_str(), "r"))
     {
         //File exists!, keep going!
-        char buffer[5];
-        fgets(buffer, 5, file);
+        char buffer[6];
+        fgets(buffer, 6, file);
         if(std::string(buffer).find("solid")!=std::string::npos)
             ascii=true;
         fclose(file);
     }else{
         std::cout<< "File " << filename << " does not exist\n";
+        return;
     }
     
     std::vector<Triangle> triangles;
@@ -393,6 +421,7 @@ void parse(std::string filename, cell_state value_to_write){
                 count++;
             }
         }
+        countfile.close();
         //each points[i] contains one the three vertices of triangle i
         triangles.resize(count);
         normals.resize(count);
@@ -401,38 +430,39 @@ void parse(std::string filename, cell_state value_to_write){
         std::getline(infile, line);
         int i =0;
         while (line.find("endsolid")==std::string::npos)
-            {
-                while (line.find("facet normal") == std::string::npos){std::getline(infile, line);}
-                size_t pos = line.find("facet");
-                line.erase(0, pos + 12);
-                float aux;
+        {
+            while (line.find("facet normal") == std::string::npos){std::getline(infile, line);}
+            size_t pos = line.find("facet");
+            line.erase(0, pos + 12);
+            float aux;
+            std::stringstream ss(line);
+            ss >> std::skipws >>  aux; 
+            normals[i].x = roundf(aux * roundFactor) / roundFactor;
+            ss >> std::skipws >>  aux; 
+            normals[i].y = roundf(aux * roundFactor) / roundFactor;
+            ss >> std::skipws >>  aux; 
+            normals[i].z = roundf(aux * roundFactor) / roundFactor;
+            std::getline(infile, line);
+
+            for(int j=0;j<3;j++){
+                std::getline(infile, line);
+                size_t pos = line.find("vertex ");
+                line.erase(0, pos + 7);
                 std::stringstream ss(line);
                 ss >> std::skipws >>  aux; 
-                normals[i].x = roundf(aux * roundFactor) / roundFactor;
+                triangles[i][j].x = roundf(aux * roundFactor) / roundFactor;
                 ss >> std::skipws >>  aux; 
-                normals[i].y = roundf(aux * roundFactor) / roundFactor;
+                triangles[i][j].y = roundf(aux * roundFactor) / roundFactor;
                 ss >> std::skipws >>  aux; 
-                normals[i].z = roundf(aux * roundFactor) / roundFactor;
-                std::getline(infile, line);
-
-                for(int j=0;j<3;j++){
-                    std::getline(infile, line);
-                    size_t pos = line.find("vertex ");
-                    line.erase(0, pos + 7);
-                    std::stringstream ss(line);
-                    ss >> std::skipws >>  aux; 
-                    triangles[i][j].x = roundf(aux * roundFactor) / roundFactor;
-                    ss >> std::skipws >>  aux; 
-                    triangles[i][j].y = roundf(aux * roundFactor) / roundFactor;
-                    ss >> std::skipws >>  aux; 
-                    triangles[i][j].z = roundf(aux * roundFactor) / roundFactor;
-                }
-                i++;
-                //skipping lines here makes checking for the end of the file more convenient
-                std::getline(infile, line);
-                std::getline(infile, line);
-                while(std::getline(infile, line)&&line.length()==0);
+                triangles[i][j].z = roundf(aux * roundFactor) / roundFactor;
+            }
+            i++;
+            //skipping lines here makes checking for the end of the file more convenient
+            std::getline(infile, line);
+            std::getline(infile, line);
+            while(std::getline(infile, line)&&line.length()==0);
         }
+        infile.close();
     }
     else{
         std::ifstream infile(filename.c_str(), std::ios_base::binary);
@@ -451,6 +481,7 @@ void parse(std::string filename, cell_state value_to_write){
 
             infile.seekg(sizeof(uint16_t), std::ios_base::cur); //skip the attribute data
         }
+        infile.close();
     }
     
     //OK, we have read the data, let's do something with it
@@ -463,13 +494,14 @@ void findDimensions(std::string filename){
     if (FILE *file = fopen(filename.c_str(), "r"))
     {
         //File exists!, keep going!
-        char buffer[5];
-        fgets(buffer, 5, file);
+        char buffer[6];
+        fgets(buffer, 6, file);
         if(std::string(buffer).find("solid")!=std::string::npos)
             ascii=true;
         fclose(file);
     }else{
         std::cout<< "File " << filename << " does not exist\n";
+        return;
     }
 
 
@@ -509,6 +541,7 @@ void findDimensions(std::string filename){
             std::getline(infile, line);
             while(std::getline(infile, line)&&line.length()==0);
         }
+        infile.close();
     }
     else{
         std::ifstream infile(filename.c_str(), std::ios_base::binary);
@@ -541,6 +574,11 @@ void findDimensions(std::string filename){
 
 
 }
+
+int indexFrom3D(int x, int y, int z){
+	return x + y*env[0].size() + z*env[0].size()*env.size();
+}
+
 void openFoam_to_gaden(std::string filename)
 {
 
@@ -550,10 +588,10 @@ void openFoam_to_gaden(std::string filename)
 
 	//ignore the first line (column names)
 	std::getline(infile, line);
-    std::vector<std::vector<std::vector<float> > > U(env[0].size(), std::vector<std::vector<float> >(env.size(), std::vector<float>(env[0][0].size())));
-    std::vector<std::vector<std::vector<float> > > V(env[0].size(), std::vector<std::vector<float> >(env.size(), std::vector<float>(env[0][0].size())));
-    std::vector<std::vector<std::vector<float> > > W(env[0].size(), std::vector<std::vector<float> >(env.size(), std::vector<float>(env[0][0].size())));
-    std::vector<float> v(6);
+    std::vector<double> U(env[0].size()*env.size()*env[0][0].size());
+    std::vector<double> V(env[0].size()*env.size()*env[0][0].size());
+    std::vector<double> W(env[0].size()*env.size()*env[0][0].size());
+    std::vector<double> v(6);
 	int x_idx = 0;
 	int y_idx = 0;
 	int z_idx = 0;
@@ -568,14 +606,15 @@ void openFoam_to_gaden(std::string filename)
 				line.erase(0, pos + 1);
 			}
 			//assign each of the points we have information about to the nearest cell
-			x_idx = roundf((v[3] - env_min_x) / cell_size*roundFactor)/roundFactor;
-			y_idx = roundf((v[4] - env_min_y) / cell_size*roundFactor)/roundFactor;
-			z_idx = roundf((v[5] - env_min_z) / cell_size*roundFactor)/roundFactor;
-			U[x_idx][y_idx][z_idx] = v[0];
-			V[x_idx][y_idx][z_idx] = v[1];
-			W[x_idx][y_idx][z_idx] = v[2];
+			x_idx = (int)roundf((v[3] - env_min_x) / cell_size*roundFactor)/roundFactor;
+			y_idx = (int)roundf((v[4] - env_min_y) / cell_size*roundFactor)/roundFactor;
+			z_idx = (int)roundf((v[5] - env_min_z) / cell_size*roundFactor)/roundFactor;
+			U[ indexFrom3D(x_idx, y_idx,z_idx) ] = v[0];
+			V[ indexFrom3D(x_idx, y_idx,z_idx) ] = v[1];
+			W[ indexFrom3D(x_idx, y_idx,z_idx) ] = v[2];
 		}
 	}
+    infile.close();
     printWind(U,V,W,filename);
 }
 
@@ -735,11 +774,16 @@ int main(int argc, char **argv){
     //get rid of the cells marked as "edge", since those are not truly occupied
     clean();
 
+    private_nh.param<float>("floor_height", floor_height, 0); // number of CAD models
+    printMap(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), 10);
 
-    printEnv(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), env, 10);
+    std::string worldFile;
+    private_nh.param<std::string>("worldFile", worldFile, ""); // number of CAD models
+    if(worldFile!="")
+        changeWorldFile(worldFile);
 
     //output - path, occupancy vector, scale
-    printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), env, 1);
+    printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()));
     printYaml(output);
 
     //-------------------------
@@ -762,11 +806,11 @@ int main(int argc, char **argv){
         std::ifstream infile(windFileName);
         std::string line;
 
-        std::vector<std::vector<std::vector<float> > > U(env[0].size(), std::vector<std::vector<float> >(env.size(), std::vector<float>(env[0][0].size())));
-        std::vector<std::vector<std::vector<float> > > V(env[0].size(), std::vector<std::vector<float> >(env.size(), std::vector<float>(env[0][0].size())));
-        std::vector<std::vector<std::vector<float> > > W(env[0].size(), std::vector<std::vector<float> >(env.size(), std::vector<float>(env[0][0].size())));
+        std::vector<double> U(env[0].size()*env.size()*env[0][0].size());
+        std::vector<double> V(env[0].size()*env.size()*env[0][0].size());
+        std::vector<double> W(env[0].size()*env.size()*env[0][0].size());
         while(std::getline(infile, line)){
-            std::vector<float> v;
+            std::vector<double> v;
             for (int i = 0; i < 3; i++)
 			{
 				size_t pos = line.find(",");
@@ -778,13 +822,15 @@ int main(int argc, char **argv){
                 for(int j = 0; j< env.size();j++){
                     for(int k = 0; k< env[0][0].size();k++){
                         if(env[j][i][k]==cell_state::empty){
-                            U[i][j][k] = v[0];
-                            V[i][j][k] = v[1];
-                            W[i][j][k] = v[2];
+                           
+                            U[ indexFrom3D(i, j, k) ] = v[0];
+                            V[ indexFrom3D(i, j, k) ] = v[1];
+                            W[ indexFrom3D(i, j, k) ] = v[2];
                         }
                     }
                 }
             }
+            infile.close();
             printWind(U,V,W, boost::str(boost::format("%s_%i.csv") % windFileName % idx).c_str());
             idx++;
         }
@@ -802,10 +848,6 @@ int main(int argc, char **argv){
     ROS_INFO("Preprocessing done");
     std_msgs::Bool b;
     b.data=true;
-    ros::Rate r(0.1);
-    while(ros::ok()){
-        pub.publish(b);
-        r.sleep();
-    }
+    pub.publish(b);
     
 }
