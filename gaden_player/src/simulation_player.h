@@ -24,6 +24,10 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/iostreams/copy.hpp>
 
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+
 struct Vec4{
     public:
         double x, y, z, w;
@@ -87,6 +91,10 @@ public:
     int last_wind_idx=-1;
     void read_concentration_line(std::string line);
 
+    std::vector<std::vector<double> > heatmap;
+    void updateHeatmap();
+    void writeHeatmapImage();
+
     int indexFrom3D(int x, int y, int z);
 
     std::string gasTypesByCode[14] = {
@@ -122,6 +130,12 @@ std::vector<double>             srv_response_gas_concs;
 int                             initial_iteration, loop_from_iteration, loop_to_iteration;
 bool                            allow_looping;
 std::string occupancyFile;
+
+bool createHeatmapImage;
+std::string heatmapPath;
+float heatmapHeight;
+double heatmapThreshold;
+int heatMapIterations;
 
 //Visualization
 ros::Publisher                  marker_pub;

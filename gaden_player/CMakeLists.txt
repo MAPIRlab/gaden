@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
     nav_msgs
     tf
     message_generation
+    OpenCV
 )
 find_package(Boost REQUIRED COMPONENTS iostreams)
 add_service_files(
@@ -28,7 +29,7 @@ catkin_package(
     DEPENDS roscpp visualization_msgs std_msgs nav_msgs tf Boost
 )
 
-include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 
 add_executable(gaden_player  ${MYFILES_CPP})
 add_dependencies(gaden_player ${olfaction_msgs_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

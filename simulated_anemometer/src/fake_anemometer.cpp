@@ -118,9 +118,9 @@ int main( int argc, char** argv )
 			// Get Wind vectors (u,v,w) at current position
 			// Service request to the simulator
             gaden_player::WindPosition srv;
-			srv.request.x = x_pos;
-			srv.request.y = y_pos;
-			srv.request.z = z_pos;
+			srv.request.x.push_back(x_pos);
+			srv.request.y.push_back(y_pos);
+			srv.request.z.push_back(z_pos);
 			float u,v,w;
 			olfaction_msgs::anemometer anemo_msg;
 			if (client.call(srv))
@@ -130,9 +130,9 @@ int main( int argc, char** argv )
 
 				//GT Wind vector Value (u,v,w)[m/s]
                 //From OpenFoam this is the DownWind direction in the map
-				u = (float)srv.response.u;
-				v = (float)srv.response.v;
-				w = (float)srv.response.w;
+				u = (float)srv.response.u[0];
+				v = (float)srv.response.v[0];
+				w = (float)srv.response.w[0];
                 wind_speed = sqrt(pow(u,2)+pow(v,2));
 
                 float downWind_direction_map;
@@ -183,7 +183,7 @@ int main( int argc, char** argv )
                 NormalDistribution gaussian_dist(0.0,noise_std);
                 GaussianGenerator generator(rng, gaussian_dist);
                 wind_direction = wind_direction + generator();
-                wind_speed = std::max(0.0, wind_speed + generator()*wind_speed);
+                wind_speed = wind_speed + generator();
 
 
                 //Publish 2D Anemometer readings

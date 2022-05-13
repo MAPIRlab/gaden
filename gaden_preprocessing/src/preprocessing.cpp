@@ -124,7 +124,7 @@ void printMap(std::string filename, int scale){
 
 }
 
-void printEnv(std::string filename)
+void printEnv(std::string filename, int scale)
 {
     std::ofstream outfile(filename.c_str());
     
@@ -132,20 +132,25 @@ void printEnv(std::string filename)
     outfile <<  "#env_max(m) " << env_max_x << " " << env_max_y << " " << env_max_z << "\n";
     outfile <<  "#num_cells " << env[0].size() << " " << env.size() << " " << env[0][0].size() << "\n";
     outfile <<  "#cell_size(m) " << cell_size << "\n";
-    
+    //things are repeated to scale them up (the image is too small!)
     for (int height = 0; height < env[0][0].size(); height++)
     {
         for (int col = 0; col <env[0].size(); col++)
         {
-            for (int row = 0; row <env.size(); row++)
+            for (int j = 0; j < scale; j++)
             {
-                outfile << (env[row][col][height]==cell_state::empty? 0 :
-                        (env[row][col][height]==cell_state::outlet? 2 :
-                        1))
-                        << " ";
-                
+                for (int row = 0; row <env.size(); row++)
+                {
+                    for (int i = 0; i < scale; i++)
+                    {
+                        outfile << (env[row][col][height]==cell_state::empty? 0 :
+                                (env[row][col][height]==cell_state::outlet? 2 :
+                                1))
+                                << " ";
+                    }
+                }
+                outfile << "\n";
             }
-            outfile << "\n";
         }
         outfile << ";\n";
     }
@@ -783,7 +788,7 @@ int main(int argc, char **argv){
         changeWorldFile(worldFile);
 
     //output - path, occupancy vector, scale
-    printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()));
+    printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), 1);
     printYaml(output);
 
     //-------------------------

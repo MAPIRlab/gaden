@@ -159,11 +159,19 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     // Initial iteration
     private_nh.param<int>("initial_iteration", initial_iteration, 1);
     private_nh.param<std::string>("occupancyFile", occupancyFile, "");
+
+    private_nh.param<bool>("createHeatmapImage", createHeatmapImage, false);
+    private_nh.param<std::string>("heatmapPath",heatmapPath, "");
+    private_nh.param<float>("heatmapHeight", heatmapHeight, 0.5);
+    private_nh.param<int>("heatMapIterations", heatMapIterations, 100);
+    private_nh.param<double>("heatmapThreshold", heatmapThreshold, 0.5);
+
     // Loop
     private_nh.param<bool>("allow_looping", allow_looping, false);
     private_nh.param<int>("loop_from_iteration", loop_from_iteration, 1);
     private_nh.param<int>("loop_to_iteration", loop_to_iteration, 1);
     
+
 }
 
 
@@ -370,6 +378,16 @@ void sim_obj::load_data_from_logfile(int sim_iteration)
     else
         load_ascii_file(decompressed);
     infile.close();
+
+    static int iterationCounter=0;
+    if(createHeatmapImage){
+        if(iterationCounter<heatMapIterations)
+            updateHeatmap();
+        else if(iterationCounter==heatMapIterations)
+            writeHeatmapImage();
+
+        iterationCounter++;
+    }
 }
 
 void sim_obj::load_ascii_file(std::stringstream& decompressed){
@@ -686,6 +704,9 @@ void sim_obj::configure_environment()
         W.resize(environment_cells_x * environment_cells_y * environment_cells_z); 
     }
     readEnvFile();
+
+    if(createHeatmapImage)
+        heatmap = std::vector<std::vector<double> >(environment_cells_x, std::vector<double>(environment_cells_y));
 }
 
 
@@ -796,3 +817,46 @@ int sim_obj::indexFrom3D(int x, int y, int z){
 	return x + y*environment_cells_x + z*environment_cells_x*environment_cells_y;
 }
 
+void sim_obj::updateHeatmap(){
+    std::string gtype;
+    #pragma omp parallel for collapse(2)
+    for(int i = 0; i<heatmap.size(); i++){
+        for(int j=0; j<heatmap[0].size(); j++){
+            double p_x = env_min_x + (i+0.5)*environment_cell_size;
+            double p_y = env_min_y + (j+0.5)*environment_cell_size;
+            double g_c;
+
+            get_gas_concentration(p_x, p_y, heatmapHeight, gtype, g_c);
+            if(g_c>heatmapThreshold)
+                heatmap[i][j]++;
+        }
+    }
+}
+
+void sim_obj::writeHeatmapImage(){
+
+    //std::ofstream pgmFile ("/home/pepe/catkin_ws/asd");
+    //pgmFile<<"P2\n";
+    //pgmFile<<heatmap[0].size()<<" "<<heatmap.size()<<"\n";
+    //pgmFile<<"255\n";
+
+    //for(int i = 0; i<heatmap.size(); i++){
+    //    for(int j=0; j<heatmap[0].size(); j++){
+    //        pgmFile<< (int)((heatmap[i][j]/heatMapIterations) * 255) <<" ";
+    //    }
+    //    pgmFile<<"\n";
+    //}
+
+    cv::Mat image(cv::Size(heatmap.size(), heatmap[0].size()), CV_32F, cv::Scalar(0) );
+
+    #pragma omp parallel for collapse(2)
+    for(int i = 0; i<heatmap.size(); i++){
+        for(int j=0; j<heatmap[0].size(); j++){
+            image.at<float>(heatmap[0].size()-1-j, i) = (heatmap[i][j]/heatMapIterations) * 255;
+        }
+    }
+    
+    cv::imwrite(heatmapPath, image);
+
+    std::cout<<"Heatmap image saved\n";
+}
