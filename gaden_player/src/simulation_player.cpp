@@ -486,11 +486,17 @@ void sim_obj::load_wind_file(int wind_index){
 //Get Gas concentration at lcoation (x,y,z)
 void sim_obj::get_gas_concentration(float x, float y, float z, std::string &gas_name, double &gas_conc)
 {
-    if(x<env_min_x|| x>env_max_x
-        || y<env_min_y|| y>env_max_y
-        || z<env_min_z|| z>env_max_z)
+
+    int xx,yy,zz;
+    xx = (int)ceil((x - env_min_x)/environment_cell_size);
+    yy = (int)ceil((y - env_min_y)/environment_cell_size);
+    zz = (int)ceil((z - env_min_z)/environment_cell_size);
+
+    if(xx<0|| xx>environment_cells_x
+        || yy<0|| yy>environment_cells_y
+        || zz<0|| zz>environment_cells_z)
     {
-        ROS_ERROR("Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
+        ROS_ERROR("Requested gas concentration at a point outside the environment (%f, %f, %f). Are you using the correct coordinates?\n", x, y ,z);
         return;
     }
     if(filament_log){
@@ -506,10 +512,6 @@ void sim_obj::get_gas_concentration(float x, float y, float z, std::string &gas_
         }
     }else{
         //Get cell idx from point location
-        int xx,yy,zz;
-        xx = (int)ceil((x - env_min_x)/environment_cell_size);
-        yy = (int)ceil((y - env_min_y)/environment_cell_size);
-        zz = (int)ceil((z - env_min_z)/environment_cell_size);
         //Get gas concentration from that cell
         gas_conc = C[indexFrom3D(xx,yy,zz)];
     }
@@ -596,18 +598,18 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
 {
     if (load_wind_data)
     {
-        if(x<env_min_x|| x>env_max_x
-            || y<env_min_y|| y>env_max_y
-            || z<env_min_z|| z>env_max_z)
-        {
-            ROS_ERROR("Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
-            return;
-        }
-        //Get cell idx from point location
         int xx,yy,zz;
         xx = (int)ceil((x - env_min_x)/environment_cell_size);
         yy = (int)ceil((y - env_min_y)/environment_cell_size);
         zz = (int)ceil((z - env_min_z)/environment_cell_size);
+
+        if(xx<0|| xx>environment_cells_x
+            || yy<0|| yy>environment_cells_y
+            || zz<0|| zz>environment_cells_z)
+        {
+            ROS_ERROR("Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
+            return;
+        }
 
         //Set wind vectors from that cell
         u = U[indexFrom3D(xx,yy,zz)];
