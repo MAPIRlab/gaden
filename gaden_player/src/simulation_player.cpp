@@ -5,6 +5,7 @@
  * It also generates a point cloud representing the gas concentration [ppm] on the 3D environment
  --------------------------------------------------------------------------------*/
 
+#include <boost/format.hpp>
 #include "simulation_player.h"
 
 //--------------- SERVICES CALLBACKS----------------------//
