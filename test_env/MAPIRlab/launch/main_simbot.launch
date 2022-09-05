@@ -90,7 +90,7 @@
         # Data from the "filament_simulator" pkg. Multiple sources can be set here
         <param name="simulation_data_0" value="$(find test_env)/$(arg scenario)/gas_simulations/$(arg simulation)/FilamentSimulation_gasType_0_sourcePosition_$(arg source_location_x)_$(arg source_location_y)_$(arg source_location_z)" />
         
-                <param name="occupancyFile" value="$(find my_env)/$(arg scenario)/OccupancyGrid3D.csv" />
+                <param name="occupancyFile" value="$(find test_env)/$(arg scenario)/OccupancyGrid3D.csv" />
 
 # Loop options        
         <param name="allow_looping" value="true" />
