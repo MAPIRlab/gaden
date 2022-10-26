@@ -777,13 +777,13 @@ void CFilamentSimulator::update_filament_location(int i)
 
 
 				//3. Add some variability (stochastic process)
-				thread_local RandomGenerator rng(static_cast<unsigned> (time(0)));
-				NormalDistribution gaussian_dist(0.0,filament_noise_std);
-				GaussianGenerator generator(rng, gaussian_dist);
 				
-				newpos_x = filaments[i].pose_x + generator();
-				newpos_y = filaments[i].pose_y + generator();
-				newpos_z = filaments[i].pose_z + generator();
+				static thread_local std::mt19937 engine;
+				static thread_local std::normal_distribution<> dist{0, filament_noise_std};
+				
+				newpos_x = filaments[i].pose_x + dist(engine);
+				newpos_y = filaments[i].pose_y + dist(engine);
+				newpos_z = filaments[i].pose_z + dist(engine);
 
 				//Check filament location
 				if (check_pose_with_environment(newpos_x, newpos_y, newpos_z ) == 0)

@@ -2,6 +2,19 @@ cmake_minimum_required(VERSION 2.8.3)
 project(gaden_preprocessing)
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -fopenmp ${CMAKE_CXX_FLAGS}")
+
+option ( DEBUG "" OFF)
+set(DEBUG OFF)
+
+if(DEBUG)
+  add_definitions(-DDEBUG)
+  set(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
+else()
+  set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
+endif(DEBUG)
+
+
+
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs

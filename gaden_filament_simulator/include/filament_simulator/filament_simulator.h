@@ -12,8 +12,7 @@
 #include <stdlib.h>     /* srand, rand */
 #include <iostream>
 #include <fstream>
-#include <boost/random.hpp>
-#include <boost/random/normal_distribution.hpp>
+#include <random>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/thread/mutex.hpp>
@@ -21,14 +20,6 @@
 #include <boost/iostreams/filter/zlib.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/copy.hpp>
-//
-// Type definitions for a easier gaussian random number generation
-//
-typedef boost::normal_distribution<double> NormalDistribution;
-typedef boost::mt19937 RandomGenerator;
-typedef boost::variate_generator<RandomGenerator&, \
-                       NormalDistribution> GaussianGenerator;
-
 class CFilamentSimulator
 {
 public:

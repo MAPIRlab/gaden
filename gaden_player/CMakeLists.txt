@@ -1,7 +1,18 @@
 cmake_minimum_required(VERSION 2.8.3)
+project(gaden_player)
 
 set(CMAKE_CXX_FLAGS "-lboost_iostreams -std=c++11 ${CMAKE_CXX_FLAGS}")
-project(gaden_player)
+
+option ( DEBUG "" OFF)
+set(DEBUG OFF)
+
+if(DEBUG)
+  add_definitions(-DDEBUG)
+  set(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
+else()
+  set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
+endif(DEBUG)
+
 find_package(catkin REQUIRED COMPONENTS
     roscpp
     visualization_msgs
