@@ -72,6 +72,7 @@ CFilamentSimulator::CFilamentSimulator()
     current_simulation_step = 0;            //Start with iter= 0;
 	last_saved_step = -1;
     wind_notified = false;               //To warn the user (only once) that no more wind data is found!
+	wind_finished = false;
 
 	//Init the Simulator
 	initSimulator();
@@ -117,7 +118,6 @@ CFilamentSimulator::CFilamentSimulator()
 	filament_marker.id = 0;
 	filament_marker.type = visualization_msgs::Marker::POINTS;
 	filament_marker.color.a = 1;
-	
 	
 }
 
@@ -302,7 +302,7 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 {
 	if (last_wind_idx==idx)
 		return;
-
+	
 	//configure filenames to read
 	std::string U_filename = boost::str( boost::format("%s%i.csv_U") % wind_files_location % idx );
 	std::string V_filename = boost::str( boost::format("%s%i.csv_V") % wind_files_location % idx );
@@ -766,7 +766,7 @@ void CFilamentSimulator::update_filament_location(int i)
                 double ro_air = 1.205;     //[kg/m³] density of air
                 double mu = 19*pow(10,-6);    //[kg/s·m] dynamic viscosity of air
                 double terminal_buoyancy_velocity = (g * (1-SpecificGravity[gasType])*ro_air * filament_ppm_center*pow(10,-6) ) / (18* mu);
-                newpos_z = filaments[i].pose_z + terminal_buoyancy_velocity*time_step;
+                //newpos_z = filaments[i].pose_z + terminal_buoyancy_velocity*time_step;
 
 				//Check filament location
 				if (check_pose_with_environment(filaments[i].pose_x, filaments[i].pose_y, newpos_z ) == 0){

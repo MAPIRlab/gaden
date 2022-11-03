@@ -80,7 +80,7 @@ int main( int argc, char** argv )
     srand(time(NULL));// initialize random seed
 
     //Init Markers for RVIZ visualization
-    mkr_gas_points.header.frame_id = "/map";
+    mkr_gas_points.header.frame_id = "map";
     mkr_gas_points.header.stamp = ros::Time::now();
     mkr_gas_points.ns = "Gas_Dispersion";
     mkr_gas_points.action = visualization_msgs::Marker::ADD;
@@ -664,15 +664,12 @@ void sim_obj::readEnvFile()
 		}
 		else
 		{   //New line with constant x_idx and all the y_idx values
-			while (!ss.fail())
+			while (ss)
 			{
 				double f;
-				ss >> f;		//get one double value
-				if (!ss.fail())
-				{
-					Env[indexFrom3D(x_idx,y_idx,z_idx)] = f;
-					y_idx++;
-				}
+				ss >> std::skipws >> f;		//get one double value
+                Env[indexFrom3D(x_idx,y_idx,z_idx)] = f;
+                y_idx++;			
 			}
 
 			//Line has ended

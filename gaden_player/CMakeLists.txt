@@ -11,7 +11,7 @@ if(DEBUG)
   set(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
 else()
   set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
-endif(DEBUG)
+endif(DEBUG) 
 
 find_package(catkin REQUIRED COMPONENTS
     roscpp
