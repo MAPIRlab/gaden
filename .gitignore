@@ -1,7 +1,6 @@
-*gas_simulations*
+**/gas_simulations
 *_U
 *_V
 *_W
-# Catkin custom files
+
 *CATKIN_IGNORE
-my_env

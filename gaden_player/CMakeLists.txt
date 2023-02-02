@@ -38,11 +38,12 @@ generate_messages(
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
 catkin_package(
     DEPENDS roscpp visualization_msgs std_msgs nav_msgs tf Boost
+    CATKIN_DEPENDS message_runtime std_msgs
 )
 
 include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 
 add_executable(gaden_player  ${MYFILES_CPP})
-add_dependencies(gaden_player ${olfaction_msgs_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(gaden_player ${${PROJECT_NAME}_EXPORTED_TARGETS} ${olfaction_msgs_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${catkin_LIBRARIES})
