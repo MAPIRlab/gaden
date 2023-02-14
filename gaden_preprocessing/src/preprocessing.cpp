@@ -98,7 +98,7 @@ void changeWorldFile(std::string filename){
     out.close();
 }
 
-void printMap(std::string filename, int scale){
+void printMap(std::string filename, int scale, bool block_outlets){
     std::ofstream outfile(filename.c_str());
     outfile << "P2\n"
             << scale *  env[0].size() << " " << scale * env.size() << "\n" <<"1\n";
@@ -114,7 +114,9 @@ void printMap(std::string filename, int scale){
             {
                 for (int i = 0; i < scale; i++)
                 {
-                    outfile << (env[row][col][height] == cell_state::empty? 1 : 0) << " ";
+                    auto& cell = env[row][col][height];
+                    bool outletTerm = cell == cell_state::outlet && !block_outlets;
+                    outfile << ( cell == cell_state::empty || outletTerm ? 1 : 0) << " ";
                 }
             }
             outfile << "\n";
@@ -706,7 +708,6 @@ int main(int argc, char **argv){
     //path to the csv file where we want to write the occupancy map
     std::string output;
     private_nh.param<std::string>("output_path", output, "");
-
     //--------------------------
 
         //OCCUPANCY
@@ -780,7 +781,7 @@ int main(int argc, char **argv){
     clean();
 
     private_nh.param<float>("floor_height", floor_height, 0); // number of CAD models
-    printMap(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), 10);
+    printMap(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), 10, private_nh.param<bool>("block_outlets", false) );
 
     std::string worldFile;
     private_nh.param<std::string>("worldFile", worldFile, ""); // number of CAD models
