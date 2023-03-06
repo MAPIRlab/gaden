@@ -28,14 +28,14 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
-struct Vec4{
+struct Filament{
     public:
-        double x, y, z, w;
-        Vec4(double a, double b, double c, double d){
+        double x, y, z, sigma;
+        Filament(double a, double b, double c, double d){
             x=a;
             y=b;
             z=c;
-            w=d;
+            sigma=d;
         }
 };
 
@@ -67,7 +67,7 @@ public:
     bool            filament_log;
     double total_moles_in_filament;
     double num_moles_all_gases_in_cm3;
-    std::map<int, Vec4> activeFilaments;
+    std::map<int, Filament> activeFilaments;
 
     std::vector<uint8_t> Env;
 
@@ -77,8 +77,8 @@ public:
     void load_data_from_logfile(int sim_iteration);
     void load_ascii_file(std::stringstream &decompressed);
     void load_binary_file(std::stringstream &decompressed);
-    void get_gas_concentration(float x, float y, float z, std::string &gas_name, double &gas_conc);
-    double concentration_from_filament(float x, float y, float z, Vec4 fil);
+    double get_gas_concentration(float x, float y, float z);
+    double concentration_from_filament(float x, float y, float z, Filament fil);
     bool check_environment_for_obstacle(double start_x, double start_y, double start_z,
 													   double   end_x, double   end_y, double end_z);
     int check_pose_with_environment(double pose_x, double pose_y, double pose_z);
@@ -125,8 +125,7 @@ int                             num_simulators;
 bool                            verbose;
 std::vector<std::string>        simulation_data;
 std::vector<sim_obj>            player_instances;          //To handle N simulations at a time.
-std::vector<std::string>        srv_response_gas_types;
-std::vector<double>             srv_response_gas_concs;
+
 int                             initial_iteration, loop_from_iteration, loop_to_iteration;
 bool                            allow_looping;
 std::string occupancyFile;

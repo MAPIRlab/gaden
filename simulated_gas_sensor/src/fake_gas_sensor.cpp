@@ -93,9 +93,9 @@ int main( int argc, char** argv )
             // Get Gas concentration at current position (of each gas present)
             // Service request to the simulator
             gaden_player::GasPosition srv;
-            srv.request.x = x_pos;
-            srv.request.y = y_pos;
-            srv.request.z = z_pos;            
+            srv.request.x.push_back(x_pos);
+            srv.request.y.push_back(y_pos);
+            srv.request.z.push_back(z_pos);            
             if (client.call(srv))
             {
 /*
@@ -233,7 +233,7 @@ float simulate_mox_as_line_loglog(gaden_player::GasPositionResponse GT_gas_conce
         float resistance_variation = 0.0;
 
         //Handle multiple gases
-        for (int i=0; i<GT_gas_concentrations.gas_conc.size(); i++)
+        for (int i=0; i<GT_gas_concentrations.positions[0].concentration.size(); i++)
         {
             int gas_id;
             if (!strcmp(GT_gas_concentrations.gas_type[i].c_str(),"ethanol"))
@@ -269,7 +269,7 @@ float simulate_mox_as_line_loglog(gaden_player::GasPositionResponse GT_gas_conce
             */
 
             //Value of RS/R0 for the given gas and concentration
-            RS_R0 = sensitivity_lineloglog[input_sensor_model][gas_id][0] * pow(GT_gas_concentrations.gas_conc[i], sensitivity_lineloglog[input_sensor_model][gas_id][1]);
+            RS_R0 = sensitivity_lineloglog[input_sensor_model][gas_id][0] * pow(GT_gas_concentrations.positions[0].concentration[i], sensitivity_lineloglog[input_sensor_model][gas_id][1]);
 
             //Ensure we never overpass the baseline level (max allowed)
             if (RS_R0 > Sensitivity_Air[input_sensor_model])
@@ -318,7 +318,7 @@ float simulate_pid(gaden_player::GasPositionResponse GT_gas_concentrations)
 {
     //Handle multiple gases
     float accumulated_conc = 0.0;
-    for (int i=0; i<GT_gas_concentrations.gas_conc.size(); i++)
+    for (int i=0; i<GT_gas_concentrations.positions[0].concentration.size(); i++)
     {
         if (use_PID_correction_factors)
         {
@@ -335,10 +335,10 @@ float simulate_pid(gaden_player::GasPositionResponse GT_gas_concentrations)
                 return 0.0;
             }
             if (PID_correction_factors[gas_id] != 0)
-                accumulated_conc += GT_gas_concentrations.gas_conc[i] / PID_correction_factors[gas_id];
+                accumulated_conc += GT_gas_concentrations.positions[0].concentration[i] / PID_correction_factors[gas_id];
         }
         else
-            accumulated_conc += GT_gas_concentrations.gas_conc[i];
+            accumulated_conc += GT_gas_concentrations.positions[0].concentration[i];
     }
     return accumulated_conc;
 }

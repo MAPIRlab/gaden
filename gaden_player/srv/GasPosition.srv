@@ -1,6 +1,6 @@
-float64 x
-float64 y
-float64 z
+float64[] x
+float64[] y
+float64[] z
 ---
-float64[] gas_conc
+GasInCell[] positions
 string[] gas_type

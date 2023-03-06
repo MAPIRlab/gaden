@@ -3,7 +3,6 @@ project(gaden_player)
 
 set(CMAKE_CXX_FLAGS "-lboost_iostreams -std=c++11 ${CMAKE_CXX_FLAGS}")
 
-option ( DEBUG "" OFF)
 set(DEBUG OFF)
 
 if(DEBUG)
@@ -23,6 +22,12 @@ find_package(catkin REQUIRED COMPONENTS
     OpenCV
 )
 find_package(Boost REQUIRED COMPONENTS iostreams)
+
+add_message_files(
+  FILES
+  GasInCell.msg
+)
+
 add_service_files(
   FILES
   GasPosition.srv

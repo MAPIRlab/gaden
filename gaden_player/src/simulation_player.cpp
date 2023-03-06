@@ -9,36 +9,44 @@
 #include "simulation_player.h"
 
 //--------------- SERVICES CALLBACKS----------------------//
-bool get_gas_value_srv(gaden_player::GasPosition::Request  &req, gaden_player::GasPosition::Response &res)
+
+gaden_player::GasInCell get_all_gases_single_cell(float x, float y, float z, const std::vector<std::string>& gas_types)
 {
-    //ROS_INFO("[Player] Request for gas concentration at location [%.2f, %.2f, %.2f]m",req.x, req.y, req.z);
+    std::vector<double>             srv_response_gas_concs(num_simulators);
+    std::map<std::string,double> concentrationByGasType;
+    for(int i=0;i<gas_types.size();i++)
+        concentrationByGasType[gas_types[i]] = 0;
 
     //Get all gas concentrations and gas types (from all instances)
     for (int i=0;i<num_simulators; i++)
-        player_instances[i].get_gas_concentration(req.x, req.y, req.z, srv_response_gas_types[i], srv_response_gas_concs[i]);
-
-    //Return gas concentration for each gas_type.
-    //If we have multiple instances with the same gas, then add their concentrations.
-    std::map<std::string,double> mymap;
-    for (int i=0;i<num_simulators; i++)
-    {
-        if (mymap.find(srv_response_gas_types[i]) == mymap.end() )
-            mymap[srv_response_gas_types[i]] = srv_response_gas_concs[i];
-        else
-            mymap[srv_response_gas_types[i]] += srv_response_gas_concs[i];
-    }
+        concentrationByGasType[player_instances[i].gas_type] += player_instances[i].get_gas_concentration(x, y, z);
 
     //Configure Response
-    res.gas_conc.clear();
-    res.gas_type.clear();
-    for (std::map<std::string,double>::iterator it=mymap.begin(); it!=mymap.end(); ++it)
+    gaden_player::GasInCell response; 
+    for (int i = 0; i< gas_types.size();i++)
     {
-        res.gas_type.push_back(it->first);
-        res.gas_conc.push_back(it->second);
+        response.concentration.push_back( concentrationByGasType[gas_types[i]] );
     }
+    return response;
+}
 
+bool get_gas_value_srv(gaden_player::GasPosition::Request  &req, gaden_player::GasPosition::Response &res)
+{
+    std::set<std::string>        gas_types;
+
+    for (int i=0;i<num_simulators; i++)
+        gas_types.insert(player_instances[i].gas_type);
+    
+
+    std::vector<std::string> gast_types_v(gas_types.begin(), gas_types.end());
+    res.gas_type = gast_types_v;
+    for(int i=0;i<req.x.size(); i++)
+    {
+        res.positions.push_back( get_all_gases_single_cell(req.x[i], req.y[i], req.z[i], gast_types_v) );
+    }
     return true;
 }
+
 
 
 bool get_wind_value_srv(gaden_player::WindPosition::Request  &req, gaden_player::WindPosition::Response &res)
@@ -193,8 +201,6 @@ void init_all_simulation_instances()
     }
 
     //Set size for service responses
-    srv_response_gas_types.resize(num_simulators);
-    srv_response_gas_concs.resize(num_simulators);
 }
 
 
@@ -464,7 +470,7 @@ void sim_obj::load_binary_file(std::stringstream& decompressed){
         decompressed.read((char*) &z, sizeof(double));
         decompressed.read((char*) &stdDev, sizeof(double));
 
-        std::pair<int, Vec4> pair(filament_index, Vec4(x, y, z, stdDev));
+        std::pair<int, Filament> pair(filament_index, Filament(x, y, z, stdDev));
         activeFilaments.insert(pair);
     }
 
@@ -485,7 +491,7 @@ void sim_obj::load_wind_file(int wind_index){
 }
 
 //Get Gas concentration at lcoation (x,y,z)
-void sim_obj::get_gas_concentration(float x, float y, float z, std::string &gas_name, double &gas_conc)
+double sim_obj::get_gas_concentration(float x, float y, float z)
 {
 
     int xx,yy,zz;
@@ -498,15 +504,15 @@ void sim_obj::get_gas_concentration(float x, float y, float z, std::string &gas_
         || zz<0|| zz>environment_cells_z)
     {
         ROS_ERROR("Requested gas concentration at a point outside the environment (%f, %f, %f). Are you using the correct coordinates?\n", x, y ,z);
-        return;
+        return 0;
     }
+    double gas_conc=0;
     if(filament_log){
-        gas_conc=0;
         for(auto it = activeFilaments.begin(); it!=activeFilaments.end(); it++){
-            Vec4 fil = it->second;
+            Filament fil = it->second;
             double distSQR = (x-fil.x)*(x-fil.x) + (y-fil.y)*(y-fil.y) + (z-fil.z)*(z-fil.z);
 
-            double limitDistance = fil.w*5/100;
+            double limitDistance = fil.sigma*5/100;
             if(distSQR < limitDistance * limitDistance && check_environment_for_obstacle(x, y, z, fil.x, fil.y, fil.z)){
                 gas_conc += concentration_from_filament(x, y, z, fil);
             }
@@ -516,12 +522,13 @@ void sim_obj::get_gas_concentration(float x, float y, float z, std::string &gas_
         //Get gas concentration from that cell
         gas_conc = C[indexFrom3D(xx,yy,zz)];
     }
-    gas_name = gas_type;
+
+    return gas_conc;
 }
 
-double sim_obj::concentration_from_filament(float x, float y, float z, Vec4 filament){
+double sim_obj::concentration_from_filament(float x, float y, float z, Filament filament){
     //calculate how much gas concentration does one filament contribute to the queried location
-    double sigma = filament.w;
+    double sigma = filament.sigma;
     double distance_cm = 100 * sqrt( pow(x-filament.x,2) + pow(y-filament.y,2) + pow(z-filament.z,2) );
 
     double num_moles_target_cm3 = (total_moles_in_filament /
@@ -795,11 +802,11 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_point
             geometry_msgs::Point p; //Location of point
             std_msgs::ColorRGBA color;  //Color of point
 
-            Vec4 filament = it->second;
+            Filament filament = it->second;
             for (int i=0; i<5; i++){
-                p.x=(filament.x)+((std::rand()%1000)/1000.0 -0.5) * filament.w/200;
-                p.y=(filament.y)+((std::rand()%1000)/1000.0 -0.5) * filament.w/200;
-                p.z=(filament.z)+((std::rand()%1000)/1000.0 -0.5) * filament.w/200;
+                p.x=(filament.x)+((std::rand()%1000)/1000.0 -0.5) * filament.sigma/200;
+                p.y=(filament.y)+((std::rand()%1000)/1000.0 -0.5) * filament.sigma/200;
+                p.z=(filament.z)+((std::rand()%1000)/1000.0 -0.5) * filament.sigma/200;
 
                 color.a=1;
                 color.r=0;
@@ -818,15 +825,12 @@ int sim_obj::indexFrom3D(int x, int y, int z){
 }
 
 void sim_obj::updateHeatmap(){
-    std::string gtype;
     #pragma omp parallel for collapse(2)
     for(int i = 0; i<heatmap.size(); i++){
         for(int j=0; j<heatmap[0].size(); j++){
             double p_x = env_min_x + (i+0.5)*environment_cell_size;
             double p_y = env_min_y + (j+0.5)*environment_cell_size;
-            double g_c;
-
-            get_gas_concentration(p_x, p_y, heatmapHeight, gtype, g_c);
+            double g_c = get_gas_concentration(p_x, p_y, heatmapHeight);
             if(g_c>heatmapThreshold)
                 heatmap[i][j]++;
         }
