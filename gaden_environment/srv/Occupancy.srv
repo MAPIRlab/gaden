@@ -1,0 +1,7 @@
+---
+geometry_msgs/Vector3 origin
+float32 resolution
+uint16 numCellsX
+uint16 numCellsY
+uint16 numCellsZ
+uint8[] occupancy
