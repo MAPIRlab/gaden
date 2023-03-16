@@ -9,6 +9,8 @@ A demonstrative video can be seen at the [MAPIRlab channel on YouTube](https://w
 
 Installation instructions and Tutorial for setting up new environments can be found at [GADEN_tutorial.pdf](https://github.com/MAPIRlab/gaden/blob/master/GADEN_tutorial.pdf))
 
+Users who want to test their algorithms in complex environments but do not need to simulate any specific scenario can find an extensive repository of existing simulations in the [VGR dataset](https://mapir.isa.uma.es/mapirwebsite/?p=1708), which features simulations in 3D models of real houses, along with the configuration files and intermediate data. 
+
 ## TEST_ENV
 Along with GADEN we also include in this repo a set of scenarios to help researchers to test and validate GADEN as well as their own algorithms (Gas Distribution Mapping, Gas Source Localization, etc.) in an easy way. To that end, the folder **test_env** contains multiple scenarios with pre-configured CAD models, wind-flow simulations and ROS-launch files that enable the user to easily start testing GADEN as well as their robotics solutions. Each scenario follows a similar structure:
 
