@@ -3,7 +3,11 @@
 
 GADEN is a simulation framework designed for mobile robotics systems and gas sensing algorithms, also known as Mobile Robotics Olfaction (MRO). The framework is rooted in the principles of computational fluid dynamics and filament dispersion theory, modeling wind flow and gas dispersion in 3D scenarios and accounting for walls, furniture, and other objects that may have a significative impact on the gas dispersion.
 Moreover, it integrates the simulation of different environmental sensors, such as metal oxide gas sensors, photo-ionization 
-detectors, or anemometers, as well as it is fully integrated with ROS and the navigation stack, making testing and validation much easier. For further information and technical specifications, please see the project webpage at [http://mapir.isa.uma.es/work/gaden](http://mapir.isa.uma.es/work/gaden).
+detectors, T-DLAS or anemometers, as well as it is fully integrated with ROS and the navigation stack, making testing and validation much easier. 
+
+A demonstrative video can be seen at the [MAPIRlab channel on YouTube](https://www.youtube.com/watch?v=ZPGtk8KLtiE&ab_channel=MAPIRUMA).
+
+Installation instructions and Tutorial for setting up new environments can be found at [GADEN_tutorial.pdf](https://github.com/MAPIRlab/gaden/blob/master/GADEN_tutorial.pdf))
 
 ## TEST_ENV
 Along with GADEN we also include in this repo a set of scenarios to help researchers to test and validate GADEN as well as their own algorithms (Gas Distribution Mapping, Gas Source Localization, etc.) in an easy way. To that end, the folder **test_env** contains multiple scenarios with pre-configured CAD models, wind-flow simulations and ROS-launch files that enable the user to easily start testing GADEN as well as their robotics solutions. Each scenario follows a similar structure:
