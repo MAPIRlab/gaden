@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(gaden_environment)
-set (CMAKE_CXX_STANDARD 11)
+
+##################
+set(CMAKE_BUILD_TYPE "None") 
+set(CMAKE_CXX_FLAGS "-std=c++11 -g -O2 ${CMAKE_CXX_FLAGS}")
 
 find_package(catkin REQUIRED COMPONENTS 
     roscpp

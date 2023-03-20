@@ -400,6 +400,6 @@ bool Environment::occupancyMapServiceCB(gaden_environment::OccupancyRequest& req
 }
 
 int Environment::indexFrom3D(int x, int y, int z){
-	return x + y*env_cells_y + z*env_cells_x*env_cells_y;
+	return x + y*env_cells_x + z*env_cells_x*env_cells_y;
 }
 
