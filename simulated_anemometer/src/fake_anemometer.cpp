@@ -287,10 +287,10 @@ int main( int argc, char** argv )
 void loadNodeParameters(ros::NodeHandle private_nh)
 {
 	//sensor_frame
-	private_nh.param<std::string>("sensor_frame", input_sensor_frame, "/anemometer_link");
+	private_nh.param<std::string>("sensor_frame", input_sensor_frame, "anemometer_link");
 
 	//fixed frame
-	private_nh.param<std::string>("fixed_frame", input_fixed_frame, "/map");
+	private_nh.param<std::string>("fixed_frame", input_fixed_frame, "map");
 	
 	//Noise
 	private_nh.param<double>("noise_std", noise_std, 0.1);
