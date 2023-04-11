@@ -1,4 +1,5 @@
 #pragma once
+#include <tf2/LinearMath/Vector3.h>
 
 /*------------------------------------------------
 
@@ -21,8 +22,8 @@ inline void findMinMax(float x0, float x1, float x2, float &min, float &max) {
 		max = x2;
 }
 
-inline bool planeBoxOverlap(Eigen::Vector3d normal, Eigen::Vector3d vert, Eigen::Vector3d maxbox) {
-	Eigen::Vector3d vmin, vmax;
+inline bool planeBoxOverlap(tf2::Vector3 normal, tf2::Vector3 vert, tf2::Vector3 maxbox) {
+	tf2::Vector3 vmin, vmax;
 	float v;
 	for (size_t q = 0; q < 3; q++) {
 		v = vert[q];
@@ -44,8 +45,8 @@ inline bool planeBoxOverlap(Eigen::Vector3d normal, Eigen::Vector3d vert, Eigen:
 
 /*======================== X-tests ========================*/
 
-inline bool axisTestX01(float a, float b, float fa, float fb, const Eigen::Vector3d &v0,
-	const Eigen::Vector3d &v2, const Eigen::Vector3d &boxhalfsize, float &rad, float &min,
+inline bool axisTestX01(float a, float b, float fa, float fb, const tf2::Vector3 &v0,
+	const tf2::Vector3 &v2, const tf2::Vector3 &boxhalfsize, float &rad, float &min,
 	float &max, float &p0, float &p2) {
 	p0 = a * v0.y() - b * v0.z();
 	p2 = a * v2.y() - b * v2.z();
@@ -61,8 +62,8 @@ inline bool axisTestX01(float a, float b, float fa, float fb, const Eigen::Vecto
 		return false;
 	return true;
 }
-inline bool axisTestX2(float a, float b, float fa, float fb, const Eigen::Vector3d &v0,
-	const Eigen::Vector3d &v1, const Eigen::Vector3d &boxhalfsize, float &rad, float &min,
+inline bool axisTestX2(float a, float b, float fa, float fb, const tf2::Vector3 &v0,
+	const tf2::Vector3 &v1, const tf2::Vector3 &boxhalfsize, float &rad, float &min,
 	float &max, float &p0, float &p1) {
 	p0 = a * v0.y() - b * v0.z();
 	p1 = a * v1.y() - b * v1.z();
@@ -81,8 +82,8 @@ inline bool axisTestX2(float a, float b, float fa, float fb, const Eigen::Vector
 
 /*======================== Y-tests ========================*/
 
-inline bool axisTestY02(float a, float b, float fa, float fb, const Eigen::Vector3d &v0,
-	const Eigen::Vector3d &v2, const Eigen::Vector3d &boxhalfsize, float &rad, float &min,
+inline bool axisTestY02(float a, float b, float fa, float fb, const tf2::Vector3 &v0,
+	const tf2::Vector3 &v2, const tf2::Vector3 &boxhalfsize, float &rad, float &min,
 	float &max, float &p0, float &p2) {
 	p0 = -a * v0.x() + b * v0.z();
 	p2 = -a * v2.x() + b * v2.z();
@@ -99,8 +100,8 @@ inline bool axisTestY02(float a, float b, float fa, float fb, const Eigen::Vecto
 	return true;
 }
 
-inline bool axisTestY1(float a, float b, float fa, float fb, const Eigen::Vector3d &v0,
-	const Eigen::Vector3d &v1, const Eigen::Vector3d &boxhalfsize, float &rad, float &min,
+inline bool axisTestY1(float a, float b, float fa, float fb, const tf2::Vector3 &v0,
+	const tf2::Vector3 &v1, const tf2::Vector3 &boxhalfsize, float &rad, float &min,
 	float &max, float &p0, float &p1) {
 	p0 = -a * v0.x() + b * v0.z();
 	p1 = -a * v1.x() + b * v1.z();
@@ -118,8 +119,8 @@ inline bool axisTestY1(float a, float b, float fa, float fb, const Eigen::Vector
 }
 
 /*======================== Z-tests ========================*/
-inline bool axisTestZ12(float a, float b, float fa, float fb, const Eigen::Vector3d &v1,
-	const Eigen::Vector3d &v2, const Eigen::Vector3d &boxhalfsize, float &rad, float &min,
+inline bool axisTestZ12(float a, float b, float fa, float fb, const tf2::Vector3 &v1,
+	const tf2::Vector3 &v2, const tf2::Vector3 &boxhalfsize, float &rad, float &min,
 	float &max, float &p1, float &p2) {
 	p1 = a * v1.x() - b * v1.y();
 	p2 = a * v2.x() - b * v2.y();
@@ -136,8 +137,8 @@ inline bool axisTestZ12(float a, float b, float fa, float fb, const Eigen::Vecto
 	return true;
 }
 
-inline bool axisTestZ0(float a, float b, float fa, float fb, const Eigen::Vector3d &v0,
-	const Eigen::Vector3d &v1, const Eigen::Vector3d &boxhalfsize, float &rad, float &min,
+inline bool axisTestZ0(float a, float b, float fa, float fb, const tf2::Vector3 &v0,
+	const tf2::Vector3 &v1, const tf2::Vector3 &boxhalfsize, float &rad, float &min,
 	float &max, float &p0, float &p1) {
 	p0 = a * v0.x() - b * v0.y();
 	p1 = a * v1.x() - b * v1.y();
@@ -154,8 +155,8 @@ inline bool axisTestZ0(float a, float b, float fa, float fb, const Eigen::Vector
 	return true;
 }
 
-bool triBoxOverlap(Eigen::Vector3d boxcenter, Eigen::Vector3d boxhalfsize, Eigen::Vector3d tv0, Eigen::Vector3d tv1,
-	Eigen::Vector3d tv2) {
+bool triBoxOverlap(tf2::Vector3 boxcenter, tf2::Vector3 boxhalfsize, tf2::Vector3 tv0, tf2::Vector3 tv1,
+	tf2::Vector3 tv2) {
 	/*    use separating axis theorem to test overlap between triangle and box */
 	/*    need to test for overlap in these directions: */
 	/*    1) the {x,y,z}-directions (actually, since we use the AABB of the triangle */
@@ -163,9 +164,9 @@ bool triBoxOverlap(Eigen::Vector3d boxcenter, Eigen::Vector3d boxhalfsize, Eigen
 	/*    2) normal of the triangle */
 	/*    3) crossproduct(edge from tri, {x,y,z}-directin) */
 	/*       this gives 3x3=9 more tests */
-	Eigen::Vector3d v0, v1, v2;
+	tf2::Vector3 v0, v1, v2;
 	float min, max, p0, p1, p2, rad, fex, fey, fez;
-	Eigen::Vector3d normal, e0, e1, e2;
+	tf2::Vector3 normal, e0, e1, e2;
 
 	/* This is the fastest branch on Sun */
 	/* move everything so that the boxcenter is in (0,0,0) */

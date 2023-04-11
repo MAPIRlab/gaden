@@ -1,65 +1,94 @@
-#include <ros/ros.h>
-#include <std_msgs/Bool.h>
+#include <gaden_preprocessing/Gaden_preprocessing.h>
+#include <gaden_preprocessing/TriangleBoxIntersection.h>
+
 #include <string>
 #include <fstream>
 #include <stdlib.h> 
-#include <vector>
 #include <sstream>
 #include <iostream>
-#include <eigen3/Eigen/Dense>
 #include <boost/format.hpp>
-#include <boost/thread/mutex.hpp>
 #include <queue>
 #include <stack>
-#include <TriangleBoxIntersection.h>
 #include <stdint.h>
 
 
-enum cell_state {non_initialized=0, empty=1, occupied=2, outlet=3, edge=4};
 
-struct Point{
-    float x; float y; float z;
-    Point(){}
-    Point(float x, float y, float z){
-        this->x = x; this->y =y; this->z=z;
+int main(int argc, char **argv){
+    rclcpp::init(argc, argv);
+
+    std::shared_ptr<Gaden_preprocessing> node = std::make_shared<Gaden_preprocessing>();
+    node->parseMainModels();
+    node->parseOutletModels();
+    
+    //Mark all the empty cells reachable from the empty_point as aux_empty
+    //the ones that cannot be reached will be marked as occupied when printing
+    node->fill();
+    
+    //get rid of the cells marked as "edge", since those are not truly occupied
+    node->clean();
+
+    node->processWind(); 
+    node-> generateOutput();
+    
+
+    RCLCPP_INFO(node->get_logger(), "Preprocessing done");
+    std_msgs::msg::Bool b;
+    b.data=true;
+    node->jobDone_pub->publish(b);
+    
+}
+
+
+
+void Gaden_preprocessing::parseMainModels()
+{
+    int numModels = declare_parameter<int>("number_of_models", 0);
+
+    std::vector<std::string> CADfiles;     
+    for(int i = 0; i< numModels; i++){
+        std::string paramName = boost::str( boost::format("model_%i") % i); //each of the stl models
+        std::string filename;
+        filename = declare_parameter<std::string>(paramName, "");
+        CADfiles.push_back(filename.c_str());
     }
-};
-struct Triangle{
-    Point p1; Point p2; Point p3;
-    Triangle(){}
-    Triangle(Point p1, Point p2, Point p3){
-        this->p1=p1; this->p2=p2; this->p3=p3;
+
+    for (int i = 0; i < CADfiles.size(); i++)
+    {
+        findDimensions(CADfiles[i]);
     }
-    Point& operator[](int i){
-        if(i==0)
-            return p1;
-        else if (i==1)
-            return p2;
-        else if(i==2)
-            return p3;
-        else{
-            std::cout<<"Indexing error when accessing the points in triangle! Index must be >= 2";
-            return p1;
-        }
+
+    //x and y are interchanged!!!!!! it goes env[y][x][z]
+    //I cannot for the life of me remember why I did that, but there must have been a reason
+    env = std::vector<std::vector<std::vector<int> > > (ceil((env_max_y-env_min_y)*(roundFactor)/(cell_size*(roundFactor))),
+                                                    std::vector<std::vector<int> >(ceil((env_max_x - env_min_x)*(roundFactor)/(cell_size*(roundFactor))),
+                                                                                    std::vector<int>(ceil((env_max_z - env_min_z)*(roundFactor)/(cell_size*(roundFactor))), 0)));
+
+    for (int i = 0; i < numModels; i++)
+    {
+        parse(CADfiles[i], cell_state::occupied);
     }
-};
-
-//dimensions of the enviroment [m]
-float env_min_x; 
-float env_min_y; 
-float env_min_z;
-float env_max_x; 
-float env_max_y; 
-float env_max_z;
-float roundFactor;
-//length of the sides of the cell [m]
-float cell_size;
-float floor_height;
+}
 
 
-std::vector<std::vector<std::vector<int> > > env;
+void Gaden_preprocessing::parseOutletModels()
+{
 
-bool compare_cell(int x, int y, int z, cell_state value){
+    int numOutletModels = declare_parameter<int>("number_of_outlet_models", 1); // number of CAD models
+
+    std::vector<std::string> outletFiles;     
+    for(int i = 0; i< numOutletModels; i++){
+        std::string paramName = boost::str( boost::format("outlets_model_%i") % i); //each of the stl models
+        std::string filename;
+        filename = declare_parameter<std::string>(paramName, "");
+        outletFiles.push_back(filename.c_str());
+    }
+
+    for (int i=0;i<numOutletModels; i++){
+        parse(outletFiles[i], cell_state::outlet);
+    }  
+}
+
+bool Gaden_preprocessing::compare_cell(int x, int y, int z, cell_state value){
     if(x<0 || x>=env.size() ||
         y<0 || y>=env[0].size() ||
         z<0 || z>=env[0][0].size()){
@@ -70,10 +99,12 @@ bool compare_cell(int x, int y, int z, cell_state value){
     }
 }
 
-void changeWorldFile(std::string filename){
+void Gaden_preprocessing::changeWorldFile(const std::string& filename){
     std::ifstream input(filename);
     std::stringstream ss;
     std::string line;
+
+    float floor_height = get_parameter("floor_height").as_double();
     while(getline(input, line)){
         if(line.substr(0,8)=="floorMap"){
             //ignore the floorMap bit, we are replacing it entirely
@@ -98,12 +129,13 @@ void changeWorldFile(std::string filename){
     out.close();
 }
 
-void printMap(std::string filename, int scale, bool block_outlets){
+void Gaden_preprocessing::printMap(std::string filename, int scale, bool block_outlets){
     std::ofstream outfile(filename.c_str());
     outfile << "P2\n"
             << scale *  env[0].size() << " " << scale * env.size() << "\n" <<"1\n";
     //things are repeated to scale them up (the image is too small!)
 
+    float floor_height = declare_parameter<float>("floor_height", 0);
     int height = (floor_height-env_min_z)/cell_size; //a xy slice of the 3D environment is used as a geometric map for navigation
     
     for (int row = env.size()-1; row >= 0; row--)
@@ -126,7 +158,7 @@ void printMap(std::string filename, int scale, bool block_outlets){
 
 }
 
-void printEnv(std::string filename, int scale)
+void Gaden_preprocessing::printEnv(std::string filename, int scale)
 {
     std::ofstream outfile(filename.c_str());
     
@@ -159,9 +191,9 @@ void printEnv(std::string filename, int scale)
     outfile.close();
 }
 
-void printWind(std::vector<double> U,
-                std::vector<double> V,
-                std::vector<double> W, std::string filename){
+void Gaden_preprocessing::printWind(const std::vector<double>& U,
+                const std::vector<double>& V,
+                const std::vector<double>& W, std::string filename){
     
     std::ofstream fileU(boost::str(boost::format("%s_U") % filename).c_str());
     std::ofstream fileV(boost::str(boost::format("%s_V") % filename).c_str());
@@ -183,7 +215,7 @@ void printWind(std::vector<double> U,
     fileW.close();
 }
 
-void printYaml(std::string output){
+void Gaden_preprocessing::printYaml(std::string output){
     std::ofstream yaml(boost::str(boost::format("%s/occupancy.yaml") % output.c_str()));
     yaml << "image: occupancy.pgm\n" 
         << "resolution: " << cell_size/10 
@@ -194,76 +226,54 @@ void printYaml(std::string output){
     yaml.close();
 }
 
-float min_val(float x, float y, float z) {
 
-    float min =x;
-    if (y < min)
-        min=y;
-    if(z < min)
-        min=z;
 
-    return min;
-}
-float max_val(float x, float y, float z) {
-
-    float max= x;
-    if (y > max)
-        max=y;
-    if(z > max)
-        max=z;
-
-    return max;
-}
-bool eq(float x, float y){
-    return std::abs(x-y)<0.01;
-}
-
-std::vector<Eigen::Vector3d> cubePoints(const Eigen::Vector3d &query_point){
-    std::vector<Eigen::Vector3d> points;
-    points.push_back(query_point);
-    points.push_back(Eigen::Vector3d(query_point.x()-cell_size/2,
+std::array<tf2::Vector3, 9> Gaden_preprocessing::cubePoints(const tf2::Vector3 &query_point){
+    std::array<tf2::Vector3, 9> points;
+    points[0] = (query_point);
+    points[1] = (tf2::Vector3(query_point.x()-cell_size/2,
                                             query_point.y()-cell_size/2,
                                             query_point.z()-cell_size/2));
-    points.push_back(Eigen::Vector3d(query_point.x()-cell_size/2,
+    points[2] = (tf2::Vector3(query_point.x()-cell_size/2,
                                             query_point.y()-cell_size/2,
                                             query_point.z()+cell_size/2));
-    points.push_back(Eigen::Vector3d(query_point.x()-cell_size/2,
+    points[3] = (tf2::Vector3(query_point.x()-cell_size/2,
                                             query_point.y()+cell_size/2,
                                             query_point.z()-cell_size/2));
-    points.push_back(Eigen::Vector3d(query_point.x()-cell_size/2,
+    points[4] = (tf2::Vector3(query_point.x()-cell_size/2,
                                             query_point.y()+cell_size/2,
                                             query_point.z()+cell_size/2));
-    points.push_back(Eigen::Vector3d(query_point.x()+cell_size/2,
+    points[5] = (tf2::Vector3(query_point.x()+cell_size/2,
                                             query_point.y()-cell_size/2,
                                             query_point.z()-cell_size/2));
-    points.push_back(Eigen::Vector3d(query_point.x()+cell_size/2,
+    points[6] = (tf2::Vector3(query_point.x()+cell_size/2,
                                             query_point.y()-cell_size/2,
                                             query_point.z()+cell_size/2));
-    points.push_back(Eigen::Vector3d(query_point.x()+cell_size/2,
+    points[7] = (tf2::Vector3(query_point.x()+cell_size/2,
                                             query_point.y()+cell_size/2,
                                             query_point.z()-cell_size/2));
-    points.push_back(Eigen::Vector3d(query_point.x()+cell_size/2,
+    points[8] = (tf2::Vector3(query_point.x()+cell_size/2,
                                             query_point.y()+cell_size/2,
                                             query_point.z()+cell_size/2));
     return points;
 }
 
-bool pointInTriangle(const Eigen::Vector3d& query_point,
-                     const Eigen::Vector3d& triangle_vertex_0,
-                     const Eigen::Vector3d& triangle_vertex_1,
-                     const Eigen::Vector3d& triangle_vertex_2)
+bool Gaden_preprocessing::pointInTriangle(const tf2::Vector3& query_point,
+                     const tf2::Vector3& triangle_vertex_0,
+                     const tf2::Vector3& triangle_vertex_1,
+                     const tf2::Vector3& triangle_vertex_2)
 {
     // u=P2−P1
-    Eigen::Vector3d u = triangle_vertex_1 - triangle_vertex_0;
+    tf2::Vector3 u = triangle_vertex_1 - triangle_vertex_0;
     // v=P3−P1
-    Eigen::Vector3d v = triangle_vertex_2 - triangle_vertex_0;
+    tf2::Vector3 v = triangle_vertex_2 - triangle_vertex_0;
     // n=u×v
-    Eigen::Vector3d n = u.cross(v);
+    tf2::Vector3 n = u.cross(v);
     bool anyProyectionInTriangle=false;
-    std::vector<Eigen::Vector3d> cube= cubePoints(query_point);
-    for(const Eigen::Vector3d &vec : cube){
+    std::array<tf2::Vector3, 9> cube= cubePoints(query_point);
+    for(const tf2::Vector3 &vec : cube){
         // w=P−P1
-        Eigen::Vector3d w = vec - triangle_vertex_0;
+        tf2::Vector3 w = vec - triangle_vertex_0;
         // Barycentric coordinates of the projection P′of P onto T:
         // γ=[(u×w)⋅n]/n²
         float gamma = u.cross(w).dot(n) / n.dot(n);
@@ -285,55 +295,48 @@ bool pointInTriangle(const Eigen::Vector3d& query_point,
     return anyProyectionInTriangle;
 }
 
-bool parallel (const Point &vec){
-    return (eq(vec.y,0)
-                &&eq(vec.z,0))||
-           (eq(vec.x,0)
-                &&eq(vec.z,0))||
-           (eq(vec.x,0)
-                &&eq(vec.y,0));
-}
 
-void occupy(std::vector<Triangle> &triangles,
-const std::vector<Point> &normals,
+
+void Gaden_preprocessing::occupy(std::vector<Triangle> &triangles,
+            const std::vector<tf2::Vector3> &normals,
             cell_state value_to_write){
 
     std::cout<<"Processing the mesh...\n0%\n";
     int numberOfProcessedTriangles=0; //for logging, doesn't actually do anything
-    boost::mutex mtx;
+    std::mutex mtx;
     //Let's occupy the enviroment!
     #pragma omp parallel for
     for(int i= 0;i<triangles.size();i++){
         //We try to find all the cells that some triangle goes through
-        int x1 = roundf((triangles[i].p1.x-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
-        int y1 = roundf((triangles[i].p1.y-env_min_y)*(roundFactor))/(cell_size*(roundFactor));
-        int z1 = roundf((triangles[i].p1.z-env_min_z)*(roundFactor))/(cell_size*(roundFactor));
-        int x2 = roundf((triangles[i].p2.x-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
-        int y2 = roundf((triangles[i].p2.y-env_min_y)*(roundFactor))/(cell_size*(roundFactor));
-        int z2 = roundf((triangles[i].p2.z-env_min_z)*(roundFactor))/(cell_size*(roundFactor));
-        int x3 = roundf((triangles[i].p3.x-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
-        int y3 = roundf((triangles[i].p3.y-env_min_y)*(roundFactor))/(cell_size*(roundFactor));
-        int z3 = roundf((triangles[i].p3.z-env_min_z)*(roundFactor))/(cell_size*(roundFactor));
+        int x1 = roundf((triangles[i].p1.x()-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
+        int y1 = roundf((triangles[i].p1.y()-env_min_y)*(roundFactor))/(cell_size*(roundFactor));
+        int z1 = roundf((triangles[i].p1.z()-env_min_z)*(roundFactor))/(cell_size*(roundFactor));
+        int x2 = roundf((triangles[i].p2.x()-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
+        int y2 = roundf((triangles[i].p2.y()-env_min_y)*(roundFactor))/(cell_size*(roundFactor));
+        int z2 = roundf((triangles[i].p2.z()-env_min_z)*(roundFactor))/(cell_size*(roundFactor));
+        int x3 = roundf((triangles[i].p3.x()-env_min_x)*(roundFactor))/(cell_size*(roundFactor));
+        int y3 = roundf((triangles[i].p3.y()-env_min_y)*(roundFactor))/(cell_size*(roundFactor));
+        int z3 = roundf((triangles[i].p3.z()-env_min_z)*(roundFactor))/(cell_size*(roundFactor));
 
-        int min_x = min_val(x1,x2,x3);
-        int min_y = min_val(y1,y2,y3);
-        int min_z = min_val(z1,z2,z3);
+        int min_x = Utils::min_val(x1,x2,x3);
+        int min_y = Utils::min_val(y1,y2,y3);
+        int min_z = Utils::min_val(z1,z2,z3);
 
-        int max_x = max_val(x1,x2,x3);
-        int max_y = max_val(y1,y2,y3);
-        int max_z = max_val(z1,z2,z3);
+        int max_x = Utils::max_val(x1,x2,x3);
+        int max_y = Utils::max_val(y1,y2,y3);
+        int max_z = Utils::max_val(z1,z2,z3);
 
         //is the triangle right at the boundary between two cells (in any axis)?
-        bool xLimit = eq(std::fmod(max_val(triangles[i][0].x,triangles[i][1].x,triangles[i][2].x)-env_min_x, cell_size),0)
-            ||eq(std::fmod(max_val(triangles[i][0].x,triangles[i][1].x,triangles[i][2].x)-env_min_x, cell_size),cell_size);
+        bool xLimit = Utils::eq(std::fmod(Utils::max_val(triangles[i][0].x(),triangles[i][1].x(),triangles[i][2].x())-env_min_x, cell_size),0)
+            ||Utils::eq(std::fmod(Utils::max_val(triangles[i][0].x(),triangles[i][1].x(),triangles[i][2].x())-env_min_x, cell_size),cell_size);
 
-        bool yLimit = eq(std::fmod(max_val(triangles[i][0].y,triangles[i][1].y,triangles[i][2].y)-env_min_y, cell_size),0)
-            ||eq(std::fmod(max_val(triangles[i][0].y,triangles[i][1].y,triangles[i][2].y)-env_min_y, cell_size),cell_size);
+        bool yLimit = Utils::eq(std::fmod(Utils::max_val(triangles[i][0].y(),triangles[i][1].y(),triangles[i][2].y())-env_min_y, cell_size),0)
+            ||Utils::eq(std::fmod(Utils::max_val(triangles[i][0].y(),triangles[i][1].y(),triangles[i][2].y())-env_min_y, cell_size),cell_size);
             
-        bool zLimit = eq(std::fmod(max_val(triangles[i][0].z,triangles[i][1].z,triangles[i][2].z)-env_min_z, cell_size),0)
-            ||eq(std::fmod(max_val(triangles[i][0].z,triangles[i][1].z,triangles[i][2].z)-env_min_z, cell_size),cell_size);
+        bool zLimit = Utils::eq(std::fmod(Utils::max_val(triangles[i][0].z(),triangles[i][1].z(),triangles[i][2].z())-env_min_z, cell_size),0)
+            ||Utils::eq(std::fmod(Utils::max_val(triangles[i][0].z(),triangles[i][1].z(),triangles[i][2].z())-env_min_z, cell_size),cell_size);
 
-        bool isParallel =parallel(normals[i]);
+        bool isParallel =Utils::isParallel(normals[i]);
         for (int row = min_x; row <= max_x && row < env[0].size(); row++)
         {
             for (int col = min_y; col <= max_y && col < env.size(); col++)
@@ -344,21 +347,21 @@ const std::vector<Point> &normals,
                     //special case for triangles that are parallel to the coordinate axes because the discretization can cause
                     //problems if they fall right on the boundary of two cells
                     if (
-                        (isParallel && pointInTriangle(Eigen::Vector3d(row * cell_size + env_min_x+cell_size/2,
+                        (isParallel && pointInTriangle(tf2::Vector3(row * cell_size + env_min_x+cell_size/2,
                                                         col * cell_size + env_min_y+cell_size/2,
                                                         height * cell_size + env_min_z+cell_size/2),
-                                        Eigen::Vector3d(triangles[i][0].x, triangles[i][0].y, triangles[i][0].z),
-                                        Eigen::Vector3d(triangles[i][1].x, triangles[i][1].y, triangles[i][1].z),
-                                        Eigen::Vector3d(triangles[i][2].x, triangles[i][2].y, triangles[i][2].z)))
+                                        tf2::Vector3(triangles[i][0].x(), triangles[i][0].y(), triangles[i][0].z()),
+                                        tf2::Vector3(triangles[i][1].x(), triangles[i][1].y(), triangles[i][1].z()),
+                                        tf2::Vector3(triangles[i][2].x(), triangles[i][2].y(), triangles[i][2].z())))
                     || 
                     triBoxOverlap(
-                            Eigen::Vector3d(row * cell_size + env_min_x+cell_size/2,
+                            tf2::Vector3(row * cell_size + env_min_x+cell_size/2,
                                 col * cell_size + env_min_y+cell_size/2,
                                 height * cell_size + env_min_z+cell_size/2),
-                            Eigen::Vector3d(cell_size/2, cell_size/2, cell_size/2),
-                            Eigen::Vector3d(triangles[i][0].x, triangles[i][0].y, triangles[i][0].z),
-                                    Eigen::Vector3d(triangles[i][1].x, triangles[i][1].y, triangles[i][1].z),
-                                    Eigen::Vector3d(triangles[i][2].x, triangles[i][2].y, triangles[i][2].z)))
+                            tf2::Vector3(cell_size/2, cell_size/2, cell_size/2),
+                            tf2::Vector3(triangles[i][0].x(), triangles[i][0].y(), triangles[i][0].z()),
+                                    tf2::Vector3(triangles[i][1].x(), triangles[i][1].y(), triangles[i][1].z()),
+                                    tf2::Vector3(triangles[i][2].x(), triangles[i][2].y(), triangles[i][2].z())))
                     {
                         mtx.lock();
                         env[col][row][height] = value_to_write;
@@ -397,7 +400,7 @@ const std::vector<Point> &normals,
     }
 }  
 
-void parse(std::string filename, cell_state value_to_write){
+void Gaden_preprocessing::parse(std::string filename, cell_state value_to_write){
     
     bool ascii = false;
     if (FILE *file = fopen(filename.c_str(), "r"))
@@ -414,7 +417,7 @@ void parse(std::string filename, cell_state value_to_write){
     }
     
     std::vector<Triangle> triangles;
-    std::vector<Point> normals;
+    std::vector<tf2::Vector3> normals;
 
     if(ascii){
         //first, we count how many triangles there are (we need to do this before reading the data 
@@ -444,11 +447,11 @@ void parse(std::string filename, cell_state value_to_write){
             float aux;
             std::stringstream ss(line);
             ss >> std::skipws >>  aux; 
-            normals[i].x = roundf(aux * roundFactor) / roundFactor;
+            normals[i].setX( roundf(aux * roundFactor) / roundFactor );
             ss >> std::skipws >>  aux; 
-            normals[i].y = roundf(aux * roundFactor) / roundFactor;
+            normals[i].setY( roundf(aux * roundFactor) / roundFactor );
             ss >> std::skipws >>  aux; 
-            normals[i].z = roundf(aux * roundFactor) / roundFactor;
+            normals[i].setZ( roundf(aux * roundFactor) / roundFactor );
             std::getline(infile, line);
 
             for(int j=0;j<3;j++){
@@ -457,11 +460,11 @@ void parse(std::string filename, cell_state value_to_write){
                 line.erase(0, pos + 7);
                 std::stringstream ss(line);
                 ss >> std::skipws >>  aux; 
-                triangles[i][j].x = roundf(aux * roundFactor) / roundFactor;
+                triangles[i][j].setX( roundf(aux * roundFactor) / roundFactor );
                 ss >> std::skipws >>  aux; 
-                triangles[i][j].y = roundf(aux * roundFactor) / roundFactor;
+                triangles[i][j].setY( roundf(aux * roundFactor) / roundFactor );
                 ss >> std::skipws >>  aux; 
-                triangles[i][j].z = roundf(aux * roundFactor) / roundFactor;
+                triangles[i][j].setZ( roundf(aux * roundFactor) / roundFactor );
             }
             i++;
             //skipping lines here makes checking for the end of the file more convenient
@@ -496,7 +499,7 @@ void parse(std::string filename, cell_state value_to_write){
 
 }
 
-void findDimensions(std::string filename){
+void Gaden_preprocessing::findDimensions(std::string filename){
     bool ascii = false;
     if (FILE *file = fopen(filename.c_str(), "r"))
     {
@@ -582,11 +585,8 @@ void findDimensions(std::string filename){
 
 }
 
-int indexFrom3D(int x, int y, int z){
-	return x + y*env[0].size() + z*env[0].size()*env.size();
-}
 
-void openFoam_to_gaden(std::string filename)
+void Gaden_preprocessing::openFoam_to_gaden(std::string filename)
 {
 
 	//let's parse the file
@@ -625,7 +625,18 @@ void openFoam_to_gaden(std::string filename)
     printWind(U,V,W,filename);
 }
 
-void fill(int x, int y, int z, cell_state new_value, cell_state value_to_overwrite){
+void Gaden_preprocessing::fill(){
+    float empty_point_x = declare_parameter<float>("empty_point_x", 0);
+    float empty_point_y = declare_parameter<float>("empty_point_y", 0);
+    float empty_point_z = declare_parameter<float>("empty_point_z", 0);
+    
+    int x =(empty_point_y-env_min_y)/cell_size;
+    int z = (empty_point_z-env_min_z)/cell_size; 
+    int y = (empty_point_x-env_min_x)/cell_size;
+
+    cell_state new_value = cell_state::empty;
+    cell_state value_to_overwrite = cell_state::non_initialized;
+
     std::queue<Eigen::Vector3i> q;
     q.push(Eigen::Vector3i(x, y, z));
     env[x][y][z]=new_value;
@@ -664,7 +675,7 @@ void fill(int x, int y, int z, cell_state new_value, cell_state value_to_overwri
     }
 }
 
-void clean(){
+void Gaden_preprocessing::clean(){
     for(int col=0;col<env.size();col++){
         for(int row=0;row<env[0].size();row++){
             for(int height=0;height<env[0][0].size();height++){
@@ -692,118 +703,31 @@ void clean(){
 }
 
 
-int main(int argc, char **argv){
-    ros::init(argc, argv, "preprocessing");
-    int numModels;
-    ros::NodeHandle nh;
-    ros::NodeHandle private_nh("~");
-    ros::Publisher pub = nh.advertise<std_msgs::Bool>("preprocessing_done",5,true);
-
-    private_nh.param<float>("cell_size", cell_size, 1); //size of the cells
-
-    roundFactor=100.0/cell_size;
-    //stl file with the model of the outlets
-    std::string outlet; int numOutletModels;
-
-    //path to the csv file where we want to write the occupancy map
-    std::string output;
-    private_nh.param<std::string>("output_path", output, "");
-    //--------------------------
-
-        //OCCUPANCY
-
-    //--------------------------
-
-    private_nh.param<int>("number_of_models", numModels, 2); // number of CAD models
-    
-    std::vector<std::string> CADfiles;     
-    for(int i = 0; i< numModels; i++){
-        std::string paramName = boost::str( boost::format("model_%i") % i); //each of the stl models
-        std::string filename;
-        private_nh.param<std::string>(paramName, filename, "");
-        CADfiles.push_back(filename.c_str());
-    }
-
-    for (int i = 0; i < CADfiles.size(); i++)
-    {
-        findDimensions(CADfiles[i]);
-    }
-
-    //x and y are interchanged!!!!!! it goes env[y][x][z]
-    //I cannot for the life of me remember why I did that, but there must have been a reason
-    env = std::vector<std::vector<std::vector<int> > > (ceil((env_max_y-env_min_y)*(roundFactor)/(cell_size*(roundFactor))),
-                                                    std::vector<std::vector<int> >(ceil((env_max_x - env_min_x)*(roundFactor)/(cell_size*(roundFactor))),
-                                                                                    std::vector<int>(ceil((env_max_z - env_min_z)*(roundFactor)/(cell_size*(roundFactor))), 0)));
-
-    ros::Time start = ros::Time::now();
-    for (int i = 0; i < numModels; i++)
-    {
-        parse(CADfiles[i], cell_state::occupied);
-    }
-      
-    std::cout <<"Took "<< ros::Time::now().toSec()-start.toSec()<<" seconds \n";
-    float empty_point_x;
-    private_nh.param<float>("empty_point_x", empty_point_x, 1);
-    float empty_point_y;
-    private_nh.param<float>("empty_point_y", empty_point_y, 1);
-    float empty_point_z;
-    private_nh.param<float>("empty_point_z", empty_point_z, 1);
-
-    //--------------------------
-
-        //OUTLETS
-
-    //--------------------------
-
-    private_nh.param<int>("number_of_outlet_models", numOutletModels, 1); // number of CAD models
-
-    std::vector<std::string> outletFiles;     
-    for(int i = 0; i< numOutletModels; i++){
-        std::string paramName = boost::str( boost::format("outlets_model_%i") % i); //each of the stl models
-        std::string filename;
-        private_nh.param<std::string>(paramName, filename, "");
-        outletFiles.push_back(filename.c_str());
-    }
-
-    for (int i=0;i<numOutletModels; i++){
-        parse(outletFiles[i], cell_state::outlet);
-    }  
-
-    std::cout<<"Filling...\n";
-    //Mark all the empty cells reachable from the empty_point as aux_empty
-    //the ones that cannot be reached will be marked as occupied when printing
-    fill((empty_point_y-env_min_y)/cell_size,
-        (empty_point_x-env_min_x)/cell_size,
-        (empty_point_z-env_min_z)/cell_size, 
-        cell_state::empty, cell_state::non_initialized);
-    
-    //get rid of the cells marked as "edge", since those are not truly occupied
-    clean();
-
-    private_nh.param<float>("floor_height", floor_height, 0); // number of CAD models
-    printMap(boost::str(boost::format("%s/occupancy.pgm") % output.c_str()), 10, private_nh.param<bool>("block_outlets", false) );
+void Gaden_preprocessing::generateOutput()
+{
+    std::string outputFolder = declare_parameter<std::string>("output_path", "");
+    printMap(
+        boost::str(boost::format("%s/occupancy.pgm") % outputFolder.c_str()), 
+        10, //scale 
+        declare_parameter<bool>("block_outlets", false) );
 
     std::string worldFile;
-    private_nh.param<std::string>("worldFile", worldFile, ""); // number of CAD models
-    if(worldFile!="")
+    if(( worldFile = declare_parameter<std::string>("worldFile", "")) !="")
         changeWorldFile(worldFile);
+    
 
     //output - path, occupancy vector, scale
-    printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % output.c_str()), 1);
-    printYaml(output);
+    printEnv(boost::str(boost::format("%s/OccupancyGrid3D.csv") % outputFolder.c_str()), 1);
+    printYaml(outputFolder);
 
-    //-------------------------
+}
 
-        //WIND
-
-    //-------------------------
-
-    bool uniformWind;
-    private_nh.param<bool>("uniformWind", uniformWind, false);
+void Gaden_preprocessing::processWind()
+{
+    bool uniformWind = declare_parameter<bool>("uniformWind", false);
 
     //path to the point cloud files with the wind data
-    std::string windFileName;
-    private_nh.param<std::string>("wind_files", windFileName, "");
+    std::string windFileName = declare_parameter<std::string>("wind_files", "");
     int idx = 0;
 
     if(uniformWind){
@@ -848,12 +772,5 @@ int main(int argc, char **argv){
             idx++;
         }
     }
-    
-    
-
-    ROS_INFO("Preprocessing done");
-    std_msgs::Bool b;
-    b.data=true;
-    pub.publish(b);
-    
 }
+

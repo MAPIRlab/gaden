@@ -1,14 +1,12 @@
 #ifndef CFilamentSimulator_H
 #define CFilamentSimulator_H
 
-#include <omp.h>
-#include <ros/ros.h>
-#include <std_msgs/Bool.h>
-#include <tf/transform_broadcaster.h>
-#include <tf/transform_listener.h>
-#include <visualization_msgs/Marker.h>
-
+#include <rclcpp/rclcpp.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include "filament_simulator/filament.h"
+
+#include <omp.h>
 #include <stdlib.h>     /* srand, rand */
 #include <iostream>
 #include <fstream>
@@ -20,7 +18,8 @@
 #include <boost/iostreams/filter/zlib.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/copy.hpp>
-class CFilamentSimulator
+
+class CFilamentSimulator : public rclcpp::Node
 {
 public:
     CFilamentSimulator();
@@ -105,7 +104,7 @@ public:
     boost::mutex mtx;
 
 
-protected:
+private:
     void loadNodeParameters();
     void initSimulator();
     void configure3DMatrix(std::vector< double > &A);
@@ -113,17 +112,16 @@ protected:
     int check_pose_with_environment(double pose_x, double pose_y, double pose_z);
     bool check_environment_for_obstacle(double start_x, double start_y, double start_z, double end_x, double end_y, double end_z);
     double random_number(double min_val, double max_val);
-    void preprocessingCB(const std_msgs::Bool& b);
+    void preprocessingCB(const std_msgs::msg::Bool::SharedPtr b);
 
     //Subscriptions & Publishers
-    ros::Publisher marker_pub;          //For visualization of the filaments!
-    ros::Subscriber prepro_sub;         // In case we require the preprocessing node to finish.
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub;          //For visualization of the filaments!
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr prepro_sub;         // In case we require the preprocessing node to finish.
 
     //Vars
-    ros::NodeHandle n;
     std::vector< double > U, V, W, C, Env;
     std::vector<CFilament> filaments;
-    visualization_msgs::Marker filament_marker;
+    visualization_msgs::msg::Marker filament_marker;
     bool wind_notified;    
     int last_wind_idx=-1;
     // SpecificGravity [dimensionless] with respect AIR
