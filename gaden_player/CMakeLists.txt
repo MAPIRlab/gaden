@@ -1,7 +1,8 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(gaden_player)
 
-set(CMAKE_CXX_FLAGS "-lboost_iostreams -std=c++11 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_BUILD_TYPE "None") 
+set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
 
 set(DEBUG OFF)
 
@@ -12,43 +13,47 @@ else()
   set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
 endif(DEBUG) 
 
-find_package(catkin REQUIRED COMPONENTS
-    roscpp
-    visualization_msgs
-    std_msgs
-    nav_msgs
-    tf
-    message_generation
-    OpenCV
-)
+
+
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+
 find_package(Boost REQUIRED COMPONENTS iostreams)
+find_package(OpenCV)
 
-add_message_files(
-  FILES
-  GasInCell.msg
+find_package(rosidl_default_generators REQUIRED)
+rosidl_generate_interfaces(${PROJECT_NAME}
+    msg/GasInCell.msg
+    srv/GasPosition.srv
+    srv/WindPosition.srv
+    DEPENDENCIES std_msgs
 )
+ament_export_dependencies(rosidl_default_runtime)
 
-add_service_files(
-  FILES
-  GasPosition.srv
-  WindPosition.srv
-)
 
-generate_messages(
-    DEPENDENCIES
-    std_msgs
-)
 
+include_directories(include)
 
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
-catkin_package(
-    DEPENDS roscpp visualization_msgs std_msgs nav_msgs tf Boost
-    CATKIN_DEPENDS message_runtime std_msgs
+add_executable(player  ${MYFILES_CPP})
+
+# dependency for self-defined messages
+rosidl_target_interfaces(player
+  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+ament_target_dependencies(player
+    rclcpp
+    std_msgs
+    visualization_msgs
+    Boost
+    OpenCV
+) 
+
+
+install(
+  TARGETS player
+  DESTINATION lib/${PROJECT_NAME}
 )
-
-include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
-
-add_executable(gaden_player  ${MYFILES_CPP})
-add_dependencies(gaden_player ${${PROJECT_NAME}_EXPORTED_TARGETS} ${olfaction_msgs_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${catkin_LIBRARIES})
+ament_package()

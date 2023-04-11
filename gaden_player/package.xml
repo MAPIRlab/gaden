@@ -1,5 +1,6 @@
-<package>
-  <name>gaden_player</name>
+<?xml version="1.0"?>
+<package format="3">
+ <name>gaden_player</name>
   <version>1.0.0</version>
   <description> This package loads the log files (results) from the gaden_simulator pkg, and provides services to evaluate the gas concentration and wind vector at a given location. The goal is to provide a fast (real time) service for the simulated MOX and Anemometer sensors.</description>
   <maintainer email="jgmonroy@uma.es">Javier Monroy</maintainer>
@@ -7,23 +8,20 @@
   <license>GPLv3</license>
   <author>Javier Monroy</author>
 
-  <!-- Dependencies which this package needs to build itself. -->
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
-  <!-- Dependencies needed to compile this package. -->
-  <build_depend>roscpp</build_depend>
-  <build_depend>visualization_msgs</build_depend>
+  <build_depend>rclcpp</build_depend>
   <build_depend>std_msgs</build_depend>
-  <build_depend>nav_msgs</build_depend>
-  <build_depend>tf</build_depend>
-  <build_depend>message_generation</build_depend>
 
-  <!-- Dependencies needed after this package is compiled. -->
-  <run_depend>roscpp</run_depend>
-  <run_depend>visualization_msgs</run_depend>
-  <run_depend>std_msgs</run_depend>
-  <run_depend>tf</run_depend>
-  <run_depend>nav_msgs</run_depend>
-  <run_depend>message_runtime</run_depend>
+  <depend>rosidl_default_runtime</depend>
 
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+  
 </package>

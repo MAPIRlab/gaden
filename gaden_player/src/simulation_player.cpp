@@ -8,9 +8,25 @@
 #include <boost/format.hpp>
 #include "simulation_player.h"
 
+
+
+int main( int argc, char** argv )
+{
+    rclcpp::init(argc, argv);
+
+    std::shared_ptr<Player> player = std::make_shared<Player>();
+    
+    player->run();
+
+    return 0;
+}
+
+Player::Player() : rclcpp::Node("gaden_player")
+{}
+
 //--------------- SERVICES CALLBACKS----------------------//
 
-gaden_player::GasInCell get_all_gases_single_cell(float x, float y, float z, const std::vector<std::string>& gas_types)
+gaden_player::msg::GasInCell Player::get_all_gases_single_cell(float x, float y, float z, const std::vector<std::string>& gas_types)
 {
     std::vector<double>             srv_response_gas_concs(num_simulators);
     std::map<std::string,double> concentrationByGasType;
@@ -22,7 +38,7 @@ gaden_player::GasInCell get_all_gases_single_cell(float x, float y, float z, con
         concentrationByGasType[player_instances[i].gas_type] += player_instances[i].get_gas_concentration(x, y, z);
 
     //Configure Response
-    gaden_player::GasInCell response; 
+    gaden_player::msg::GasInCell response; 
     for (int i = 0; i< gas_types.size();i++)
     {
         response.concentration.push_back( concentrationByGasType[gas_types[i]] );
@@ -30,7 +46,7 @@ gaden_player::GasInCell get_all_gases_single_cell(float x, float y, float z, con
     return response;
 }
 
-bool get_gas_value_srv(gaden_player::GasPosition::Request  &req, gaden_player::GasPosition::Response &res)
+bool Player::get_gas_value_srv(gaden_player::srv::GasPosition::Request::SharedPtr req, gaden_player::srv::GasPosition::Response::SharedPtr res)
 {
     std::set<std::string>        gas_types;
 
@@ -39,25 +55,25 @@ bool get_gas_value_srv(gaden_player::GasPosition::Request  &req, gaden_player::G
     
 
     std::vector<std::string> gast_types_v(gas_types.begin(), gas_types.end());
-    res.gas_type = gast_types_v;
-    for(int i=0;i<req.x.size(); i++)
+    res->gas_type = gast_types_v;
+    for(int i=0;i<req->x.size(); i++)
     {
-        res.positions.push_back( get_all_gases_single_cell(req.x[i], req.y[i], req.z[i], gast_types_v) );
+        res->positions.push_back( get_all_gases_single_cell(req->x[i], req->y[i], req->z[i], gast_types_v) );
     }
     return true;
 }
 
 
 
-bool get_wind_value_srv(gaden_player::WindPosition::Request  &req, gaden_player::WindPosition::Response &res)
+bool Player::get_wind_value_srv(gaden_player::srv::WindPosition::Request::SharedPtr req, gaden_player::srv::WindPosition::Response::SharedPtr res)
 {
     //Since the wind fields are identical among different instances, return just the information from instance[0]
-    for(int i = 0; i<req.x.size(); i++){
+    for(int i = 0; i<req->x.size(); i++){
         double u, v, w;
-        player_instances[0].get_wind_value(req.x[i], req.y[i], req.z[i], u, v, w);
-        res.u.push_back(u);
-        res.v.push_back(v);
-        res.w.push_back(w);
+        player_instances[0].get_wind_value(req->x[i], req->y[i], req->z[i], u, v, w);
+        res->u.push_back(u);
+        res->v.push_back(v);
+        res->w.push_back(w);
     }
     return true;
 }
@@ -65,34 +81,29 @@ bool get_wind_value_srv(gaden_player::WindPosition::Request  &req, gaden_player:
 
 
 //------------------------ MAIN --------------------------//
-
-int main( int argc, char** argv )
+void Player::run()
 {
-    ros::init(argc, argv, "simulation_player");
-	ros::NodeHandle n;
-    ros::NodeHandle pn("~");
-
     //Read Node Parameters
-    loadNodeParameters(pn);	
+    loadNodeParameters();	
 	
     //Publishers
-    marker_pub = n.advertise<visualization_msgs::Marker>("Gas_Distribution", 1);
+    marker_pub = create_publisher<visualization_msgs::msg::Marker>("Gas_Distribution", 1);
 
     //Services offered
-    ros::ServiceServer serviceGas = n.advertiseService("odor_value", get_gas_value_srv);
-    ros::ServiceServer serviceWind = n.advertiseService("wind_value", get_wind_value_srv);
+    auto serviceGas = create_service<gaden_player::srv::GasPosition>("odor_value", std::bind(&Player::get_gas_value_srv, this, std::placeholders::_1, std::placeholders::_2) );
+    auto serviceWind = create_service<gaden_player::srv::WindPosition>("wind_value", std::bind(&Player::get_wind_value_srv, this, std::placeholders::_1, std::placeholders::_2));
 
     //Init variables        
     init_all_simulation_instances();
-    ros::Time time_last_loaded_file = ros::Time::now();
+    rclcpp::Time time_last_loaded_file = now();
     srand(time(NULL));// initialize random seed
 
     //Init Markers for RVIZ visualization
     mkr_gas_points.header.frame_id = "map";
-    mkr_gas_points.header.stamp = ros::Time::now();
+    mkr_gas_points.header.stamp = now();
     mkr_gas_points.ns = "Gas_Dispersion";
-    mkr_gas_points.action = visualization_msgs::Marker::ADD;
-    mkr_gas_points.type = visualization_msgs::Marker::POINTS;   //Marker type
+    mkr_gas_points.action = visualization_msgs::msg::Marker::ADD;
+    mkr_gas_points.type = visualization_msgs::msg::Marker::POINTS;   //Marker type
     mkr_gas_points.id = 0;                                      //One marker with multiple points.
     mkr_gas_points.scale.x = 0.025;
     mkr_gas_points.scale.y = 0.025;
@@ -101,14 +112,15 @@ int main( int argc, char** argv )
 
 
     // Loop	
-    ros::Rate r(100); //Set max rate at 100Hz (for handling services - Top Speed!!)
+    rclcpp::Rate r(100); //Set max rate at 100Hz (for handling services - Top Speed!!)
     int iteration_counter = initial_iteration;
-    while (ros::ok())
+    auto shared_this = shared_from_this();
+    while (rclcpp::ok())
     {        
-        if( (ros::Time::now() - time_last_loaded_file).toSec() >= 1/player_freq )
+        if( (now() - time_last_loaded_file).seconds() >= 1/player_freq )
         {
             if (verbose)
-                ROS_INFO("[Player] Playing simulation iteration %i", iteration_counter);
+                RCLCPP_INFO(get_logger(), "[Player] Playing simulation iteration %i", iteration_counter);
             //Read Gas and Wind data from log_files
             load_all_data_from_logfiles(iteration_counter); //On the first time, we configure gas type, source pos, etc.
             display_current_gas_distribution();    //Rviz visualization
@@ -121,36 +133,36 @@ int main( int argc, char** argv )
                {
                    iteration_counter = loop_from_iteration;
                    if (verbose)
-                       ROS_INFO("[Player] Looping");
+                       RCLCPP_INFO(get_logger(), "[Player] Looping");
                }
             }
-            time_last_loaded_file = ros::Time::now();
+            time_last_loaded_file = now();
         }
 
         //Attend service request at max rate!
         //This allows sensors to have higher sampling rates than the simulation update
-        ros::spinOnce();
+        rclcpp::spin_some(shared_this);
         r.sleep();
     }
 }
 
 
 //Load Node parameters
-void loadNodeParameters(ros::NodeHandle private_nh)
+void Player::loadNodeParameters()
 {
     //player_freq
-    private_nh.param<bool>("verbose", verbose, false);
+    verbose = declare_parameter<bool>("verbose", false);
     
     //player_freq
-    private_nh.param<double>("player_freq", player_freq, 1);  //Hz
+    player_freq = declare_parameter<double>("player_freq", 1);  //Hz
 
     //Number of simulators to load (For simulating multiple gases and multiple sources)
-    private_nh.param<int>("num_simulators", num_simulators, 1);
+    num_simulators = declare_parameter<int>("num_simulators", 1);
 
     if (verbose)
     {
-        ROS_INFO("[Player] player_freq %.2f", player_freq);
-        ROS_INFO("[Player] num_simulators:  %i", num_simulators);
+        RCLCPP_INFO(get_logger(), "[Player] player_freq %.2f", player_freq);
+        RCLCPP_INFO(get_logger(), "[Player] num_simulators:  %i", num_simulators);
     }
 
 
@@ -160,43 +172,35 @@ void loadNodeParameters(ros::NodeHandle private_nh)
     {
         //Get location of simulation data for instance (i)
         std::string paramName = boost::str( boost::format("simulation_data_%i") % i);
-        private_nh.param<std::string>(paramName.c_str(),simulation_data[i], "");
+        simulation_data[i] = declare_parameter<std::string>(paramName.c_str(), "");
         if (verbose)
-            ROS_INFO("[Player] simulation_data_%i:  %s", i, simulation_data[i].c_str());
+            RCLCPP_INFO(get_logger(), "[Player] simulation_data_%i:  %s", i, simulation_data[i].c_str());
     }
     
     // Initial iteration
-    private_nh.param<int>("initial_iteration", initial_iteration, 1);
-    private_nh.param<std::string>("occupancyFile", occupancyFile, "");
-
-    private_nh.param<bool>("createHeatmapImage", createHeatmapImage, false);
-    private_nh.param<std::string>("heatmapPath",heatmapPath, "");
-    private_nh.param<float>("heatmapHeight", heatmapHeight, 0.5);
-    private_nh.param<int>("heatMapIterations", heatMapIterations, 100);
-    private_nh.param<double>("heatmapThreshold", heatmapThreshold, 0.5);
+    initial_iteration = declare_parameter<int>("initial_iteration", 1);
+    occupancyFile = declare_parameter<std::string>("occupancyFile", "");
 
     // Loop
-    private_nh.param<bool>("allow_looping", allow_looping, false);
-    private_nh.param<int>("loop_from_iteration", loop_from_iteration, 1);
-    private_nh.param<int>("loop_to_iteration", loop_to_iteration, 1);
-    
-
+    allow_looping = declare_parameter<bool>("allow_looping", false);
+    loop_from_iteration = declare_parameter<int>("loop_from_iteration", 1);
+    loop_to_iteration = declare_parameter<int>("loop_to_iteration", 1);
 }
 
 
 //Init
-void init_all_simulation_instances()
+void Player::init_all_simulation_instances()
 {
-    ROS_INFO("[Player] Initializing %i instances",num_simulators);
+    RCLCPP_INFO(get_logger(), "[Player] Initializing %i instances",num_simulators);
 
     // At least one instance is needed which loads the wind field data!
-    sim_obj so(simulation_data[0], true);
+    sim_obj so(simulation_data[0], true, get_logger(), occupancyFile);
     player_instances.push_back(so);
 
     //Create other instances, but do not save wind information! It is the same for all instances
     for (int i=1;i<num_simulators;i++)
     {
-        sim_obj so(simulation_data[i], false);
+        sim_obj so(simulation_data[i], false, get_logger(), occupancyFile);
         player_instances.push_back(so);
     }
 
@@ -205,20 +209,20 @@ void init_all_simulation_instances()
 
 
 //Load new Iteration of the Gas&Wind State on the 3d environment
-void load_all_data_from_logfiles(int sim_iteration)
+void Player::load_all_data_from_logfiles(int sim_iteration)
 {    
     //Load corresponding data for each instance (i.e for every gas source)
     for (int i=0;i<num_simulators;i++)
     {
         if (verbose)
-            ROS_INFO("[Player] Loading new data to instance %i (iteration %i)",i,sim_iteration);
+            RCLCPP_INFO(get_logger(), "[Player] Loading new data to instance %i (iteration %i)",i,sim_iteration);
         player_instances[i].load_data_from_logfile(sim_iteration);
     }
 }
 
 
 //Display in RVIZ the gas distribution
-void display_current_gas_distribution()
+void Player::display_current_gas_distribution()
 {
     //Remove previous data points
     mkr_gas_points.points.clear();
@@ -228,14 +232,15 @@ void display_current_gas_distribution()
         player_instances[i].get_concentration_as_markers(mkr_gas_points);
     }
     //Display particles
-    marker_pub.publish(mkr_gas_points);
+    marker_pub->publish(mkr_gas_points);
 }
 
 //==================================== SIM_OBJ ==============================//
 
 
 // Constructor
-sim_obj::sim_obj(std::string filepath, bool load_wind_info)
+sim_obj::sim_obj(std::string filepath, bool load_wind_info, rclcpp::Logger logger, std::string occupancy_filePath)
+    : m_logger(logger), occupancyFile(occupancy_filePath)
 {
     gas_type = "unknown";
     simulation_filename = filepath;
@@ -362,7 +367,7 @@ void sim_obj::load_data_from_logfile(int sim_iteration)
     std::string filename = boost::str( boost::format("%s/iteration_%i") % simulation_filename.c_str() % sim_iteration);
     FILE* fileCheck;
     if ((fileCheck =fopen(filename.c_str(),"rb"))==NULL){
-        ROS_ERROR("File %s does not exist\n", filename.c_str());
+        RCLCPP_ERROR(m_logger, "File %s does not exist\n", filename.c_str());
         return;
     }
     fclose(fileCheck);
@@ -385,16 +390,6 @@ void sim_obj::load_data_from_logfile(int sim_iteration)
     else
         load_ascii_file(decompressed);
     infile.close();
-
-    static int iterationCounter=0;
-    if(createHeatmapImage){
-        if(iterationCounter<heatMapIterations)
-            updateHeatmap();
-        else if(iterationCounter==heatMapIterations)
-            writeHeatmapImage();
-
-        iterationCounter++;
-    }
 }
 
 void sim_obj::load_ascii_file(std::stringstream& decompressed){
@@ -503,7 +498,7 @@ double sim_obj::get_gas_concentration(float x, float y, float z)
         || yy<0|| yy>environment_cells_y
         || zz<0|| zz>environment_cells_z)
     {
-        ROS_ERROR("Requested gas concentration at a point outside the environment (%f, %f, %f). Are you using the correct coordinates?\n", x, y ,z);
+        RCLCPP_ERROR(m_logger, "Requested gas concentration at a point outside the environment (%f, %f, %f). Are you using the correct coordinates?\n", x, y ,z);
         return 0;
     }
     double gas_conc=0;
@@ -615,7 +610,7 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
             || yy<0|| yy>environment_cells_y
             || zz<0|| zz>environment_cells_z)
         {
-            ROS_ERROR("Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
+            RCLCPP_ERROR(m_logger, "Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
             return;
         }
 
@@ -626,8 +621,7 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
     }
     else
     {
-        if (verbose)
-            ROS_WARN("[Player] Request to provide Wind information when No Wind data is available!!");
+        RCLCPP_WARN(m_logger, "[Player] Request to provide Wind information when No Wind data is available!!");
     }
 }
 
@@ -635,7 +629,7 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
 void sim_obj::readEnvFile()
 {
     if(occupancyFile==""){
-        ROS_ERROR(" [GADEN_PLAYER] No occupancy file specified. Use the parameter \"occupancyFile\" to input the path to the OccupancyGrid3D.csv file.\n");
+        RCLCPP_ERROR(m_logger, " [GADEN_PLAYER] No occupancy file specified. Use the parameter \"occupancyFile\" to input the path to the OccupancyGrid3D.csv file.\n");
         return;
     }
     Env.resize(environment_cells_x * environment_cells_y * environment_cells_z);
@@ -659,7 +653,7 @@ void sim_obj::readEnvFile()
 		std::stringstream ss(line);
 		if (z_idx >=environment_cells_z)
 		{
-			ROS_ERROR("Trying to read:[%s]",line.c_str());
+			RCLCPP_ERROR(m_logger, "Trying to read:[%s]",line.c_str());
 		}
 
 		if (line == ";")
@@ -690,12 +684,12 @@ void sim_obj::readEnvFile()
 //Init instances (for running multiple simulations)
 void sim_obj::configure_environment()
 {
-    //ROS_INFO("Configuring Enviroment");
-    //ROS_INFO("\t\t Dimension: [%i,%i,%i] cells", environment_cells_x, environment_cells_y, environment_cells_z);
-    //ROS_INFO("\t\t Gas_Type: %s", gas_type.c_str());
-    //ROS_INFO("\t\t FilePath: %s", simulation_filename.c_str());
-    //ROS_INFO("\t\t Source at location: [%.4f,%.4f,%.4f][m] ", source_pos_x, source_pos_y, source_pos_z);
-    //ROS_INFO("\t\t Loading Wind Data: %i", load_wind_data);
+    //RCLCPP_INFO(get_logger(), "Configuring Enviroment");
+    //RCLCPP_INFO(get_logger(), "\t\t Dimension: [%i,%i,%i] cells", environment_cells_x, environment_cells_y, environment_cells_z);
+    //RCLCPP_INFO(get_logger(), "\t\t Gas_Type: %s", gas_type.c_str());
+    //RCLCPP_INFO(get_logger(), "\t\t FilePath: %s", simulation_filename.c_str());
+    //RCLCPP_INFO(get_logger(), "\t\t Source at location: [%.4f,%.4f,%.4f][m] ", source_pos_x, source_pos_y, source_pos_z);
+    //RCLCPP_INFO(get_logger(), "\t\t Loading Wind Data: %i", load_wind_data);
 
 
     //Resize Gas Concentration container
@@ -712,12 +706,10 @@ void sim_obj::configure_environment()
     }
     readEnvFile();
 
-    if(createHeatmapImage)
-        heatmap = std::vector<std::vector<double> >(environment_cells_x, std::vector<double>(environment_cells_y));
 }
 
 
-void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_points)
+void sim_obj::get_concentration_as_markers(visualization_msgs::msg::Marker &mkr_points)
 {
     if(!filament_log){
         //For every cell, generate as much "marker points" as [ppm]
@@ -727,8 +719,8 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_point
             {
                 for (int k=0;k<environment_cells_z;k++)
                 {
-                    geometry_msgs::Point p; //Location of point
-                    std_msgs::ColorRGBA color;  //Color of point
+                    geometry_msgs::msg::Point p; //Location of point
+                    std_msgs::msg::ColorRGBA color;  //Color of point
 
                     double gas_value = C[indexFrom3D(i,j,k)];
 
@@ -783,7 +775,7 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_point
                         }
                         else
                         {
-                            ROS_INFO("[player] Setting Defatul Color");
+                            RCLCPP_INFO(m_logger, "Setting Defatul Color");
                             color.r = 0.9; color.g = 0;color.b = 0;
                         }
 
@@ -799,8 +791,8 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_point
     }
     else{
         for(auto it = activeFilaments.begin(); it!=activeFilaments.end(); it++){
-            geometry_msgs::Point p; //Location of point
-            std_msgs::ColorRGBA color;  //Color of point
+            geometry_msgs::msg::Point p; //Location of point
+            std_msgs::msg::ColorRGBA color;  //Color of point
 
             Filament filament = it->second;
             for (int i=0; i<5; i++){
@@ -822,45 +814,4 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_point
 
 int sim_obj::indexFrom3D(int x, int y, int z){
 	return x + y*environment_cells_x + z*environment_cells_x*environment_cells_y;
-}
-
-void sim_obj::updateHeatmap(){
-    #pragma omp parallel for collapse(2)
-    for(int i = 0; i<heatmap.size(); i++){
-        for(int j=0; j<heatmap[0].size(); j++){
-            double p_x = env_min_x + (i+0.5)*environment_cell_size;
-            double p_y = env_min_y + (j+0.5)*environment_cell_size;
-            double g_c = get_gas_concentration(p_x, p_y, heatmapHeight);
-            if(g_c>heatmapThreshold)
-                heatmap[i][j]++;
-        }
-    }
-}
-
-void sim_obj::writeHeatmapImage(){
-
-    //std::ofstream pgmFile ("/home/pepe/catkin_ws/asd");
-    //pgmFile<<"P2\n";
-    //pgmFile<<heatmap[0].size()<<" "<<heatmap.size()<<"\n";
-    //pgmFile<<"255\n";
-
-    //for(int i = 0; i<heatmap.size(); i++){
-    //    for(int j=0; j<heatmap[0].size(); j++){
-    //        pgmFile<< (int)((heatmap[i][j]/heatMapIterations) * 255) <<" ";
-    //    }
-    //    pgmFile<<"\n";
-    //}
-
-    cv::Mat image(cv::Size(heatmap.size(), heatmap[0].size()), CV_32F, cv::Scalar(0) );
-
-    #pragma omp parallel for collapse(2)
-    for(int i = 0; i<heatmap.size(); i++){
-        for(int j=0; j<heatmap[0].size(); j++){
-            image.at<float>(heatmap[0].size()-1-j, i) = (heatmap[i][j]/heatMapIterations) * 255;
-        }
-    }
-    
-    cv::imwrite(heatmapPath, image);
-
-    std::cout<<"Heatmap image saved\n";
 }
