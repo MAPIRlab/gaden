@@ -17,7 +17,7 @@
         <param name="fixed_frame" value="map"/>
 
         # Plot CAD models (Collada format .dae)
-	    <param name="number_of_CAD" value="3"/>
+	    <param name="number_of_CAD" value="4"/>
 	    
         <param name="CAD_0" value="package://test_env/$(var scenario)/cad_models/10x6_walls.dae"/>
         <param name="CAD_0_color" value="[0.92, 0.96, 0.96]"/>
@@ -27,6 +27,9 @@
             
         <param name="CAD_2" value="package://test_env/$(var scenario)/cad_models/10x6_door_right.dae"/>
         <param name="CAD_2_color" value="[0.96, 0.17, 0.3]"/>
+
+        <param name="CAD_3" value="package://test_env/$(var scenario)/cad_models/10x6_central_obstacle.dae"/>
+        <param name="CAD_3_color" value="[0.92, 0.96, 0.96]"/>
 	            
         # Plot 3D OccupancyGridmap
         <param name="occupancy3D_data" value="$(find-pkg-share test_env)/$(var scenario)/OccupancyGrid3D.csv" />

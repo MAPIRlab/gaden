@@ -1,3 +1,10 @@
+# THIS BRANCH IS CURRENTLY UNSTABLE.
+The process of porting Gaden to ROS2 is not yet complete, and many things are not working at all. For the time being, we recommend sticking to the ROS1 version.
+
+
+
+
+
 # [GADEN](http://mapir.isa.uma.es/work/gaden)
 **A 3D Gas Dispersion Simulator for Mobile Robot Olfaction in Realistic Environments**
 

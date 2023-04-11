@@ -1,18 +1,19 @@
 #pragma once
-#include <ros/ros.h>
-#include <std_msgs/Bool.h>
-#include <visualization_msgs/Marker.h>
-#include <visualization_msgs/MarkerArray.h>
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 #include <resource_retriever/retriever.h>
 #include <cmath>
 #include <vector>
 #include <fstream>
 #include <boost/format.hpp>
-#include <gaden_environment/Occupancy.h>
+#include <gaden_environment/srv/occupancy.hpp>
 
-class Environment
+class Environment : public rclcpp::Node
 {
     public:
+        Environment();
         void run();
     
     private:
@@ -50,13 +51,13 @@ class Environment
     bool        preprocessing_done;
 
     //Methods
-    void loadNodeParameters(ros::NodeHandle);
-    void loadEnvironment(visualization_msgs::MarkerArray &env_marker);
+    void loadNodeParameters();
+    void loadEnvironment(visualization_msgs::msg::MarkerArray &env_marker);
     void readEnvFile();
 
-    bool occupancyMapServiceCB(gaden_environment::OccupancyRequest& request, gaden_environment::OccupancyResponse& response);
+    bool occupancyMapServiceCB(gaden_environment::srv::Occupancy_Request::SharedPtr request, gaden_environment::srv::Occupancy_Response::SharedPtr response);
     int indexFrom3D(int x, int y, int z);
-    void PreprocessingCB(const std_msgs::Bool& b);
+    void PreprocessingCB(std_msgs::msg::Bool::SharedPtr b);
 
 };
 

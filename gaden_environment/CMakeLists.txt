@@ -1,41 +1,44 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(gaden_environment)
 
 ##################
 set(CMAKE_BUILD_TYPE "None") 
-set(CMAKE_CXX_FLAGS "-std=c++11 -g -O2 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++14 -g -O2 ${CMAKE_CXX_FLAGS}")
 
-find_package(catkin REQUIRED COMPONENTS 
-    roscpp
-    visualization_msgs 
-    std_msgs   
-    geometry_msgs
-    tf
-    message_generation
-)
 
-add_service_files(
-  FILES
-  Occupancy.srv
-)
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
-)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
-catkin_package(
-	DEPENDS roscpp visualization_msgs tf std_msgs
+rosidl_generate_interfaces(${PROJECT_NAME}
+  srv/Occupancy.srv
+  DEPENDENCIES geometry_msgs
 )
+ament_export_dependencies(rosidl_default_runtime)
 
-include_directories(
-  include 
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories(include)
 
 add_executable(environment src/environment.cpp)
-add_dependencies(environment ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-target_link_libraries(environment
-   ${catkin_LIBRARIES}
- )
+
+
+ament_target_dependencies(environment
+    rclcpp
+    std_msgs
+    visualization_msgs
+    geometry_msgs
+) 
+
+# dependency for self-defined messages
+rosidl_target_interfaces(environment
+  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+  
+install(
+  TARGETS environment
+  DESTINATION lib/${PROJECT_NAME}
+)
+ament_package()

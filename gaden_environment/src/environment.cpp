@@ -13,45 +13,47 @@
 int main( int argc, char** argv )
 {
     //Init
-    ros::init(argc, argv, "environment");
-
-    Environment environment;
+    rclcpp::init(argc, argv);
+    
+    std::shared_ptr<Environment> environment = std::make_shared<Environment>();
     //Load Parameters
-    environment.run();
+    environment->run();
     
 }
 
+Environment::Environment() : rclcpp::Node("gaden_environment")
+{}
+
 void Environment::run()
 {
-    ros::NodeHandle n;
-    ros::NodeHandle pnh("~");
-    loadNodeParameters(pnh);
+    using namespace std::placeholders;
+    loadNodeParameters();
 
     // Publishers
-    ros::Publisher gas_source_pub = n.advertise<visualization_msgs::MarkerArray>("source_visualization", 10);
-    ros::Publisher environmnet_pub = n.advertise<visualization_msgs::MarkerArray>("environment_visualization", 100);
-    ros::Publisher environmnet_cad_pub = n.advertise<visualization_msgs::MarkerArray>("environment_cad_visualization", 100);
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr gas_source_pub = create_publisher<visualization_msgs::msg::MarkerArray>("source_visualization", 10);
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr environmnet_pub = create_publisher<visualization_msgs::msg::MarkerArray>("environment_visualization", 100);
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr environmnet_cad_pub = create_publisher<visualization_msgs::msg::MarkerArray>("environment_cad_visualization", 100);
 
-    ros::ServiceServer occupancyMapService = n.advertiseService("gaden_environment/occupancyMap3D", &Environment::occupancyMapServiceCB, this);
+    auto occupancyMapService = create_service<gaden_environment::srv::Occupancy>("gaden_environment/occupancyMap3D", std::bind(&Environment::occupancyMapServiceCB, this, _1, _2));
     // Subscribers
     preprocessing_done  =false;
-    ros::Subscriber sub = n.subscribe("preprocessing_done", 1, &Environment::PreprocessingCB, this);
+    auto sub = create_subscription<std_msgs::msg::Bool>("preprocessing_done", 1, std::bind(&Environment::PreprocessingCB, this, _1));
 
 
     // 1. ENVIRONMNET AS CAD MODELS
     //-------------------------------
-    visualization_msgs::MarkerArray CAD_model_markers;
+    visualization_msgs::msg::MarkerArray CAD_model_markers;
 
     for (int i=0;i<number_of_CAD;i++)
     {
         // CAD model in Collada (.dae) format
-        visualization_msgs::Marker cad;
+        visualization_msgs::msg::Marker cad;
         cad.header.frame_id = fixed_frame;
-        cad.header.stamp = ros::Time::now();
+        cad.header.stamp = now();
         cad.ns = "part_" + std::to_string(i);
         cad.id = i;
-        cad.type = visualization_msgs::Marker::MESH_RESOURCE;
-        cad.action = visualization_msgs::Marker::ADD;
+        cad.type = visualization_msgs::msg::Marker::MESH_RESOURCE;
+        cad.action = visualization_msgs::msg::Marker::ADD;
         cad.mesh_resource = CAD_models[i];
         cad.scale.x = 1.0;
         cad.scale.y = 1.0;
@@ -79,7 +81,7 @@ void Environment::run()
     // 2. ENVIRONMNET AS Occupancy3D file
     //------------------------------------
     //Display Environment as an array of Cube markers (Rviz)
-    visualization_msgs::MarkerArray environment;
+    visualization_msgs::msg::MarkerArray environment;
     if (occupancy3D_data != "")
         loadEnvironment(environment);
 
@@ -88,18 +90,18 @@ void Environment::run()
     //----------------
     //Generate Gas Source Markers
     //The shape are cylinders from the floor to the given z_size.
-    visualization_msgs::MarkerArray gas_source_markers;
+    visualization_msgs::msg::MarkerArray gas_source_markers;
 
     for (int i=0;i<number_of_sources;i++)
     {
-        visualization_msgs::Marker source;
+        visualization_msgs::msg::Marker source;
         source.header.frame_id = fixed_frame;
-        source.header.stamp = ros::Time::now();
+        source.header.stamp = now();
         source.id = i;
         source.ns = "gas_source_visualization";
-        source.action = visualization_msgs::Marker::ADD;
-        //source.type = visualization_msgs::Marker::CYLINDER;
-        source.type = visualization_msgs::Marker::CUBE;
+        source.action = visualization_msgs::msg::Marker::ADD;
+        //source.type = visualization_msgs::msg::Marker::CYLINDER;
+        source.type = visualization_msgs::msg::Marker::CUBE;
 
         source.scale.x = gas_source_scale[i];
         source.scale.y = gas_source_scale[i];
@@ -121,25 +123,26 @@ void Environment::run()
     }
 
     // Small sleep to allow RVIZ to startup
-    ros::Duration(1.0).sleep();
+    sleep(1.0);
 
     //---------------
     //      LOOP
     //---------------
-    ros::Rate r(0.3);     //Just to refresh from time to time
-    while (ros::ok())
+    rclcpp::Rate r(0.3);     //Just to refresh from time to time
+    auto shared_this = shared_from_this();
+    while (rclcpp::ok())
     {
         //Publish CAD Markers
-        environmnet_cad_pub.publish(CAD_model_markers);
+        environmnet_cad_pub->publish(CAD_model_markers);
 
         // Publish 3D Occupancy
         if (occupancy3D_data != "")
-            environmnet_pub.publish(environment);
+            environmnet_pub->publish(environment);
 
         //Publish Gas Sources
-        gas_source_pub.publish(gas_source_markers);
+        gas_source_pub->publish(gas_source_markers);
 
-        ros::spinOnce();
+        rclcpp::spin_some(shared_this);
         r.sleep();
     }
 }
@@ -147,19 +150,19 @@ void Environment::run()
 // ===============================//
 //      Load Node parameters      //
 // ===============================//
-void Environment::loadNodeParameters(ros::NodeHandle private_nh)
+void Environment::loadNodeParameters()
 {
-    private_nh.param<bool>("verbose", verbose, false);
-    if (verbose) ROS_INFO("[env] The data provided in the roslaunch file is:");
+    verbose = declare_parameter<bool>("verbose", false);
+    if (verbose) RCLCPP_INFO(get_logger(), "[env] The data provided in the roslaunch file is:");
 
-    private_nh.param<bool>("wait_preprocessing", wait_preprocessing, false);
-    if (verbose) ROS_INFO("[env] wait_preprocessing: %u",wait_preprocessing);
+    wait_preprocessing = declare_parameter<bool>("wait_preprocessing", false);
+    if (verbose) RCLCPP_INFO(get_logger(), "[env] wait_preprocessing: %u",wait_preprocessing);
 
-    private_nh.param<std::string>("fixed_frame", fixed_frame, "map");
-    if (verbose) ROS_INFO("[env] Fixed Frame: %s",fixed_frame.c_str());
+    fixed_frame = declare_parameter<std::string>("fixed_frame", "map");
+    if (verbose) RCLCPP_INFO(get_logger(), "[env] Fixed Frame: %s",fixed_frame.c_str());
 
-    private_nh.param<int>("number_of_sources", number_of_sources, 0);
-    if (verbose) ROS_INFO("[env] number_of_sources: %i",number_of_sources);
+    number_of_sources = declare_parameter<int>("number_of_sources", 0);
+    if (verbose) RCLCPP_INFO(get_logger(), "[env] number_of_sources: %i",number_of_sources);
     gas_source_pos_x.resize(number_of_sources);
     gas_source_pos_y.resize(number_of_sources);
     gas_source_pos_z.resize(number_of_sources);
@@ -174,13 +177,14 @@ void Environment::loadNodeParameters(ros::NodeHandle private_nh)
         std::string scale = boost::str( boost::format("source_%i_scale") % i);
         std::string color = boost::str( boost::format("source_%i_color") % i);
 
-        private_nh.param<double>(paramNameX.c_str(), gas_source_pos_x[i], 0.0);
-        private_nh.param<double>(paramNameY.c_str(), gas_source_pos_y[i], 0.0);
-        private_nh.param<double>(paramNameZ.c_str(), gas_source_pos_z[i], 0.0);
-        private_nh.param<double>(scale.c_str(), gas_source_scale[i], 0.1);
+        gas_source_pos_x[i] = declare_parameter<double>(paramNameX.c_str(), 0.0);
+        gas_source_pos_y[i] = declare_parameter<double>(paramNameY.c_str(), 0.0);
+        gas_source_pos_z[i] = declare_parameter<double>(paramNameZ.c_str(), 0.0);
+        gas_source_scale[i] = declare_parameter<double>(scale.c_str(), 0.1);
         gas_source_color[i].resize(3);
-        private_nh.getParam(color.c_str(),gas_source_color[i]);
-        if (verbose) ROS_INFO("[env] Gas_source(%i): pos=[%0.2f %0.2f %0.2f] scale=%.2f color=[%0.2f %0.2f %0.2f]",
+        gas_source_color[i] = declare_parameter<std::vector<double>>(color.c_str(), {0,0,0});
+
+        if (verbose) RCLCPP_INFO(get_logger(), "[env] Gas_source(%i): pos=[%0.2f %0.2f %0.2f] scale=%.2f color=[%0.2f %0.2f %0.2f]",
                  i, gas_source_pos_x[i], gas_source_pos_y[i], gas_source_pos_z[i],
                  gas_source_scale[i],
                  gas_source_color[i][0],gas_source_color[i][1],gas_source_color[i][2]);
@@ -189,8 +193,8 @@ void Environment::loadNodeParameters(ros::NodeHandle private_nh)
     // CAD MODELS
     //-------------
     //CAD model files
-    private_nh.param<int>("number_of_CAD", number_of_CAD, 0);
-    if (verbose) ROS_INFO("[env] number_of_CAD: %i",number_of_CAD);
+    number_of_CAD = declare_parameter<int>("number_of_CAD", 0);
+    if (verbose) RCLCPP_INFO(get_logger(), "[env] number_of_CAD: %i",number_of_CAD);
 
     CAD_models.resize(number_of_CAD);
     CAD_color.resize(number_of_CAD);
@@ -200,25 +204,25 @@ void Environment::loadNodeParameters(ros::NodeHandle private_nh)
         std::string paramName = boost::str( boost::format("CAD_%i") % i);
         std::string paramColor = boost::str( boost::format("CAD_%i_color") % i);
 
-        private_nh.param<std::string>(paramName.c_str(), CAD_models[i], "");
+        CAD_models[i] = declare_parameter<std::string>(paramName.c_str(), "");
         CAD_color[i].resize(3);
-        private_nh.getParam(paramColor.c_str(),CAD_color[i]);
-        if (verbose) ROS_INFO("[env] CAD_models(%i): %s",i, CAD_models[i].c_str());
+        CAD_color[i] = declare_parameter<std::vector<double>>(paramColor.c_str(), {0,0,0});
+        if (verbose) RCLCPP_INFO(get_logger(), "[env] CAD_models(%i): %s",i, CAD_models[i].c_str());
     }
 
 
 
     //Occupancy 3D gridmap
     //---------------------
-    private_nh.param<std::string>("occupancy3D_data", occupancy3D_data, "");
-    if (verbose) ROS_INFO("[env] Occupancy3D file location: %s",occupancy3D_data.c_str());
+    occupancy3D_data = declare_parameter<std::string>("occupancy3D_data", "");
+    if (verbose) RCLCPP_INFO(get_logger(), "[env] Occupancy3D file location: %s",occupancy3D_data.c_str());
 }
 
 
 //=========================//
 // PreProcessing CallBack  //
 //=========================//
-void Environment::PreprocessingCB(const std_msgs::Bool& b)
+void Environment::PreprocessingCB(std_msgs::msg::Bool::SharedPtr b)
 {
     preprocessing_done = true;
 }
@@ -228,7 +232,7 @@ void Environment::PreprocessingCB(const std_msgs::Bool& b)
 void Environment::readEnvFile()
 {
     if(occupancy3D_data==""){
-        ROS_ERROR(" [GADEN_PLAYER] No occupancy file specified. Use the parameter \"occupancyFile\" to input the path to the OccupancyGrid3D.csv file.\n");
+        RCLCPP_ERROR(get_logger(), " [GADEN_PLAYER] No occupancy file specified. Use the parameter \"occupancyFile\" to input the path to the OccupancyGrid3D.csv file.\n");
         return;
     }
 
@@ -276,8 +280,8 @@ void Environment::readEnvFile()
         pos = line.find(" ");
         cell_size = atof(line.substr(pos+1).c_str());
 
-        if (verbose) ROS_INFO("[env]Env dimensions (%.2f,%.2f,%.2f)-(%.2f,%.2f,%.2f)",env_min_x, env_min_y, env_min_z, env_max_x, env_max_y, env_max_z );
-        if (verbose) ROS_INFO("[env]Env size in cells     (%d,%d,%d) - with cell size %f [m]",env_cells_x,env_cells_y,env_cells_z, cell_size);
+        if (verbose) RCLCPP_INFO(get_logger(), "[env]Env dimensions (%.2f,%.2f,%.2f)-(%.2f,%.2f,%.2f)",env_min_x, env_min_y, env_min_z, env_max_x, env_max_y, env_max_z );
+        if (verbose) RCLCPP_INFO(get_logger(), "[env]Env size in cells     (%d,%d,%d) - with cell size %f [m]",env_cells_x,env_cells_y,env_cells_z, cell_size);
     }
     
     Env.resize(env_cells_x * env_cells_y * env_cells_z);
@@ -291,7 +295,7 @@ void Environment::readEnvFile()
 		std::stringstream ss(line);
 		if (z_idx >=env_cells_z)
 		{
-			ROS_ERROR("Trying to read:[%s]",line.c_str());
+			RCLCPP_ERROR(get_logger(), "Trying to read:[%s]",line.c_str());
 		}
 
 		if (line == ";")
@@ -324,16 +328,18 @@ void Environment::readEnvFile()
  * As a general rule, environment files set a value of "0" for a free cell, "1" for a ocuppiedd cell and "2" for outlet.
  * This function creates a cube marker for every occupied cell, with the corresponding dimensions
 */
-void Environment::loadEnvironment(visualization_msgs::MarkerArray &env_marker)
+void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray &env_marker)
 {
     // Wait for the GADEN_preprocessin node to finish?
     if( wait_preprocessing )
     {
-        while(ros::ok() && !preprocessing_done)
+        rclcpp::Rate r(2);
+        auto shared_this = shared_from_this();
+        while(rclcpp::ok() && !preprocessing_done)
         {
-            ros::Duration(0.5).sleep();
-            ros::spinOnce();
-            if (verbose) ROS_INFO("[environment] Waiting for node GADEN_preprocessing to end.");
+            r.sleep();
+            rclcpp::spin_some(shared_this);
+            if (verbose) RCLCPP_INFO(get_logger(), "[environment] Waiting for node GADEN_preprocessing to end.");
         }
 	}
 
@@ -349,13 +355,13 @@ void Environment::loadEnvironment(visualization_msgs::MarkerArray &env_marker)
                 if (!Env[indexFrom3D(i,j,k)])
                 {
                     //Add a new cube marker for this occupied cell
-                    visualization_msgs::Marker new_marker;
+                    visualization_msgs::msg::Marker new_marker;
                     new_marker.header.frame_id = fixed_frame;
-                    new_marker.header.stamp = ros::Time::now();
+                    new_marker.header.stamp = now();
                     new_marker.ns = "environment_visualization";
                     new_marker.id = indexFrom3D(i,j,k);                          //unique identifier
-                    new_marker.type = visualization_msgs::Marker::CUBE;
-                    new_marker.action = visualization_msgs::Marker::ADD;
+                    new_marker.type = visualization_msgs::msg::Marker::CUBE;
+                    new_marker.action = visualization_msgs::msg::Marker::ADD;
 
                     //Center of the cell
                     new_marker.pose.position.x = env_min_x + ( (i + 0.5) * cell_size);
@@ -383,18 +389,18 @@ void Environment::loadEnvironment(visualization_msgs::MarkerArray &env_marker)
     }
 }
 
-bool Environment::occupancyMapServiceCB(gaden_environment::OccupancyRequest& request, gaden_environment::OccupancyResponse& response)
+bool Environment::occupancyMapServiceCB(gaden_environment::srv::Occupancy_Request::SharedPtr request, gaden_environment::srv::Occupancy_Response::SharedPtr response)
 {
-    response.origin.x = env_min_x;
-    response.origin.y = env_min_y;
-    response.origin.z = env_min_z;
+    response->origin.x = env_min_x;
+    response->origin.y = env_min_y;
+    response->origin.z = env_min_z;
 
-    response.numCellsX = env_cells_x;
-    response.numCellsY = env_cells_y;
-    response.numCellsZ = env_cells_z;
+    response->num_cells_x = env_cells_x;
+    response->num_cells_y = env_cells_y;
+    response->num_cells_z = env_cells_z;
 
-    response.resolution = cell_size;
-    response.occupancy = Env;
+    response->resolution = cell_size;
+    response->occupancy = Env;
 
     return true;
 }

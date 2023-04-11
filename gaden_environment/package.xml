@@ -1,26 +1,29 @@
-<package>
+<?xml version="1.0"?>
+<package format="3">
   <name>gaden_environment</name>
   <version>1.0.0</version>
   <description>Package for visualizing on RVIZ the simulation environment (walls, obstacles and gas source).</description>
   <maintainer email="jgmonroy@uma.es">Javier Monroy</maintainer>
 
-  <license>GPLv3</license>
 
-  <!-- Dependencies which this package needs to build itself. -->
-  <buildtool_depend>catkin</buildtool_depend>
+  <!-- One license tag required, multiple allowed, one license per tag -->
+  <license>LGPLv3</license>
 
-  <!-- Dependencies needed to compile this package. -->
-  <build_depend>visualization_msgs</build_depend>
-  <build_depend>tf</build_depend>
-  <build_depend>roscpp</build_depend>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+  <build_depend>rclcpp</build_depend>
   <build_depend>std_msgs</build_depend>
-  <build_depend>geometry_msgs</build_depend>
 
-  <!-- Dependencies needed after this package is compiled. -->
-  <run_depend>visualization_msgs</run_depend>
-  <run_depend>tf</run_depend>
-  <run_depend>roscpp</run_depend>
-  <run_depend>std_msgs</run_depend>
-  <run_depend>geometry_msgs</run_depend>
+  <depend>rosidl_default_runtime</depend>
+
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
   
 </package>
