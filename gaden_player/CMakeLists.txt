@@ -21,7 +21,6 @@ find_package(std_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS iostreams)
-find_package(OpenCV)
 
 find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -48,7 +47,6 @@ ament_target_dependencies(player
     std_msgs
     visualization_msgs
     Boost
-    OpenCV
 ) 
 
 

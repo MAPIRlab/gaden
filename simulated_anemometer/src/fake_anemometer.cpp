@@ -3,54 +3,56 @@
 
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>
-#include <boost/random.hpp>
-#include <boost/random/normal_distribution.hpp>
+#include <random>
 
 
-typedef boost::normal_distribution<double> NormalDistribution;
-typedef boost::mt19937 RandomGenerator;
-typedef boost::variate_generator<RandomGenerator&, \
-                       NormalDistribution> GaussianGenerator;
-                       
+typedef std::normal_distribution<double> NormalDistribution;
+typedef std::mt19937 RandomGenerator;
                        
 
 int main( int argc, char** argv )
 {
-	ros::init(argc, argv, "simulated_anemometer");
-	ros::NodeHandle n;
-	ros::NodeHandle pn("~");
+	rclcpp::init(argc, argv);
 	srand (time(NULL));
 
+    std::shared_ptr<SimulatedAnemometer> anemometer = std::make_shared<SimulatedAnemometer>();
+	anemometer->run();
+}
 
-	//Read parameters
-	loadNodeParameters(pn);
+SimulatedAnemometer::SimulatedAnemometer() :rclcpp::Node("Simulated_anemometer")
+{}
+
+void SimulatedAnemometer::run()
+{
+    auto shared_this = shared_from_this();
+    //Read parameters
+	loadNodeParameters();
 
 	
 	//Publishers
-	//ros::Publisher sensor_read_pub = n.advertise<std_msgs::Float32MultiArray>("WindSensor_reading", 500);
-	ros::Publisher sensor_read_pub = n.advertise<olfaction_msgs::anemometer>("WindSensor_reading", 500);
-	ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("WindSensor_display", 100);
+	//rclcpp::Publisher sensor_read_pub = n.advertise<std_msgs::Float32MultiArray>("WindSensor_reading", 500);
+	auto sensor_read_pub = create_publisher<olfaction_msgs::msg::Anemometer>("WindSensor_reading", 500);
+	auto marker_pub = create_publisher<visualization_msgs::msg::Marker>("WindSensor_display", 100);
 
 	
 	//Service to request wind values to simulator
-    ros::ServiceClient client = n.serviceClient<gaden_player::WindPosition>("/wind_value");
-	tf::TransformListener tf_;
+    auto client = create_client<gaden_player::srv::WindPosition>("/wind_value");
 
 
 	// Init Visualization data (marker)
 	//----------------------------------------------------------------
 	// sensor = sphere
 	// conector = stick from the floor to the sensor
-	visualization_msgs::Marker sensor;
-	visualization_msgs::Marker connector;
-	visualization_msgs::Marker connector_inv;
-	visualization_msgs::Marker wind_point;
-	visualization_msgs::Marker wind_point_inv;
+	visualization_msgs::msg::Marker sensor;
+	visualization_msgs::msg::Marker connector;
+	visualization_msgs::msg::Marker connector_inv;
+	visualization_msgs::msg::Marker wind_point;
+	visualization_msgs::msg::Marker wind_point_inv;
 	
 	sensor.header.frame_id = input_fixed_frame.c_str();
 	sensor.ns = "sensor_visualization";	
-	sensor.action = visualization_msgs::Marker::ADD;
-	sensor.type = visualization_msgs::Marker::SPHERE;
+	sensor.action = visualization_msgs::msg::Marker::ADD;
+	sensor.type = visualization_msgs::msg::Marker::SPHERE;
 	sensor.id = 0;
 	sensor.scale.x = 0.1;
 	sensor.scale.y = 0.1;
@@ -62,8 +64,8 @@ int main( int argc, char** argv )
 	
 	connector.header.frame_id = input_fixed_frame.c_str();
 	connector.ns  = "sensor_visualization";
-	connector.action = visualization_msgs::Marker::ADD;
-	connector.type = visualization_msgs::Marker::CYLINDER;
+	connector.action = visualization_msgs::msg::Marker::ADD;
+	connector.type = visualization_msgs::msg::Marker::CYLINDER;
 	connector.id = 1;
 	connector.scale.x = 0.1;
 	connector.scale.y = 0.1;
@@ -74,73 +76,69 @@ int main( int argc, char** argv )
 
 	// Init Marker: arrow to display the wind direction measured.
 	wind_point.header.frame_id = input_sensor_frame.c_str();
-	wind_point.action = visualization_msgs::Marker::ADD;
+	wind_point.action = visualization_msgs::msg::Marker::ADD;
 	wind_point.ns = "measured_wind";
-	wind_point.type = visualization_msgs::Marker::ARROW;
+	wind_point.type = visualization_msgs::msg::Marker::ARROW;
 
 	// Init Marker: arrow to display the inverted wind direction measured.	
 	wind_point_inv.header.frame_id = input_sensor_frame.c_str();
-	wind_point_inv.action = visualization_msgs::Marker::ADD;
+	wind_point_inv.action = visualization_msgs::msg::Marker::ADD;
 	wind_point_inv.ns = "measured_wind_inverted";
-	wind_point_inv.type = visualization_msgs::Marker::ARROW;
+	wind_point_inv.type = visualization_msgs::msg::Marker::ARROW;
 
 
 	// LOOP
 	//----------------------------------------------------------------
-	tf::TransformListener listener;
-    ros::Rate r(2);
-	while (ros::ok())
+	auto tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    auto listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+    
+    rclcpp::Rate r(2);
+	while (rclcpp::ok())
 	{
 		//Vars
-		tf::StampedTransform transform;
+		geometry_msgs::msg::TransformStamped anemometer_transform_map;
 		bool know_sensor_pose = true;
 
 		//Get pose of the sensor in the /map reference
 		try
 		{
-		  listener.lookupTransform(input_fixed_frame.c_str(), input_sensor_frame.c_str(),
-								   ros::Time(0), transform);
+		    anemometer_transform_map = tf_buffer->lookupTransform(input_fixed_frame.c_str(), input_sensor_frame.c_str(),
+								   rclcpp::Time(0));
 		}
-		catch (tf::TransformException ex)
+		catch (tf2::TransformException ex)
 		{
-			ROS_ERROR("%s",ex.what());
+			RCLCPP_ERROR(get_logger(), "%s",ex.what());
 			know_sensor_pose = false;
-			ros::Duration(1.0).sleep();
+            
+            using namespace std::literals::chrono_literals;
+            rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(1s));
 		}
 
 		if (know_sensor_pose)
 		{
-			//Current sensor pose
-			float x_pos = transform.getOrigin().x();
-			float y_pos = transform.getOrigin().y();
-			float z_pos = transform.getOrigin().z();
-
 			// Get Wind vectors (u,v,w) at current position
 			// Service request to the simulator
-            gaden_player::WindPosition srv;
-			srv.request.x.push_back(x_pos);
-			srv.request.y.push_back(y_pos);
-			srv.request.z.push_back(z_pos);
-			float u,v,w;
-			olfaction_msgs::anemometer anemo_msg;
-			if (client.call(srv))
+            auto request = std::make_shared<gaden_player::srv::WindPosition::Request>();
+			request->x.push_back(anemometer_transform_map.transform.translation.x);
+			request->y.push_back(anemometer_transform_map.transform.translation.y);
+			request->z.push_back(anemometer_transform_map.transform.translation.z);
+			
+            float u,v,w;
+			olfaction_msgs::msg::Anemometer anemo_msg;
+
+			auto result = client->async_send_request(request);
+            if (rclcpp::spin_until_future_complete(shared_this, result) == rclcpp::FutureReturnCode::SUCCESS)
 			{
-                double wind_speed;
-                double wind_direction;
+                auto response = result.get();
 
 				//GT Wind vector Value (u,v,w)[m/s]
                 //From OpenFoam this is the DownWind direction in the map
-				u = (float)srv.response.u[0];
-				v = (float)srv.response.v[0];
-				w = (float)srv.response.w[0];
-                wind_speed = sqrt(pow(u,2)+pow(v,2));
+				u = (float) response->u[0];
+				v = (float) response->v[0];
+				w = (float) response->w[0];
 
-                float downWind_direction_map;
-                if (u !=0 || v!=0)
-                    downWind_direction_map = atan2(v,u);
-                else
-                    downWind_direction_map = 0.0;
-
+                double wind_speed = u*u + v*v; //ignore the w component, because the anemometer is only 2D
+                double wind_direction;
 
                 if (!use_map_ref_system)
                 {
@@ -148,47 +146,37 @@ int main( int argc, char** argv )
                     //return the upwind direction in the anemometer reference system
                     //range [-pi,pi]
                     //positive to the right, negative to the left (opposed to ROS poses :s)
-
-                    float upWind_direction_map = angles::normalize_angle(downWind_direction_map + 3.14159);
-
-                    //Transform from map ref_system to the anemometer ref_system using TF
-                    geometry_msgs::PoseStamped anemometer_upWind_pose, map_upWind_pose;
                     try
                     {
-                        map_upWind_pose.header.frame_id = input_fixed_frame.c_str();
-                        map_upWind_pose.pose.position.x = 0.0;
-                        map_upWind_pose.pose.position.y = 0.0;
-                        map_upWind_pose.pose.position.z = 0.0;
-                        map_upWind_pose.pose.orientation = tf::createQuaternionMsgFromYaw(upWind_direction_map);
-
-                        tf_.transformPose(input_sensor_frame.c_str(), map_upWind_pose, anemometer_upWind_pose);
+                        geometry_msgs::msg::Vector3Stamped downwind_map;
+                        {
+                            downwind_map.vector.x = u; downwind_map.vector.y = v; downwind_map.vector.z = w;
+                        }
+                        auto downwind_sensor = tf_buffer->transform(downwind_map, input_sensor_frame);
+                        wind_direction = std::atan2(-downwind_sensor.vector.y, -downwind_sensor.vector.x); //change signs to make it upwind
                     }
-                    catch(tf::TransformException &ex)
+                    catch(tf2::TransformException &ex)
                     {
-                        ROS_ERROR("FakeAnemometer - %s - Error: %s", __FUNCTION__, ex.what());
+                        RCLCPP_ERROR(get_logger(), "%s - Error: %s", __FUNCTION__, ex.what());
                     }
-
-                    double upwind_direction_anemo = tf::getYaw(anemometer_upWind_pose.pose.orientation);
-                    wind_direction = upwind_direction_anemo;
                 }
                 else
                 {
                     // for simulations
-                    wind_direction = angles::normalize_angle(downWind_direction_map);
+                    wind_direction = std::atan2(v, u);
                 }
 
 
                 // Adding Noise
                 static RandomGenerator rng(static_cast<unsigned> (time(0)));
-                NormalDistribution gaussian_dist(0.0,noise_std);
-                GaussianGenerator generator(rng, gaussian_dist);
-                wind_direction = wind_direction + generator();
-                wind_speed = wind_speed + generator();
+                static NormalDistribution gaussian_dist(0.0,noise_std);
+                wind_direction = wind_direction + gaussian_dist(rng);
+                wind_speed = wind_speed + gaussian_dist(rng);
 
 
                 //Publish 2D Anemometer readings
                 //------------------------------
-				anemo_msg.header.stamp = ros::Time::now();
+				anemo_msg.header.stamp = now();
                 if (use_map_ref_system)
                     anemo_msg.header.frame_id = input_fixed_frame.c_str();
                 else
@@ -198,19 +186,19 @@ int main( int argc, char** argv )
                 anemo_msg.wind_direction = wind_direction;  //rad
                 anemo_msg.wind_speed = wind_speed;	 //m/s
 				//Publish fake_anemometer reading (m/s)
-				sensor_read_pub.publish(anemo_msg);
+				sensor_read_pub -> publish(anemo_msg);
 
 
 
                 //Add wind marker ARROW for Rviz (2D) --> Upwind
                 /*
-				wind_point.header.stamp = ros::Time::now();
+				wind_point.header.stamp = now();
 				wind_point.points.clear();
 				wind_point.id = 1;  //unique identifier for each arrow
 				wind_point.pose.position.x = 0.0;
 				wind_point.pose.position.y = 0.0;
 				wind_point.pose.position.z = 0.0;
-				wind_point.pose.orientation = tf::createQuaternionMsgFromYaw(wind_direction_with_noise);
+				wind_point.pose.orientation = tf2_ros::createQuaternionMsgFromYaw(wind_direction_with_noise);
 				wind_point.scale.x = 2*sqrt(pow(u,2)+pow(v,2));	  //arrow lenght
 				wind_point.scale.y = 0.1;	  //arrow width
 				wind_point.scale.z = 0.1;	  //arrow height
@@ -222,28 +210,30 @@ int main( int argc, char** argv )
                 */
 				
                 //Add inverted wind marker --> DownWind
-				wind_point_inv.header.stamp = ros::Time::now();
+				wind_point_inv.header.stamp = now();
 				wind_point_inv.header.frame_id=anemo_msg.header.frame_id;
 				wind_point_inv.points.clear();
 				wind_point_inv.id = 1;  //unique identifier for each arrow
 				if(use_map_ref_system){
-					wind_point_inv.pose.position.x = x_pos;
-					wind_point_inv.pose.position.y = y_pos;
-					wind_point_inv.pose.position.z = z_pos;
+					wind_point_inv.pose.position.x = anemometer_transform_map.transform.translation.x;
+					wind_point_inv.pose.position.y = anemometer_transform_map.transform.translation.y;
+					wind_point_inv.pose.position.z = anemometer_transform_map.transform.translation.z;
 				}else{
 					wind_point_inv.pose.position.x = 0.0;
 					wind_point_inv.pose.position.y = 0.0;
 					wind_point_inv.pose.position.z = 0.0;
 				}
-                wind_point_inv.pose.orientation = tf::createQuaternionMsgFromYaw(wind_direction+3.1416);
-				wind_point_inv.scale.x = 2*sqrt(pow(u,2)+pow(v,2));	  //arrow lenght
+
+                tf2::Quaternion arrowOrientation(tf2::Vector3(0,0,1), wind_direction + M_PI);
+                wind_point_inv.pose.orientation = tf2::toMsg(arrowOrientation); 
+				wind_point_inv.scale.x = 2 * std::sqrt( u*u + v*v);	  //arrow lenght
 				wind_point_inv.scale.y = 0.1;	  //arrow width
 				wind_point_inv.scale.z = 0.1;	  //arrow height
 				wind_point_inv.color.r = 0.0;
 				wind_point_inv.color.g = 1.0;
 				wind_point_inv.color.b = 0.0;
 				wind_point_inv.color.a = 1.0;
-				marker_pub.publish(wind_point_inv);
+				marker_pub -> publish(wind_point_inv);
 
                 notified = false;
 			}
@@ -251,7 +241,7 @@ int main( int argc, char** argv )
 			{
                 if (!notified)
                 {
-                    ROS_WARN("[fake_anemometer] Cannot read Wind Vector from simulated data.");
+                    RCLCPP_WARN(get_logger(), "[fake_anemometer] Cannot read Wind Vector from simulated data.");
                     notified = true;
                 }
 			}
@@ -259,7 +249,7 @@ int main( int argc, char** argv )
 
             //Publish RVIZ sensor pose (a sphere)
             /*
-			sensor.header.stamp = ros::Time::now();
+			sensor.header.stamp = now();
 			sensor.pose.position.x = x_pos;
 			sensor.pose.position.y = y_pos;
 			sensor.pose.position.z = z_pos;
@@ -268,7 +258,7 @@ int main( int argc, char** argv )
 
             // PUBLISH ANEMOMETER Stick
             /*
-			connector.header.stamp = ros::Time::now();
+			connector.header.stamp = now();
 			connector.scale.z = z_pos;
 			connector.pose.position.x = x_pos;
 			connector.pose.position.y = y_pos;
@@ -276,29 +266,27 @@ int main( int argc, char** argv )
             marker_pub.publish(connector);
             */
 		}
-
-		ros::spinOnce();
+		rclcpp::spin_some(shared_this);
 		r.sleep();
 	}
 }
 
-
 //Load Sensor parameters
-void loadNodeParameters(ros::NodeHandle private_nh)
+void SimulatedAnemometer::loadNodeParameters()
 {
 	//sensor_frame
-	private_nh.param<std::string>("sensor_frame", input_sensor_frame, "anemometer_link");
+	input_sensor_frame = declare_parameter<std::string>("sensor_frame", "anemometer_link");
 
 	//fixed frame
-	private_nh.param<std::string>("fixed_frame", input_fixed_frame, "map");
+	input_fixed_frame = declare_parameter<std::string>("fixed_frame", "map");
 	
 	//Noise
-	private_nh.param<double>("noise_std", noise_std, 0.1);
+	noise_std = declare_parameter<double>("noise_std", 0.1);
 
     //What ref system to use for publishing measurements
-    private_nh.param<bool>("use_map_ref_system", use_map_ref_system, false);
+    use_map_ref_system = declare_parameter<bool>("use_map_ref_system", false);
 	
-	ROS_INFO("[fake anemometer]: wind noise: %f", noise_std);
+	RCLCPP_INFO(get_logger(), "wind noise: %f", noise_std);
 	
 }
 

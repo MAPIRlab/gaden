@@ -120,7 +120,7 @@ void Player::run()
         if( (now() - time_last_loaded_file).seconds() >= 1/player_freq )
         {
             if (verbose)
-                RCLCPP_INFO(get_logger(), "[Player] Playing simulation iteration %i", iteration_counter);
+                RCLCPP_INFO(get_logger(), "Playing simulation iteration %i", iteration_counter);
             //Read Gas and Wind data from log_files
             load_all_data_from_logfiles(iteration_counter); //On the first time, we configure gas type, source pos, etc.
             display_current_gas_distribution();    //Rviz visualization
@@ -133,7 +133,7 @@ void Player::run()
                {
                    iteration_counter = loop_from_iteration;
                    if (verbose)
-                       RCLCPP_INFO(get_logger(), "[Player] Looping");
+                       RCLCPP_INFO(get_logger(), "Looping");
                }
             }
             time_last_loaded_file = now();
@@ -161,8 +161,8 @@ void Player::loadNodeParameters()
 
     if (verbose)
     {
-        RCLCPP_INFO(get_logger(), "[Player] player_freq %.2f", player_freq);
-        RCLCPP_INFO(get_logger(), "[Player] num_simulators:  %i", num_simulators);
+        RCLCPP_INFO(get_logger(), "player_freq %.2f", player_freq);
+        RCLCPP_INFO(get_logger(), "num_simulators:  %i", num_simulators);
     }
 
 
@@ -174,7 +174,7 @@ void Player::loadNodeParameters()
         std::string paramName = boost::str( boost::format("simulation_data_%i") % i);
         simulation_data[i] = declare_parameter<std::string>(paramName.c_str(), "");
         if (verbose)
-            RCLCPP_INFO(get_logger(), "[Player] simulation_data_%i:  %s", i, simulation_data[i].c_str());
+            RCLCPP_INFO(get_logger(), "simulation_data_%i:  %s", i, simulation_data[i].c_str());
     }
     
     // Initial iteration
@@ -191,7 +191,7 @@ void Player::loadNodeParameters()
 //Init
 void Player::init_all_simulation_instances()
 {
-    RCLCPP_INFO(get_logger(), "[Player] Initializing %i instances",num_simulators);
+    RCLCPP_INFO(get_logger(), "Initializing %i instances",num_simulators);
 
     // At least one instance is needed which loads the wind field data!
     sim_obj so(simulation_data[0], true, get_logger(), occupancyFile);
@@ -215,7 +215,7 @@ void Player::load_all_data_from_logfiles(int sim_iteration)
     for (int i=0;i<num_simulators;i++)
     {
         if (verbose)
-            RCLCPP_INFO(get_logger(), "[Player] Loading new data to instance %i (iteration %i)",i,sim_iteration);
+            RCLCPP_INFO(get_logger(), "Loading new data to instance %i (iteration %i)",i,sim_iteration);
         player_instances[i].load_data_from_logfile(sim_iteration);
     }
 }
@@ -621,7 +621,7 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
     }
     else
     {
-        RCLCPP_WARN(m_logger, "[Player] Request to provide Wind information when No Wind data is available!!");
+        RCLCPP_WARN(m_logger, "Request to provide Wind information when No Wind data is available!!");
     }
 }
 
@@ -629,7 +629,7 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
 void sim_obj::readEnvFile()
 {
     if(occupancyFile==""){
-        RCLCPP_ERROR(m_logger, " [GADEN_PLAYER] No occupancy file specified. Use the parameter \"occupancyFile\" to input the path to the OccupancyGrid3D.csv file.\n");
+        RCLCPP_ERROR(m_logger, "No occupancy file specified. Use the parameter \"occupancyFile\" to input the path to the OccupancyGrid3D.csv file.\n");
         return;
     }
     Env.resize(environment_cells_x * environment_cells_y * environment_cells_z);
