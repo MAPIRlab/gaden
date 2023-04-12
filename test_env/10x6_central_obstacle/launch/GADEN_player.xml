@@ -7,6 +7,12 @@
     <arg name="source_location_x" default="0.50" />
     <arg name="source_location_y" default="3.00" />
     <arg name="source_location_z" default="0.50" />
+
+
+    <node name="map_server" pkg="nav2_map_server" exec="map_server" args="$(find-pkg-share test_env)/$(var scenario)/occupancy.yaml">
+      <param name="frame_id" value="map"/>
+    </node>  
+
     
      ### NODE environment (for RVIZ visualization) ###
     <node pkg="gaden_environment" exec="environment" name="environment" output="screen">
@@ -101,16 +107,18 @@
         <param name="/fixed_frame" value="map"/>	        
     </node>
     
+  -->
 
     ### NODE Simulated Wind Sensor ###
 
-    <node pkg="tf2_ros" exec="static_transform_publisher" name="anemometer_broadcaster" args="3.0 3.0 0.4 0 0 0 map anemometer_frame 100" />   
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="anemometer_broadcaster" args="3.0 3.0 0.4 0.0 0.0 0.0 map anemometer_frame" />   
     <node pkg="simulated_anemometer" exec="simulated_anemometer" name="fake_anemometer" output="screen">	        
-        <param name="/sensor_frame" value="anemometer_frame" />
-        <param name="/fixed_frame" value="map"/>
+      <param name="sensor_frame" value="anemometer_frame" />
+      <param name="fixed_frame" value="map"/>
+      <param name="noise_std" value="0.1"/>
+      <param name="use_map_ref_system" value="false"/>
     </node>
 
-  -->
     ### RVIZ ###
     <node name="rviz" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share test_env)/$(var scenario)/launch/ros/gaden.rviz"/>
 </launch>

@@ -24,27 +24,60 @@ Panels:
 Visualization Manager:
   Class: ""
   Displays:
-    - Alpha: 0.5
-      Cell Size: 1
-      Class: rviz_default_plugins/Grid
-      Color: 160; 160; 164
+    - Class: rviz_default_plugins/MarkerArray
       Enabled: true
-      Line Style:
-        Line Width: 0.029999999329447746
-        Value: Lines
-      Name: Grid
-      Normal Cell Count: 0
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Plane: XY
-      Plane Cell Count: 10
-      Reference Frame: <Fixed Frame>
+      Name: Source
+      Namespaces:
+        gas_source_visualization: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /source_visualization
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: GasDistribution
+      Namespaces:
+        Gas_Dispersion: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /Gas_Distribution
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Wind_arrow
+      Namespaces:
+        measured_wind_inverted: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /WindSensor_display
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Environment_CAD
+      Namespaces:
+        part_0: true
+        part_1: true
+        part_2: true
+        part_3: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /environment_cad_visualization
       Value: true
   Enabled: true
   Global Options:
-    Background Color: 48; 48; 48
+    Background Color: 183; 194; 217
     Fixed Frame: map
     Frame Rate: 30
   Name: root
@@ -85,25 +118,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 10
+      Distance: 17.580135345458984
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: 4.590607643127441
+        Y: 1.736778974533081
+        Z: -0.1973227709531784
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.785398006439209
+      Pitch: 1.3097965717315674
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.785398006439209
+      Yaw: 1.5453985929489136
     Saved: ~
 Window Geometry:
   Displays:

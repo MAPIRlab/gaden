@@ -49,7 +49,7 @@ void SimulatedAnemometer::run()
 	visualization_msgs::msg::Marker wind_point;
 	visualization_msgs::msg::Marker wind_point_inv;
 	
-	sensor.header.frame_id = input_fixed_frame.c_str();
+	sensor.header.frame_id = input_fixed_frame;
 	sensor.ns = "sensor_visualization";	
 	sensor.action = visualization_msgs::msg::Marker::ADD;
 	sensor.type = visualization_msgs::msg::Marker::SPHERE;
@@ -62,7 +62,7 @@ void SimulatedAnemometer::run()
 	sensor.color.b = 1.0f;
 	sensor.color.a = 1.0;
 	
-	connector.header.frame_id = input_fixed_frame.c_str();
+	connector.header.frame_id = input_fixed_frame;
 	connector.ns  = "sensor_visualization";
 	connector.action = visualization_msgs::msg::Marker::ADD;
 	connector.type = visualization_msgs::msg::Marker::CYLINDER;
@@ -75,13 +75,13 @@ void SimulatedAnemometer::run()
 	connector.color.g = 1.0f;
 
 	// Init Marker: arrow to display the wind direction measured.
-	wind_point.header.frame_id = input_sensor_frame.c_str();
+	wind_point.header.frame_id = input_sensor_frame;
 	wind_point.action = visualization_msgs::msg::Marker::ADD;
 	wind_point.ns = "measured_wind";
 	wind_point.type = visualization_msgs::msg::Marker::ARROW;
 
 	// Init Marker: arrow to display the inverted wind direction measured.	
-	wind_point_inv.header.frame_id = input_sensor_frame.c_str();
+	wind_point_inv.header.frame_id = input_sensor_frame;
 	wind_point_inv.action = visualization_msgs::msg::Marker::ADD;
 	wind_point_inv.ns = "measured_wind_inverted";
 	wind_point_inv.type = visualization_msgs::msg::Marker::ARROW;
@@ -102,7 +102,7 @@ void SimulatedAnemometer::run()
 		//Get pose of the sensor in the /map reference
 		try
 		{
-		    anemometer_transform_map = tf_buffer->lookupTransform(input_fixed_frame.c_str(), input_sensor_frame.c_str(),
+		    anemometer_transform_map = tf_buffer->lookupTransform(input_fixed_frame, input_sensor_frame,
 								   rclcpp::Time(0));
 		}
 		catch (tf2::TransformException ex)
@@ -150,6 +150,7 @@ void SimulatedAnemometer::run()
                     {
                         geometry_msgs::msg::Vector3Stamped downwind_map;
                         {
+                            downwind_map.header.frame_id = input_fixed_frame;
                             downwind_map.vector.x = u; downwind_map.vector.y = v; downwind_map.vector.z = w;
                         }
                         auto downwind_sensor = tf_buffer->transform(downwind_map, input_sensor_frame);
@@ -178,9 +179,9 @@ void SimulatedAnemometer::run()
                 //------------------------------
 				anemo_msg.header.stamp = now();
                 if (use_map_ref_system)
-                    anemo_msg.header.frame_id = input_fixed_frame.c_str();
+                    anemo_msg.header.frame_id = input_fixed_frame;
                 else
-                    anemo_msg.header.frame_id = input_sensor_frame.c_str();
+                    anemo_msg.header.frame_id = input_sensor_frame;
 
 				anemo_msg.sensor_label = "Fake_Anemo";
                 anemo_msg.wind_direction = wind_direction;  //rad
