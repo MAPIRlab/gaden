@@ -1,22 +1,22 @@
 #pragma once
-#include <ros/ros.h>
-#include <vector>
+#include <rclcpp/rclcpp.hpp>
 
 
-#include <tf/tf.h>
-#include "tf2_ros/transform_listener.h"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include <tf2_ros/transform_listener.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <visualization_msgs/msg/marker.hpp>
 
-#include <visualization_msgs/Marker.h>
 
-#include <gaden_environment/Occupancy.h>
-#include <gaden_player/GasPosition.h>
-#include <olfaction_msgs/gas_sensor.h>
+#include <gaden_environment/srv/occupancy.hpp>
+#include <gaden_player/srv/gas_position.hpp>
+#include <olfaction_msgs/msg/gas_sensor.hpp>
 #include "glm/glm.hpp"
 
-#include "DDA.h"
+#include <DDA.h>
+#include <vector>
 
-class TDLAS
+class TDLAS : public rclcpp::Node
 {
 public:
     TDLAS();
@@ -25,11 +25,10 @@ public:
     void run();
 
 private:
-    ros::NodeHandle m_nodeHandle;
-    ros::Publisher m_readingsPub;
-    ros::Publisher m_markerPub;
-    ros::ServiceClient m_playerClient;
-    ros::Subscriber m_mapSubscriber;
+    rclcpp::Publisher<olfaction_msgs::msg::GasSensor>::SharedPtr m_readingsPub{nullptr};
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr m_markerPub{nullptr};
+    rclcpp::Client<gaden_player::srv::GasPosition>::SharedPtr m_playerClient{nullptr};
+    rclcpp::Subscription<gaden_environment::srv::Occupancy>::SharedPtr m_mapSubscriber{nullptr};
 
     bool m_verbose;
     std::string m_fixedFrame;
@@ -46,8 +45,32 @@ private:
 
     struct PositionAndDirection
     {
-        geometry_msgs::PointStamped position;
-        geometry_msgs::Vector3Stamped forward;
+        geometry_msgs::msg::Transform pose;
+        tf2::Vector3 forward()
+        { 
+            tf2::Quaternion quat;
+            tf2::fromMsg(pose.rotation, quat);
+            return tf2::quatRotate(quat, tf2::Vector3{1,0,0} ); 
+        }
+
+        static geometry_msgs::msg::Point vec_to_point(const geometry_msgs::msg::Vector3& vec)
+        {
+            geometry_msgs::msg::Point p;
+            p.x = vec.x;
+            p.y = vec.y;
+            p.z = vec.z;
+            
+            return p;
+        }
+        static geometry_msgs::msg::Point vec_to_point(const tf2::Vector3& vec)
+        {
+            geometry_msgs::msg::Point p;
+            p.x = vec.x();
+            p.y = vec.y();
+            p.z = vec.z();
+            
+            return p;
+        }
     };
     PositionAndDirection m_poseInFixedFrame;
     void updatePoseInFixedFrame();

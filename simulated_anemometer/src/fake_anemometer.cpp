@@ -17,6 +17,8 @@ int main( int argc, char** argv )
 
     std::shared_ptr<SimulatedAnemometer> anemometer = std::make_shared<SimulatedAnemometer>();
 	anemometer->run();
+    
+    return 0;
 }
 
 SimulatedAnemometer::SimulatedAnemometer() :rclcpp::Node("Simulated_anemometer")

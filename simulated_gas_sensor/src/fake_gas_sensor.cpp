@@ -16,6 +16,8 @@ int main( int argc, char** argv )
     rclcpp::init(argc, argv);
     std::shared_ptr<FakeGasSensor> node = std::make_shared<FakeGasSensor>();
     node->run();
+    
+    return 0;
 }
 
 FakeGasSensor::FakeGasSensor() : rclcpp::Node("Fake_Gas_Sensor")

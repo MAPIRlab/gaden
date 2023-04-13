@@ -2,41 +2,40 @@
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "tdlas");
-    TDLAS tdlas;
-    tdlas.run();
+    rclcpp::init(argc, argv);
+
+    std::shared_ptr<TDLAS> tdlas = std::make_shared<TDLAS>();
+    tdlas->run();
     
     return 0;
 }
 
-TDLAS::TDLAS()
+TDLAS::TDLAS() : rclcpp::Node("Simulated_tdlas")
 {
-    ros::NodeHandle privateNH("~");
-
     //read params from launchfile
-    m_measurementFrequency = privateNH.param<float>("measurementFrequency", 2);
-    m_rayMarchResolution = privateNH.param<float>("rayMarchResolution", 0.1);
-    m_maxRayDistance = privateNH.param<float>("maxRayDistance", 10);
+    m_measurementFrequency = declare_parameter<float>("measurementFrequency", 2);
+    m_rayMarchResolution = declare_parameter<float>("rayMarchResolution", 0.1);
+    m_maxRayDistance = declare_parameter<float>("maxRayDistance", 10);
 
-    m_verbose = privateNH.param<bool>("verbose", false);
+    m_verbose = declare_parameter<bool>("verbose", false);
     
-    m_fixedFrame = privateNH.param<std::string>("fixedFrame", "map");
-    m_sensor_frame = privateNH.param<std::string>("sensorFrame", "tdlas_frame");
+    m_fixedFrame = declare_parameter<std::string>("fixedFrame", "map");
+    m_sensor_frame = declare_parameter<std::string>("sensorFrame", "tdlas_frame");
 
-    m_readingsPub = m_nodeHandle.advertise<olfaction_msgs::gas_sensor>("/tdlas/reading", 100);
-    m_markerPub = m_nodeHandle.advertise<visualization_msgs::Marker>("/tdlas/arrow", 100);
-    m_playerClient = m_nodeHandle.serviceClient<gaden_player::GasPosition>("/odor_value");
+    m_readingsPub = create_publisher<olfaction_msgs::msg::GasSensor>("/tdlas/reading", 100);
+    m_markerPub = create_publisher<visualization_msgs::msg::Marker>("/tdlas/arrow", 100);
+    m_playerClient = create_client<gaden_player::srv::GasPosition>("/odor_value");
 }
 
 void TDLAS::run()
 {
-
+    auto shared_this = shared_from_this();
     getEnvironment();
 
-    ros::Rate rate(m_measurementFrequency);
-    while(ros::ok())
+    rclcpp::Rate rate(m_measurementFrequency);
+    while(rclcpp::ok())
     {
-        ros::spinOnce();
+        rclcpp::spin_some(shared_this);
 
         updatePoseInFixedFrame();
         double measured = takeMeasurement();        
@@ -48,34 +47,45 @@ void TDLAS::run()
 
 void TDLAS::getEnvironment()
 {
-    ros::ServiceClient client = m_nodeHandle.serviceClient<gaden_environment::Occupancy>("gaden_environment/occupancyMap3D");
 
-    gaden_environment::OccupancyRequest request;
-    gaden_environment::OccupancyResponse response;
-    
-    ros::Rate r(1);
-    while(!client.call(request, response))
+    gaden_environment::srv::Occupancy::Response::SharedPtr response{nullptr};
     {
-        ROS_INFO("[TDLAS] WAITING FOR GADEN_ENVIRONMENT/OCCUPANCY SERVICE");
-        r.sleep();
+        auto client = create_client<gaden_environment::srv::Occupancy>("gaden_environment/occupancyMap3D");
+        auto request = std::make_shared<gaden_environment::srv::Occupancy::Request>();
+        rclcpp::Rate wait_rate(1);
+        bool done = false;
+        while(!done)
+        {
+            auto result = client->async_send_request(request);
+            if (rclcpp::spin_until_future_complete(shared_from_this(), result) == rclcpp::FutureReturnCode::SUCCESS)
+            {
+                response = result.get();
+                done = true;
+            }
+            else
+            {
+                RCLCPP_INFO(get_logger(), "WAITING FOR GADEN_ENVIRONMENT/OCCUPANCY SERVICE");
+                wait_rate.sleep();
+            }
+        }
     }
 
-    double resoultionRatio = response.resolution / m_rayMarchResolution;
-    int numCellsX = response.numCellsX * resoultionRatio;
-    int numCellsY = response.numCellsY * resoultionRatio;
-    int numCellsZ = response.numCellsZ * resoultionRatio;
+    double resoultionRatio = response->resolution / m_rayMarchResolution;
+    int num_cells_x = response->num_cells_x * resoultionRatio;
+    int num_cells_y = response->num_cells_y * resoultionRatio;
+    int num_cells_z = response->num_cells_z * resoultionRatio;
     
-    m_mapOrigin.x = response.origin.x;
-    m_mapOrigin.y = response.origin.y;
-    m_mapOrigin.z = response.origin.z;
+    m_mapOrigin.x = response->origin.x;
+    m_mapOrigin.y = response->origin.y;
+    m_mapOrigin.z = response->origin.z;
     
-    m_map.resize(numCellsX, std::vector<std::vector<bool>>(numCellsY, std::vector<bool>(numCellsZ) ) );
+    m_map.resize(num_cells_x, std::vector<std::vector<bool>>(num_cells_y, std::vector<bool>(num_cells_z) ) );
 
 
     auto cellFree = [&response, resoultionRatio](int argI, int argJ, int argK)
     {
-        int nx = response.numCellsX;
-        int ny = response.numCellsY;
+        int nx = response->num_cells_x;
+        int ny = response->num_cells_y;
         bool cellIsFree = true;
         for(int i = argI/resoultionRatio; i<(argI+1)/resoultionRatio; i++)
         {
@@ -83,7 +93,7 @@ void TDLAS::getEnvironment()
             {
                 for(int k = argK/resoultionRatio; k<(argK+1)/resoultionRatio; k++)
                 {
-                    int value = response.occupancy[i + j*nx + k*nx*ny];
+                    int value = response->occupancy[i + j*nx + k*nx*ny];
                     cellIsFree = cellIsFree &&  value == 0;
                 }
             }
@@ -106,23 +116,23 @@ void TDLAS::getEnvironment()
 
 void TDLAS::updatePoseInFixedFrame()
 {
-    static tf2_ros::Buffer buffer;
+    static tf2_ros::Buffer buffer(get_clock());
     static tf2_ros::TransformListener listener(buffer);
 
-    geometry_msgs::PointStamped locationInSensorFrame;
-    tf::pointStampedTFToMsg( tf::Stamped<tf::Point>({0,0,0}, ros::Time(0), m_sensor_frame), locationInSensorFrame);
-    
-    geometry_msgs::Vector3Stamped directionInSensorFrame;
-    tf::vector3StampedTFToMsg( tf::Stamped<tf::Vector3>({1,0,0}, ros::Time(0), m_sensor_frame), directionInSensorFrame );
+    tf2::Stamped<tf2::Transform> poseInSensorFrame(
+        tf2::Transform(tf2::Quaternion::getIdentity(), {0,0,0}),
+        tf2::get_now(),
+        m_sensor_frame
+    );
+    geometry_msgs::msg::TransformStamped poseInSensorFrame_msg = tf2::toMsg(poseInSensorFrame);
 
     try{
-        geometry_msgs::TransformStamped transform = buffer.lookupTransform(m_fixedFrame, m_sensor_frame, ros::Time(0));
-        m_poseInFixedFrame.position = buffer.transform(locationInSensorFrame, m_fixedFrame);
-        m_poseInFixedFrame.forward = buffer.transform(directionInSensorFrame, m_fixedFrame);
+        geometry_msgs::msg::TransformStamped poseInFixedFrame_msg = buffer.transform(poseInSensorFrame_msg, m_fixedFrame);
+        m_poseInFixedFrame.pose = poseInFixedFrame_msg.transform;
     }
     catch(const std::exception& e)
     {
-        ROS_ERROR("Exception transforming from sensor frame to map frame: %s", e.what());
+        RCLCPP_ERROR(get_logger(), "Exception transforming from sensor frame to map frame: %s", e.what());
     }
 }
 
@@ -130,14 +140,14 @@ double TDLAS::takeMeasurement()
 {
     //run the DDA algorithm
     glm::vec3 rayOrigin;
-    rayOrigin.x = m_poseInFixedFrame.position.point.x;
-    rayOrigin.y = m_poseInFixedFrame.position.point.y;
-    rayOrigin.z = m_poseInFixedFrame.position.point.z;
+    rayOrigin.x = m_poseInFixedFrame.pose.translation.x;
+    rayOrigin.y = m_poseInFixedFrame.pose.translation.y;
+    rayOrigin.z = m_poseInFixedFrame.pose.translation.z;
 
     glm::vec3 rayDirection;
-    rayDirection.x = m_poseInFixedFrame.forward.vector.x;
-    rayDirection.y = m_poseInFixedFrame.forward.vector.y;
-    rayDirection.z = m_poseInFixedFrame.forward.vector.z;
+    rayDirection.x = m_poseInFixedFrame.forward().x();
+    rayDirection.y = m_poseInFixedFrame.forward().y();
+    rayDirection.z = m_poseInFixedFrame.forward().z();
 
     static std::function<bool(bool)> identity = [](const bool& b){return b;};
     DDA::_3D::RayMarchInfo rayData =  DDA::_3D::marchRay<bool>(rayOrigin, rayDirection, m_maxRayDistance, 
@@ -153,35 +163,37 @@ double TDLAS::takeMeasurement()
 
 
     // Actually get the measurement
-    gaden_player::GasPosition srv;
+    gaden_player::srv::GasPosition::Request::SharedPtr request;
     for(const auto& pair : rayData.lengthInCell)
     {
         glm::vec3 coords = glm::vec3(pair.first) * m_rayMarchResolution + m_mapOrigin;
-        srv.request.x.push_back(coords.x);
-        srv.request.y.push_back(coords.y);
-        srv.request.z.push_back(coords.z);
+        request->x.push_back(coords.x);
+        request->y.push_back(coords.y);
+        request->z.push_back(coords.z);
     }
 
     double totalMeasured = 0;
-    if(m_playerClient.call(srv))
+    auto future = m_playerClient->async_send_request(request);
+    if(rclcpp::spin_until_future_complete(shared_from_this(), future) == rclcpp::FutureReturnCode::SUCCESS)
     {
-        for( int i=0; i<srv.response.positions.size(); i++)
+        auto response = future.get();
+        for( int i=0; i<response->positions.size(); i++)
         {
-            for(int g=0; g<srv.response.gas_type.size(); g++)
+            for(int g=0; g<response->gas_type.size(); g++)
             {
                 //TODO add a hashmap that maps gas type to strength of sensor response for other gases
-                if(srv.response.gas_type[g] == "methane")
+                if(response->gas_type[g] == "methane")
                 {
-                    totalMeasured += srv.response.positions[i].concentration[g] * rayData.lengthInCell[i].second;
+                    totalMeasured += response->positions[i].concentration[g] * rayData.lengthInCell[i].second;
                 }
             }
         }
     }
     else
-        ROS_ERROR("[TDLAS] Can't read concentrations from gaden_player");
+        RCLCPP_ERROR(get_logger(), "[TDLAS] Can't read concentrations from gaden_player");
 
     if(m_verbose)
-        ROS_INFO("[TDLAS] %f ppm x m", totalMeasured);
+        RCLCPP_INFO(get_logger(), "[TDLAS] %f ppm x m", totalMeasured);
 
     return totalMeasured;
 }
@@ -189,26 +201,26 @@ double TDLAS::takeMeasurement()
 void TDLAS::publish(double measured)
 {
     {
-        olfaction_msgs::gas_sensor msg;
+        olfaction_msgs::msg::GasSensor msg;
     
         msg.header.frame_id = m_sensor_frame;
-        msg.header.stamp = ros::Time::now();
+        msg.header.stamp = now();
 
         msg.technology = msg.TECH_TDLAS;
         msg.mpn = msg.MPN_NOT_VALID;
         msg.manufacturer = msg.MANU_UNKNOWN;
         
         msg.raw = measured;
-        msg.raw_units = msg.UNITS_PPMxM;
+        msg.raw_units = msg.UNITS_PPMXM;
         msg.raw_air = 0;
         
-        m_readingsPub.publish(msg);
+        m_readingsPub->publish(msg);
     }
 
     {
-        visualization_msgs::Marker marker;
+        visualization_msgs::msg::Marker marker;
         marker.header.frame_id = m_fixedFrame;
-        marker.header.stamp = ros::Time::now();
+        marker.header.stamp = now();
         marker.type = marker.ARROW;
         marker.scale.x = 0.1;
         marker.scale.y = 0.2;
@@ -217,17 +229,19 @@ void TDLAS::publish(double measured)
         marker.color.r = 1;
         marker.color.a = 1;
 
-        marker.points.push_back(m_poseInFixedFrame.position.point);
+        marker.points.push_back( PositionAndDirection::vec_to_point( m_poseInFixedFrame.pose.translation) );
 
-        geometry_msgs::Point endPoint;
-        tf::pointTFToMsg(tf::Point(
-            m_endPointLastMeasurement.x, 
-            m_endPointLastMeasurement.y,
-            m_endPointLastMeasurement.z
-        ), endPoint);
+        geometry_msgs::msg::Point endPoint = PositionAndDirection::vec_to_point(
+            tf2::Vector3(
+                m_endPointLastMeasurement.x, 
+                m_endPointLastMeasurement.y,
+                m_endPointLastMeasurement.z
+            )
+        );
+
         marker.points.push_back(endPoint);
 
-        m_markerPub.publish(marker);
+        m_markerPub->publish(marker);
     }
 }
 

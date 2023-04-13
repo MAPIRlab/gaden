@@ -5,41 +5,28 @@ project(simulated_tdlas)
 
 set(CMAKE_BUILD_TYPE "None") 
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -g -O3 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++14 -g -O3 ${CMAKE_CXX_FLAGS}")
 
-# Load catkin and all dependencies required for this package
-# TODO: remove all from COMPONENTS that are not catkin packages.
-find_package(
-	catkin REQUIRED COMPONENTS
-	roscpp
-	visualization_msgs
-	std_msgs
-	nav_msgs
-	olfaction_msgs
-	tf
-	pcl_ros
-	gaden_player
-)
-catkin_package(
-	DEPENDS 
-	roscpp
-	visualization_msgs
-	std_msgs
-	olfaction_msgs
-	nav_msgs
-	tf
-	gaden_player
-)
-find_package(OpenCV)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(olfaction_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+
+find_package(geometry_msgs REQUIRED)
+find_package(gaden_player REQUIRED)
+find_package(gaden_environment REQUIRED)
 
 
 include_directories(
 	include 
 	third_party/DDA/include
 	third_party/DDA/third_party/glm
-	${catkin_INCLUDE_DIRS}
-	${OpenCV_INCLUDE_DIRS}
 )
+
 set(SOURCES_FILES 
 	src/simulated_tdlas.cpp
 )
@@ -47,10 +34,28 @@ set(SOURCES_FILES
 add_subdirectory(third_party/DDA/third_party/glm)
 
 add_executable(simulated_tdlas  ${SOURCES_FILES})
-add_dependencies(simulated_tdlas ${olfaction_msgs_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+
+ament_target_dependencies(simulated_tdlas
+    rclcpp
+    olfaction_msgs
+    visualization_msgs
+    geometry_msgs
+    tf2
+    tf2_ros
+    tf2_geometry_msgs
+    gaden_player
+    gaden_environment
+) 
 
 target_link_libraries(simulated_tdlas
-   	${catkin_LIBRARIES}
-	${OpenCV_LIBS}
 	glm
 )
+
+
+install(
+  TARGETS simulated_tdlas
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+ament_package()
