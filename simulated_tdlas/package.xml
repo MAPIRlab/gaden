@@ -24,6 +24,9 @@
   <build_depend>gaden_player</build_depend>
   <exec_depend>gaden_player</exec_depend>
 
+  <build_depend>gaden_environment</build_depend>
+  <exec_depend>gaden_environment</exec_depend>
+
   <export>
     <build_type>ament_cmake</build_type>
   </export>
