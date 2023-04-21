@@ -7,12 +7,6 @@
     <arg name="source_location_x" default="0.50" />
     <arg name="source_location_y" default="3.00" />
     <arg name="source_location_z" default="0.50" />
-
-
-    <node name="map_server" pkg="nav2_map_server" exec="map_server" args="$(find-pkg-share test_env)/$(var scenario)/occupancy.yaml">
-      <param name="frame_id" value="map"/>
-    </node>  
-
     
      ### NODE environment (for RVIZ visualization) ###
     <node pkg="gaden_environment" exec="environment" name="environment" output="screen">
