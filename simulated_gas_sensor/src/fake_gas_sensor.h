@@ -2,6 +2,7 @@
 #include <std_msgs/msg/float32.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
 #include <olfaction_msgs/msg/gas_sensor.hpp>
 #include <gaden_player/srv/gas_position.hpp>
 

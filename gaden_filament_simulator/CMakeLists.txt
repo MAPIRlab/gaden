@@ -3,7 +3,7 @@ project(gaden_filament_simulator)
 
 set(CMAKE_BUILD_TYPE "None")
 
-set(CMAKE_CXX_FLAGS "-std=c++14 -fopenmp ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp ${CMAKE_CXX_FLAGS}")
 set(DEBUG OFF)
 
 if(DEBUG)

@@ -3,7 +3,7 @@ project(gaden_environment)
 
 ##################
 set(CMAKE_BUILD_TYPE "None") 
-set(CMAKE_CXX_FLAGS "-std=c++14 -g -O2 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++17 -g -O2 ${CMAKE_CXX_FLAGS}")
 
 
 find_package(ament_cmake REQUIRED)
@@ -33,8 +33,14 @@ ament_target_dependencies(environment
 ) 
 
 # dependency for self-defined messages
-rosidl_target_interfaces(environment
-  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+if("${ROS_DISTRO}" STREQUAL "foxy")
+  rosidl_target_interfaces(environment
+    ${PROJECT_NAME} "rosidl_typesupport_cpp")
+else()
+  rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+  target_link_libraries(environment "${cpp_typesupport_target}") 
+endif()
 
   
 install(

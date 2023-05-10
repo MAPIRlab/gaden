@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(simulated_anemometer)
 
 set(CMAKE_BUILD_TYPE "None") 
-set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS}")
 
 set(DEBUG OFF)
 

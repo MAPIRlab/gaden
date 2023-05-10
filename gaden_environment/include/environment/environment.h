@@ -3,7 +3,6 @@
 #include <std_msgs/msg/bool.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
-#include <resource_retriever/retriever.h>
 #include <cmath>
 #include <vector>
 #include <fstream>

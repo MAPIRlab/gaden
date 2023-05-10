@@ -3,7 +3,7 @@ project(gaden_preprocessing)
 
 set(CMAKE_BUILD_TYPE "None")
 
-set(CMAKE_CXX_FLAGS "-std=c++14 -fopenmp ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp ${CMAKE_CXX_FLAGS}")
 set(DEBUG OFF)
 
 if(DEBUG)
@@ -17,6 +17,7 @@ endif(DEBUG)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(tf2 REQUIRED)
 find_package(std_msgs REQUIRED)
 
 
@@ -29,6 +30,7 @@ add_executable(preprocessing src/preprocessing.cpp)
 
 ament_target_dependencies(preprocessing 
   rclcpp
+  tf2
   std_msgs
 )
 

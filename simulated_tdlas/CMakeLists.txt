@@ -5,7 +5,7 @@ project(simulated_tdlas)
 
 set(CMAKE_BUILD_TYPE "None") 
 
-set(CMAKE_CXX_FLAGS "-std=c++14 -g -O3 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++17 -g -O3 ${CMAKE_CXX_FLAGS}")
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
