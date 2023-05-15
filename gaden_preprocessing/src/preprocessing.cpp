@@ -483,10 +483,15 @@ void Gaden_preprocessing::parse(std::string filename, cell_state value_to_write)
         normals.resize(num_triangles);
 
         for(int i = 0; i < num_triangles; i++){
-            infile.read((char*) &normals[i], 3 * sizeof(float)); //read the normal vector
+            infile.read((char*) &normals[i], 3 * sizeof(uint32_t)); //read the normal vector
             
-            for(int j=0; j<3;j++){
-                infile.read((char*) &triangles[i][j], 3 * sizeof(float)); //read the point
+            for(int j=0; j<3;j++)
+            {
+                std::array<float, 3> vec;
+                infile.read((char*) &vec, 3 * sizeof(uint32_t)); //read the point
+                triangles[i][j].setX(vec[0]);
+                triangles[i][j].setY(vec[1]);
+                triangles[i][j].setZ(vec[2]);
             }
 
             infile.seekg(sizeof(uint16_t), std::ios_base::cur); //skip the attribute data
