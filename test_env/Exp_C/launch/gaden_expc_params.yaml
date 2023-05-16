@@ -65,7 +65,7 @@ gaden_filament_simulator:
     source_position_z: $(var source_location_z)            ### (m)
 
     save_results: 1                    #1=true, 0=false
-    restuls_time_step: 0.5             #(sec) Time increment between saving state to file
+    results_time_step: 0.5             #(sec) Time increment between saving state to file
     results_min_time: 0.0              #(sec) Time to start saving results to file
     results_location: "$(var pkg_dir)/$(var scenario)/gas_simulations/$(var simulation)"
 
