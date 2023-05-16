@@ -121,6 +121,7 @@ CFilamentSimulator::CFilamentSimulator()
 	filament_marker.type = visualization_msgs::msg::Marker::POINTS;
 	filament_marker.color.a = 1;
 	
+    last_saved_timestamp = -__DBL_MAX__;
 }
 
 
@@ -156,7 +157,6 @@ void CFilamentSimulator::loadNodeParameters()
 
     // Time increment between Gas snapshots (sec)
 	time_step = declare_parameter<double>("time_step", 1.0);
-
     // Number of iterations to carry on = max_sim_time/time_step
 	numSteps = floor(max_sim_time/time_step);
 
@@ -900,6 +900,7 @@ bool eq (double a, double b){
 void CFilamentSimulator::save_state_to_file()
 {
 	last_saved_step++;
+    last_saved_timestamp = sim_time;
     //Configure file name for saving the current snapshot
     std::string out_filename = boost::str( boost::format("%s/iteration_%i") % results_location % last_saved_step);
 	
@@ -986,7 +987,7 @@ int main(int argc, char **argv)
 	//--------------	
 	while (rclcpp::ok() && (sim->current_simulation_step < sim->numSteps) )
 	{
-		//RCLCPP_INFO(get_logger(), "[filament] Simulating step %i (sim_time = %.2f)", sim->current_simulation_step, sim->sim_time);
+		//RCLCPP_INFO(sim->get_logger(), "[filament] Simulating step %i (sim_time = %.2f)", sim->current_simulation_step, sim->sim_time);
 
         //0. Load wind snapshot (if necessary and availabe)
         if ( sim->sim_time - sim->sim_time_last_wind >= sim->windTime_step)
@@ -1022,9 +1023,9 @@ int main(int argc, char **argv)
 		//4. Save data (if necessary)
         if ( (sim->save_results==1) && (sim->sim_time>=sim->results_min_time) )
         {
-            if ( floor(sim->sim_time/sim->results_time_step) != sim->last_saved_step ){
+            double time_next_save = sim->results_time_step + sim->last_saved_timestamp;
+            if ( sim->sim_time > time_next_save || std::abs(sim->sim_time-time_next_save)<0.01)
 			    sim->save_state_to_file();
-			}
 	    }
 
 		//5. Update Simulation state

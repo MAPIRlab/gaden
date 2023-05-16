@@ -39,6 +39,7 @@ public:
     int         current_simulation_step;
     double      sim_time;
     int         last_saved_step;
+    double      last_saved_timestamp;
     
     //Parameters
     bool        verbose;
