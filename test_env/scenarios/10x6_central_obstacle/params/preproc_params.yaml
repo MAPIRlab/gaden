@@ -1,0 +1,28 @@
+# PARAMETERS FOR GEADEN PREPROCESSING NODE #
+# ======================================== #
+gaden_preprocessing:
+  ros__parameters:
+    # Cell size
+    cell_size: 0.1
+
+    # CAD models of the enviroment (.stl)
+    number_of_models: 2
+    model_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_walls.stl"
+    model_1: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_central_obstacle.stl"
+
+    # CAD model of the outlets (.stl)
+    number_of_outlet_models: 2
+    outlets_model_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_door_right.stl"
+    outlets_model_1: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_door_left.stl"
+    
+    # 3D Location of a point in free-space
+    empty_point_x: 1.0      ### (m)
+    empty_point_y: 1.0      ### (m)
+    empty_point_z: 0.5      ### (m)
+    
+    # Wind Data (the node will append _i.csv to the name that is specified here)
+    uniformWind: false
+    wind_files: "$(var pkg_dir)/scenarios/$(var scenario)/wind_simulations/$(var simulation)"
+    
+    # Where to write the output files
+    output_path: "$(var pkg_dir)/scenarios/$(var scenario)"

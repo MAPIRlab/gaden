@@ -1,3 +1,10 @@
+"""
+    Launch file to run the GADEN-preprocessing node.
+    This is mandatory before running GADEN simulator.
+    From the CAD models in the selected scenario, it generates a 3D and 2D occupancy gridmap
+    that will be employed by GADEN and nav2 to simulate dispersion and navigation. Moreover parses
+    the 3D cloud of wind-vectors obtained from CFD, to a grid-based format.
+"""
 import os
 
 from launch import LaunchDescription
@@ -13,12 +20,17 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     
-    # Get the launch directory
+    # SET MAIN PARAMS HERE #
+    #======================#
+    scenario = 'Exp_C'
+    simulation = '1,2,3-5,6'
+    #======================#
+
+    # Get the pkg directory
     pkg_dir = get_package_share_directory('test_env')
 
-    # Config files
-    params_yaml_file = os.path.join(pkg_dir, 'Exp_C', 'launch', 'gaden_preproc_params.yaml')
-    
+    # Params file
+    params_yaml_file = os.path.join(pkg_dir, 'scenarios', scenario, 'params', 'preproc_params.yaml')
 
     logger = LaunchConfiguration("log_level")    
     return LaunchDescription([
@@ -32,14 +44,19 @@ def generate_launch_description():
             description="Logging level",
             ),
         DeclareLaunchArgument(
-            "pkg_dir", default_value=pkg_dir,
+            "pkg_dir", default_value=[pkg_dir],
             description="full path to this pkg",
             ),
         DeclareLaunchArgument(
-            "scenario", default_value=["Exp_C"],
-            description="scenario to load",
-            ),       
+            "scenario", default_value=[scenario],
+            description="scenario to preprocess",
+            ),
+        DeclareLaunchArgument(
+            "simulation", default_value=[simulation],
+            description="wind vector-field to load",
+            ),
 
+        #==========
         # NODES
         #==========
 

@@ -86,6 +86,19 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /source_visualization
       Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Gas Dispersal
+      Namespaces:
+        Gas_Dispersion: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /Gas_Distribution
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -139,18 +152,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 5.361694812774658
-        Y: 5.250325679779053
-        Z: -0.750066339969635
+        X: 3.818267822265625
+        Y: 5.437661647796631
+        Z: -0.7498818635940552
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.1747968196868896
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.710433006286621
+      Yaw: 4.71540641784668
     Saved: ~
 Window Geometry:
   Displays:
@@ -168,5 +181,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1137
-  X: 216
-  Y: 156
+  X: 259
+  Y: 140

@@ -1,3 +1,13 @@
+"""
+    Launch file to run GADEN_player, a node in charge of playing back 
+    the gas dispersal generated with GADEN, offering visualization, and
+    simulated sensors to access the gas concentration and wind vector.
+
+    Parameters:
+        @param scenario - The scenario where dispersal takes place
+        @param simulation - The wind flow actuating in the scenario
+        @param source_(xyz) - The 3D position of the release point
+"""
 import os
 
 from launch import LaunchDescription
@@ -13,16 +23,20 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     
-    # Variables
-    pkg_dir = get_package_share_directory('test_env')
+    # SET MAIN PARAMS HERE #
+    # ==================== #
     scenario = 'Exp_C'
     simulation = '1,2,3-5,6'
-    source_x = '5.00'       # set 2 decimals
-    source_y = '5.00'       # set 2 decimals
+    source_x = '2.50'       # set 2 decimals
+    source_y = '8.50'       # set 2 decimals
     source_z = '0.50'       # set 2 decimals
+    # ==================== #
+    
+    # Get the pkg directory
+    pkg_dir = get_package_share_directory('test_env')
 
-    # Param files
-    params_yaml_file = os.path.join(pkg_dir, scenario, 'launch', 'gaden_expc_params.yaml')    
+    # Params file
+    params_yaml_file = os.path.join(pkg_dir, 'scenarios', scenario, 'params', 'gaden_params.yaml')
 
     logger = LaunchConfiguration("log_level")    
     return LaunchDescription([
@@ -60,9 +74,9 @@ def generate_launch_description():
             description="pose.x of the source",
             ),
     
-
+        #========
         # NODES
-        #==========
+        #========
 
         # RVIZ
         Node(
@@ -71,7 +85,7 @@ def generate_launch_description():
             name='rviz2',
             output='screen',
             prefix="xterm -hold -e",
-            arguments=['-d' + os.path.join(pkg_dir, scenario, 'launch', 'ros', 'gaden.rviz')]
+            arguments=['-d' + os.path.join(pkg_dir, 'launch', 'gaden.rviz')]
             ),
 
         # gaden_environment (for RVIZ visualization)
@@ -101,7 +115,7 @@ def generate_launch_description():
             name='map_server',
             output='screen',
             parameters=[{'use_sim_time': True},
-                        {'yaml_filename' : os.path.join(pkg_dir, scenario, 'occupancy.yaml')}]
+                        {'yaml_filename' : os.path.join(pkg_dir, 'scenarios', scenario, 'occupancy.yaml')}]
             ),
         # LIFECYCLE MANAGER
         Node(
@@ -109,7 +123,7 @@ def generate_launch_description():
             executable='lifecycle_manager',
             name='lifecycle_manager_localization',
             output='screen',
-            parameters=[{'use_sim_time': False},
+            parameters=[{'use_sim_time': True},
                         {'autostart': True},
                         {'node_names': ['map_server']}
                        ]
