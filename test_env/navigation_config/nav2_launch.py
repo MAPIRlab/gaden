@@ -16,7 +16,7 @@ import os
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, Command
 from launch_ros.actions import Node
 from nav2_common.launch import RewrittenYaml
 from ament_index_python.packages import get_package_share_directory
@@ -28,19 +28,31 @@ def generate_launch_description():
 
     # common variables
     use_sim_time = True
-    remappings=[]
+    remappings = [('/tf', 'tf'),
+                  ('/tf_static', 'tf_static')]
     params_yaml_file = os.path.join(my_dir, 'navigation_config', 'nav2_params.yaml')# DeclareLaunchArgument('nav_params_yaml', default_value=os.path.join(my_dir, 'navigation_config', 'nav2_params.yaml') )
     map_file = os.path.join(my_dir, '10x6_central_obstacle', 'occupancy.yaml') #DeclareLaunchArgument('map_yaml', default_value=os.path.join(my_dir, '10x6_central_obstacle', 'occupancy.yaml')) #required
     
     logger = LaunchConfiguration("log_level")
     
+    configured_params = RewrittenYaml(
+        source_file=params_yaml_file,
+        root_key='',
+        param_rewrites={},
+        convert_types=False)
+    
+    urdf = os.path.join(my_dir, 'navigation_config', 'giraff.urdf')
+    with open(urdf, 'r') as infp:
+        robot_desc = infp.read()
+
+
     return LaunchDescription([
         # Set env var to print messages to stdout immediately
         SetEnvironmentVariable('RCUTILS_LOGGING_BUFFERED_STREAM', '1'),
         
         DeclareLaunchArgument(
             "log_level",
-            default_value=["info"],  #debug, info
+            default_value=["debug"],  #debug, info
             description="Logging level",
             ),
 
@@ -50,32 +62,22 @@ def generate_launch_description():
             executable='map_server',
             name='map_server',
             output='screen',
-            parameters=[{'use_sim_time': use_sim_time},
-                        {'yaml_filename' : map_file},
-                        {'frame_id' : 'map'}
-                        ],
+            parameters=[
+                {'use_sim_time': use_sim_time},
+                {'yaml_filename' : map_file},
+                {'frame_id' : 'map'}
+                ],
             remappings=remappings
             ),
-
-        # AMCL
-        Node(
-            package='nav2_amcl',
-            executable='amcl',
-            name='amcl',
-            output='screen',
-            parameters=[params_yaml_file],
-            remappings=remappings,
-            arguments=['--ros-args', '--log-level', logger]
-            ),
-
         # BT NAV
-        #Node(
-        #    package='nav2_bt_navigator',
-        #    executable='bt_navigator',
-        #    name='bt_navigator',
-        #    output='screen',
-        #    parameters=[params_yaml_file],
-        #    remappings=remappings),
+        Node(
+            package='nav2_bt_navigator',
+            executable='bt_navigator',
+            name='bt_navigator',
+            output='screen',
+            parameters=[configured_params],
+            remappings=remappings
+            ),
 
         # PLANNER (global path planning)
         Node(
@@ -83,7 +85,7 @@ def generate_launch_description():
             executable='planner_server',
             name='planner_server',
             output='screen',
-            parameters=[params_yaml_file],
+            parameters=[configured_params],
             remappings=remappings
             ),
 
@@ -93,28 +95,16 @@ def generate_launch_description():
             executable='controller_server',
             name='controller_server',
             output='screen',
-            parameters=[params_yaml_file],
-            remappings=[('/cmd_vel', '/PioneerP3DX/cmd_vel')]
+            parameters=[configured_params],
             ),
 
         # RECOVERIES (recovery behaviours NOT YET in HUMBLE)
-        #Node(
-        #    package='nav2_behaviors',
-        #    executable='behavior_server',
-        #    name='behavior_server',
-        #    output='screen',
-        #    parameters=[params_yaml_file],
-        #    remappings=remappings),
-
-
-
-        # WAYPOINT NAV (app to launch the BT navigator)
         Node(
-            package='nav2_waypoint_follower',
-            executable='waypoint_follower',
-            name='waypoint_follower',
+            package='nav2_behaviors',
+            executable='behavior_server',
+            name='behavior_server',
             output='screen',
-            parameters=[params_yaml_file],
+            parameters=[configured_params],
             remappings=remappings),
 
         # LIFECYCLE MANAGER
@@ -124,21 +114,42 @@ def generate_launch_description():
             name='lifecycle_manager_navigation',
             output='screen',
             parameters=[{'use_sim_time': use_sim_time},
-                        {'autostart': True},
-                        {'node_names': ['map_server',
-                                        'amcl',
-                                        'planner_server',
-                                        'controller_server',
-                                        #'bt_navigator',
-                                        #'behavior_server',
-                                        'waypoint_follower']
+                        {'autostart': False},
+                        {'node_names': [
+                            'map_server',
+                            'planner_server',
+                            'controller_server',
+                            'bt_navigator',
+                            'behavior_server',
+                            ]
                         }
                        ]
         ),
 
+
+
+        ## Visualization
         Node(
             package='rviz2',
             executable='rviz2',
-            name='rviz2'
+            name='rviz2',
+            arguments=['-d', os.path.join(my_dir, 'navigation_config', 'gaden.rviz')],
+        ),
+
+        Node(
+            package='joint_state_publisher',
+            executable='joint_state_publisher',
+            name='joint_state_publisher'
+        ),
+        Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            parameters=[
+                {
+                    'use_sim_time': use_sim_time, 
+                    'robot_description': robot_desc
+                }
+            ],
+            arguments=[urdf]
         )
     ])
