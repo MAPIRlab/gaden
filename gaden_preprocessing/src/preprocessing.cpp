@@ -10,11 +10,14 @@
 #include <queue>
 #include <stack>
 #include <stdint.h>
-
+#include <RemoteAPIClient.h>
 
 
 int main(int argc, char **argv){
     rclcpp::init(argc, argv);
+
+    RemoteAPIClient rac;
+    rac.getObject("sim");
 
     std::shared_ptr<Gaden_preprocessing> node = std::make_shared<Gaden_preprocessing>();
     node->parseMainModels();

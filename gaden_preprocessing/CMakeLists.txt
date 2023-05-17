@@ -19,7 +19,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(std_msgs REQUIRED)
-
+find_package(coppelia_remote_api REQUIRED) 
 
 include_directories(
   include
@@ -27,13 +27,14 @@ include_directories(
 
 add_executable(preprocessing src/preprocessing.cpp)
 
-
 ament_target_dependencies(preprocessing 
   rclcpp
   tf2
   std_msgs
+  coppelia_remote_api
 )
 
+target_link_libraries(preprocessing zmq)
 
 install(
   TARGETS preprocessing
