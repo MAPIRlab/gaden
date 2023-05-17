@@ -54,7 +54,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "simulation", default_value=[simulation],
             description="wind vector-field to load",
-            ),INFO
+            ),
 
         #==========
         # NODES
