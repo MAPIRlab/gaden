@@ -83,7 +83,6 @@ def generate_launch_description():
             executable='rviz2',
             name='rviz2',
             output='screen',
-            prefix="xterm -hold -e",
             arguments=['-d' + os.path.join(pkg_dir, 'launch', 'gaden.rviz')]
             ),
 
@@ -93,7 +92,6 @@ def generate_launch_description():
             executable='environment',
             name='gaden_environment',
             output='screen',
-            prefix='xterm -hold -e',
             parameters=[ParameterFile(params_yaml_file, allow_substs=True)]
             ),
 
@@ -103,28 +101,6 @@ def generate_launch_description():
             executable='filament_simulator',
             name='gaden_filament_simulator',
             output='screen',
-            prefix='xterm -hold -e',
             parameters=[ParameterFile(params_yaml_file, allow_substs=True)]
             ),
-        
-        # MAP_SERVER
-        Node(
-            package='nav2_map_server',
-            executable='map_server',
-            name='map_server',
-            output='screen',
-            parameters=[{'use_sim_time': True},
-                        {'yaml_filename' : os.path.join(pkg_dir, 'scenarios', scenario, 'occupancy.yaml')}]
-            ),
-        # LIFECYCLE MANAGER
-        Node(
-            package='nav2_lifecycle_manager',
-            executable='lifecycle_manager',
-            name='lifecycle_manager_localization',
-            output='screen',
-            parameters=[{'use_sim_time': True},
-                        {'autostart': True},
-                        {'node_names': ['map_server']}
-                       ]
-            )
     ]) #end LaunchDescription

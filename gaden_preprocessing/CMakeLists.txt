@@ -35,11 +35,23 @@ include_directories(
 
 add_executable(preprocessing src/preprocessing.cpp)
 
-ament_target_dependencies(preprocessing 
-  rclcpp
-  tf2
-  std_msgs
-  coppelia_remote_api
+
+
+
+
+set(AMENT_DEPS
+    rclcpp
+    tf2
+    std_msgs
+)
+if(GENERATE_COPPELIA_SCENE)
+    list(APPEND AMENT_DEPS coppelia_remote_api)
+endif()
+
+
+ament_target_dependencies(
+    preprocessing 
+    ${AMENT_DEPS}
 )
 
 target_link_libraries(preprocessing zmq)

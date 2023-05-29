@@ -309,11 +309,11 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 	std::string V_filename = boost::str( boost::format("%s%i.csv_V") % wind_files_location % idx );
 	std::string W_filename = boost::str( boost::format("%s%i.csv_W") % wind_files_location % idx );
 
-    if (verbose) RCLCPP_INFO(get_logger(), "Reading Wind Snapshot %s",U_filename.c_str());
 
     //read data to 3D matrices
 	if (FILE *file = fopen(U_filename.c_str(), "r"))
 	{
+        if (verbose) RCLCPP_INFO(get_logger(), "Reading Wind Snapshot %s",U_filename.c_str());
 		//Files exist!, keep going!
 		fclose(file);
 
