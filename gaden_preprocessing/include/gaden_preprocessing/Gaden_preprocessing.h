@@ -61,6 +61,7 @@ private:
     float cell_size;
     float roundFactor; // for rounding numbers to avoid certain precision problems. Depends on the cell size
 
+    bool isASCII(const std::string& filename);
 
     bool compare_cell(int x, int y, int z, cell_state value);
     void changeWorldFile(const std::string& filename);
@@ -82,9 +83,9 @@ private:
             const std::vector<tf2::Vector3> &normals,
             cell_state value_to_write);
 
-    void parse(std::string filename, cell_state value_to_write);
-    void findDimensions(std::string filename);
-    void openFoam_to_gaden(std::string filename);
+    void parse(const std::string& filename, cell_state value_to_write);
+    void findDimensions(const std::string& filename);
+    void openFoam_to_gaden(const std::string& filename);
 
 
     int indexFrom3D(int x, int y, int z){

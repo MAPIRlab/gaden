@@ -9,12 +9,13 @@ import os
 
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.launch_description_sources import PythonLaunchDescriptionSource, FrontendLaunchDescriptionSource
 from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterFile
 from nav2_common.launch import RewrittenYaml
+from launch.conditions import IfCondition
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -24,6 +25,7 @@ def generate_launch_description():
     #======================#
     scenario = 'Exp_C'
     simulation = '1,2,3-5,6'
+    generateCoppeliaScene = False
     #======================#
 
     # Get the pkg directory
@@ -67,6 +69,21 @@ def generate_launch_description():
             name='gaden_preprocessing',
             output='screen',
             prefix='',
-            parameters=[ParameterFile(params_yaml_file, allow_substs=True)]
-            )
+            parameters=[
+                ParameterFile(params_yaml_file, allow_substs=True),
+                {'generateCoppeliaScene' : generateCoppeliaScene}
+                ]
+            ),
+
+        IncludeLaunchDescription(
+            FrontendLaunchDescriptionSource(
+                os.path.join(get_package_share_directory('coppelia_ros2_pkg'),
+                    'launch/coppeliaSim.launch')
+            ),
+            condition=IfCondition( PythonExpression([str(generateCoppeliaScene)]) ),
+            launch_arguments={
+                'coppelia_scene_path': os.path.join(get_package_share_directory('test_env'), 'navigation_config', 'default_coppelia_scene.ttt'),
+                'coppelia_headless': 'True',
+            }.items()
+        )
     ]) #end LaunchDescription

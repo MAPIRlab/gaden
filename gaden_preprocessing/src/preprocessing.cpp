@@ -10,14 +10,15 @@
 #include <queue>
 #include <stack>
 #include <stdint.h>
-#include <RemoteAPIClient.h>
 
+#ifdef GENERATE_COPPELIA_SCENE
+#define SIM_REMOTEAPICLIENT_OBJECTS
+#include <RemoteAPIClient.h>
+#endif
 
 int main(int argc, char **argv){
     rclcpp::init(argc, argv);
 
-    RemoteAPIClient rac;
-    rac.getObject("sim");
 
     std::shared_ptr<Gaden_preprocessing> node = std::make_shared<Gaden_preprocessing>();
     node->parseMainModels();
@@ -47,6 +48,13 @@ void Gaden_preprocessing::parseMainModels()
 {
     int numModels = declare_parameter<int>("number_of_models", 0);
 
+#ifdef GENERATE_COPPELIA_SCENE
+    bool generateCoppeliaScene = declare_parameter<bool>("generateCoppeliaScene", false);
+    RemoteAPIClient client;
+    if(generateCoppeliaScene)
+        client.getObject().sim().stopSimulation();
+#endif
+
     std::vector<std::string> CADfiles;     
     for(int i = 0; i< numModels; i++){
         std::string paramName = boost::str( boost::format("model_%i") % i); //each of the stl models
@@ -69,7 +77,18 @@ void Gaden_preprocessing::parseMainModels()
     for (int i = 0; i < numModels; i++)
     {
         parse(CADfiles[i], cell_state::occupied);
+#ifdef GENERATE_COPPELIA_SCENE
+    if(generateCoppeliaScene)
+        client.getObject().sim().importShape(0, CADfiles[i], 0, 0.0001f, 1);
+#endif
     }
+
+    std::string outputFolder = declare_parameter<std::string>("output_path", "");
+
+#ifdef GENERATE_COPPELIA_SCENE
+    if(generateCoppeliaScene)
+        client.getObject().sim().saveScene(boost::str(boost::format("%s/coppeliaScene.ttt") % outputFolder));
+#endif
 }
 
 
@@ -403,21 +422,9 @@ void Gaden_preprocessing::occupy(std::vector<Triangle> &triangles,
     }
 }  
 
-void Gaden_preprocessing::parse(std::string filename, cell_state value_to_write){
+void Gaden_preprocessing::parse(const std::string& filename, cell_state value_to_write){
     
-    bool ascii = false;
-    if (FILE *file = fopen(filename.c_str(), "r"))
-    {
-        //File exists!, keep going!
-        char buffer[6];
-        fgets(buffer, 6, file);
-        if(std::string(buffer).find("solid")!=std::string::npos)
-            ascii=true;
-        fclose(file);
-    }else{
-        std::cout<< "File " << filename << " does not exist\n";
-        return;
-    }
+    bool ascii = isASCII(filename);
     
     std::vector<Triangle> triangles;
     std::vector<tf2::Vector3> normals;
@@ -507,7 +514,8 @@ void Gaden_preprocessing::parse(std::string filename, cell_state value_to_write)
 
 }
 
-void Gaden_preprocessing::findDimensions(std::string filename){
+bool Gaden_preprocessing::isASCII(const std::string& filename)
+{
     bool ascii = false;
     if (FILE *file = fopen(filename.c_str(), "r"))
     {
@@ -519,9 +527,14 @@ void Gaden_preprocessing::findDimensions(std::string filename){
         fclose(file);
     }else{
         std::cout<< "File " << filename << " does not exist\n";
-        return;
+        return false;
     }
+    return ascii;
+}
 
+void Gaden_preprocessing::findDimensions(const std::string& filename){
+
+    bool ascii = isASCII(filename);
 
     if(ascii){
         //let's read the data
@@ -594,7 +607,7 @@ void Gaden_preprocessing::findDimensions(std::string filename){
 }
 
 
-void Gaden_preprocessing::openFoam_to_gaden(std::string filename)
+void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
 {
 
 	//let's parse the file
@@ -713,7 +726,7 @@ void Gaden_preprocessing::clean(){
 
 void Gaden_preprocessing::generateOutput()
 {
-    std::string outputFolder = declare_parameter<std::string>("output_path", "");
+    std::string outputFolder = get_parameter_or<std::string>("output_path", "");
     printMap(
         boost::str(boost::format("%s/occupancy.pgm") % outputFolder.c_str()), 
         10, //scale 

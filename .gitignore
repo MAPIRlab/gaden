@@ -3,4 +3,5 @@
 *_V
 *_W
 
-*CATKIN_IGNORE
+*COLCON_IGNORE
+*__pycache__*
