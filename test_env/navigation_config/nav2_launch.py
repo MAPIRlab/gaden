@@ -26,14 +26,17 @@ def generate_launch_description():
     # Get the launch directory
     my_dir = get_package_share_directory('test_env')
 
+    map_file = DeclareLaunchArgument('map_yaml', default_value=os.path.join(my_dir, '10x6_central_obstacle', 'occupancy.yaml')) #required
+    params_yaml_file =  DeclareLaunchArgument('nav_params_yaml', default_value=os.path.join(my_dir, 'navigation_config', 'nav2_params.yaml') )
+    
+    
+
+    
     # common variables
+    logger = LaunchConfiguration("log_level")
     use_sim_time = True
     remappings = [('/tf', 'tf'),
                   ('/tf_static', 'tf_static')]
-    params_yaml_file = os.path.join(my_dir, 'navigation_config', 'nav2_params.yaml')# DeclareLaunchArgument('nav_params_yaml', default_value=os.path.join(my_dir, 'navigation_config', 'nav2_params.yaml') )
-    map_file = os.path.join(my_dir, '10x6_central_obstacle', 'occupancy.yaml') #DeclareLaunchArgument('map_yaml', default_value=os.path.join(my_dir, '10x6_central_obstacle', 'occupancy.yaml')) #required
-    
-    logger = LaunchConfiguration("log_level")
     
     configured_params = RewrittenYaml(
         source_file=params_yaml_file,

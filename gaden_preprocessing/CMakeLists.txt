@@ -46,6 +46,7 @@ set(AMENT_DEPS
 )
 if(GENERATE_COPPELIA_SCENE)
     list(APPEND AMENT_DEPS coppelia_remote_api)
+    target_link_libraries(preprocessing zmq)
 endif()
 
 
@@ -54,7 +55,6 @@ ament_target_dependencies(
     ${AMENT_DEPS}
 )
 
-target_link_libraries(preprocessing zmq)
 
 install(
   TARGETS preprocessing
