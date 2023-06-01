@@ -11,10 +11,9 @@ from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource, FrontendLaunchDescriptionSource
 from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
-from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch.substitutions import LaunchConfiguration, PythonExpression, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterFile
-from nav2_common.launch import RewrittenYaml
 from launch.conditions import IfCondition
 from ament_index_python.packages import get_package_share_directory
 
@@ -82,7 +81,11 @@ def generate_launch_description():
             ),
             condition=IfCondition( PythonExpression([str(generateCoppeliaScene)]) ),
             launch_arguments={
-                'coppelia_scene_path': os.path.join(get_package_share_directory('test_env'), 'navigation_config', 'default_coppelia_scene.ttt'),
+                'coppelia_scene_path': PathJoinSubstitution([
+                    get_package_share_directory('test_env'),
+                    'navigation_config',
+                    'default_coppelia_scene.ttt'
+                ]),
                 'coppelia_headless': 'True',
             }.items()
         )

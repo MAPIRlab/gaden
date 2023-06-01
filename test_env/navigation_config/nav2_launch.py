@@ -15,51 +15,30 @@
 import os
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable, OpaqueFunction
 from launch.substitutions import LaunchConfiguration, Command
 from launch_ros.actions import Node
-from nav2_common.launch import RewrittenYaml
+from launch_ros.parameter_descriptions import ParameterFile
 from ament_index_python.packages import get_package_share_directory
+from launch.frontend.parse_substitution import parse_substitution
 
-
-def generate_launch_description():
+def launch_setup(context, *args, **kwargs):
     # Get the launch directory
     my_dir = get_package_share_directory('test_env')
-
-    map_file = DeclareLaunchArgument('map_yaml', default_value=os.path.join(my_dir, '10x6_central_obstacle', 'occupancy.yaml')) #required
-    params_yaml_file =  DeclareLaunchArgument('nav_params_yaml', default_value=os.path.join(my_dir, 'navigation_config', 'nav2_params.yaml') )
-    
-    
+    map_file = os.path.join(my_dir, 'scenarios', LaunchConfiguration('scenario').perform(context), 'occupancy.yaml')
 
     
-    # common variables
-    logger = LaunchConfiguration("log_level")
+     # common variables
+    configured_params = ParameterFile(LaunchConfiguration('nav_params_yaml').perform(context), allow_substs=True)
     use_sim_time = True
     remappings = [('/tf', 'tf'),
                   ('/tf_static', 'tf_static')]
-    
-    configured_params = RewrittenYaml(
-        source_file=params_yaml_file,
-        root_key='',
-        param_rewrites={},
-        convert_types=False)
     
     urdf = os.path.join(my_dir, 'navigation_config', 'giraff.urdf')
     with open(urdf, 'r') as infp:
         robot_desc = infp.read()
 
-
-    return LaunchDescription([
-        # Set env var to print messages to stdout immediately
-        SetEnvironmentVariable('RCUTILS_LOGGING_BUFFERED_STREAM', '1'),
-        
-        DeclareLaunchArgument(
-            "log_level",
-            default_value=["debug"],  #debug, info
-            description="Logging level",
-            ),
-
-        # MAP_SERVER
+    return[
         Node(
             package='nav2_map_server',
             executable='map_server',
@@ -126,7 +105,7 @@ def generate_launch_description():
                             'behavior_server',
                             ]
                         }
-                       ]
+                        ]
         ),
 
 
@@ -155,4 +134,22 @@ def generate_launch_description():
             ],
             arguments=[urdf]
         )
+    ]
+
+def generate_launch_description():
+
+    my_dir = get_package_share_directory('test_env')
+
+    return LaunchDescription([
+        # Set env var to print messages to stdout immediately
+        SetEnvironmentVariable('RCUTILS_LOGGING_BUFFERED_STREAM', '1'),
+        
+        DeclareLaunchArgument(
+            "log_level",
+            default_value=["debug"],  #debug, info
+            description="Logging level",
+            ),
+        DeclareLaunchArgument('scenario', default_value=""), #required
+        DeclareLaunchArgument('nav_params_yaml', default_value=os.path.join(my_dir, 'navigation_config', 'nav2_params.yaml') ),
+        OpaqueFunction(function = launch_setup)
     ])
