@@ -15,8 +15,9 @@
 import os
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable, OpaqueFunction
-from launch.substitutions import LaunchConfiguration, Command
+from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable, OpaqueFunction, IncludeLaunchDescription
+from launch.launch_description_sources import FrontendLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterFile
 from ament_index_python.packages import get_package_share_directory
@@ -133,6 +134,21 @@ def launch_setup(context, *args, **kwargs):
                 }
             ],
             arguments=[urdf]
+        ),
+        IncludeLaunchDescription(
+            FrontendLaunchDescriptionSource(
+                os.path.join(get_package_share_directory('coppelia_ros2_pkg'),
+                    'launch/coppeliaSim.launch')
+            ),
+            launch_arguments={
+                'coppelia_scene_path': PathJoinSubstitution([
+                    get_package_share_directory('test_env'),
+                    'scenarios',
+                    LaunchConfiguration('scenario').perform(context),
+                    'coppeliaScene.ttt'
+                ]),
+                'coppelia_headless': 'True',
+            }.items()
         )
     ]
 

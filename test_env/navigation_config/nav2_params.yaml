@@ -48,11 +48,13 @@ bt_navigator:
     # Examples in /opt/ros/humble/share/nav2_bt_navigator/behavior_trees
     #default_nav_to_pose_bt_xml: /home/robotics/tfg_ros_simulation_ws/src/missions_pkg/behavior_trees/follow_point.xml
     #default_nav_through_poses_bt_xml: /home/robotics/tfg_ros_simulation_ws/src/missions_pkg/behavior_trees/follow_point.xml
-    navigators: ["navigate_to_pose", "navigate_through_poses"]
+    navigators: ["navigate_to_pose", "navigate_through_poses", "compute_path_to_pose"]
     navigate_to_pose:
       plugin: "nav2_bt_navigator/NavigateToPoseNavigator"
     navigate_through_poses:
       plugin: "nav2_bt_navigator/NavigateThroughPosesNavigator"
+    compute_path_to_pose:
+      plugin: "nav2_compute_path_to_pose_action_bt_node"
     goal_blackboard_id: goal
     goals_blackboard_id: goals
     path_blackboard_id: path
