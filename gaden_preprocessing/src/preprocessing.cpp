@@ -79,7 +79,12 @@ void Gaden_preprocessing::parseMainModels()
         parse(CADfiles[i], cell_state::occupied);
 #ifdef GENERATE_COPPELIA_SCENE
     if(generateCoppeliaScene)
-        client.getObject().sim().importShape(0, CADfiles[i], 0, 0.0001f, 1);
+    {
+        int result = -1;
+        do{
+            result = client.getObject().sim().importShape(0, CADfiles[i], 0, 0.0001f, 1);
+        }while (result==-1);
+    }
 #endif
     }
 
