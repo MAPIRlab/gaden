@@ -31,10 +31,15 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 ament_export_dependencies(rosidl_default_runtime)
 
-include_directories(include)
+include_directories(include
+../gaden_common/include)
 
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
 add_executable(player  ${MYFILES_CPP})
+
+
+
+
 
 # dependency for self-defined messages
 if("${ROS_DISTRO}" STREQUAL "foxy")

@@ -22,7 +22,8 @@ find_package(visualization_msgs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS iostreams filesystem)
 
 
-include_directories(include)
+include_directories(include
+../gaden_common/include)
 
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
 add_executable(filament_simulator ${MYFILES_CPP})

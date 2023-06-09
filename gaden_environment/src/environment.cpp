@@ -229,99 +229,6 @@ void Environment::PreprocessingCB(std_msgs::msg::Bool::SharedPtr b)
 
 
 
-void Environment::readEnvFile()
-{
-    if(occupancy3D_data==""){
-        RCLCPP_ERROR(get_logger(), " [GADEN_PLAYER] No occupancy file specified. Use the parameter \"occupancyFile\" to input the path to the OccupancyGrid3D.csv file.\n");
-        return;
-    }
-
-	//open file
-	std::ifstream infile(occupancy3D_data.c_str());
-	std::string line;
-
-    //read the header
-    {
-        //Line 1 (min values of environment)
-        std::getline(infile, line);
-        size_t pos = line.find(" ");
-        line.erase(0, pos+1);
-        pos = line.find(" ");
-        env_min_x = atof(line.substr(0, pos).c_str());
-        line.erase(0, pos+1);
-        pos = line.find(" ");
-        env_min_y = atof(line.substr(0, pos).c_str());
-        env_min_z = atof(line.substr(pos+1).c_str());
-
-        //Line 2 (max values of environment)
-        std::getline(infile, line);
-        pos = line.find(" ");
-        line.erase(0, pos+1);
-        pos = line.find(" ");
-        env_max_x = atof(line.substr(0, pos).c_str());
-        line.erase(0, pos+1);
-        pos = line.find(" ");
-        env_max_y = atof(line.substr(0, pos).c_str());
-        env_max_z = atof(line.substr(pos+1).c_str());
-
-        //Line 3 (Num cells on eahc dimension)
-        std::getline(infile, line);
-        pos = line.find(" ");
-        line.erase(0, pos+1);
-        pos = line.find(" ");
-        env_cells_x = atoi(line.substr(0, pos).c_str());
-        line.erase(0, pos+1);
-        pos = line.find(" ");
-        env_cells_y = atof(line.substr(0, pos).c_str());
-        env_cells_z = atof(line.substr(pos+1).c_str());
-
-        //Line 4 cell_size (m)
-        std::getline(infile, line);
-        pos = line.find(" ");
-        cell_size = atof(line.substr(pos+1).c_str());
-
-        if (verbose) RCLCPP_INFO(get_logger(), "[env]Env dimensions (%.2f,%.2f,%.2f)-(%.2f,%.2f,%.2f)",env_min_x, env_min_y, env_min_z, env_max_x, env_max_y, env_max_z );
-        if (verbose) RCLCPP_INFO(get_logger(), "[env]Env size in cells     (%d,%d,%d) - with cell size %f [m]",env_cells_x,env_cells_y,env_cells_z, cell_size);
-    }
-    
-    Env.resize(env_cells_x * env_cells_y * env_cells_z);
-
-    int x_idx = 0;
-	int y_idx = 0;
-	int z_idx = 0;
-
-	while ( std::getline(infile, line) )
-	{
-		std::stringstream ss(line);
-		if (z_idx >=env_cells_z)
-		{
-			RCLCPP_ERROR(get_logger(), "Trying to read:[%s]",line.c_str());
-		}
-
-		if (line == ";")
-		{
-			//New Z-layer
-			z_idx++;
-			x_idx = 0;
-			y_idx = 0;
-		}
-		else
-		{   //New line with constant x_idx and all the y_idx values
-			while (ss)
-			{
-				int f;
-				ss >> std::skipws >> f;
-                Env[indexFrom3D(x_idx,y_idx,z_idx)] = f;
-                y_idx++;			
-			}
-
-			//Line has ended
-			x_idx++;
-			y_idx = 0;
-		}
-	}
-    infile.close();
-}
 
 /* Load environment from 3DOccupancy.csv GridMap
  * Loads the environment file containing a description of the simulated environment in the CFD (for the estimation of the wind flows), and displays it.
@@ -343,16 +250,25 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray &env_mark
         }
 	}
 
-    readEnvFile();
-
-    for ( int i = 0; i<env_cells_x; i++)
+    GadenCommon::ReadResult result = GadenCommon::readEnvFile(occupancy3D_data, env_desc);
+    if( result == GadenCommon::ReadResult::NO_FILE)
     {
-        for ( int j = 0; j<env_cells_y; j++)
+        RCLCPP_ERROR(get_logger(), "No occupancy file provided to environment node!");
+        return;
+    }
+    else if (result == GadenCommon::ReadResult::READING_FAILED)
+    {
+        RCLCPP_ERROR(get_logger(), "Something went wrong while parsing the file!");
+    }
+
+    for ( int i = 0; i<env_desc.num_cells.x; i++)
+    {
+        for ( int j = 0; j<env_desc.num_cells.y; j++)
         {
-            for ( int k = 0; k<env_cells_z; k++)
+            for ( int k = 0; k<env_desc.num_cells.z; k++)
             {
                 //Color
-                if (!Env[indexFrom3D(i,j,k)])
+                if (!env_desc.Env[indexFrom3D(i,j,k)])
                 {
                     //Add a new cube marker for this occupied cell
                     visualization_msgs::msg::Marker new_marker;
@@ -364,18 +280,18 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray &env_mark
                     new_marker.action = visualization_msgs::msg::Marker::ADD;
 
                     //Center of the cell
-                    new_marker.pose.position.x = env_min_x + ( (i + 0.5) * cell_size);
-                    new_marker.pose.position.y = env_min_y + ( (j + 0.5) * cell_size);
-                    new_marker.pose.position.z = env_min_z + ( (k + 0.5) * cell_size);
+                    new_marker.pose.position.x = env_desc.min_coord.x + ( (i + 0.5) * env_desc.cell_size);
+                    new_marker.pose.position.y = env_desc.min_coord.y + ( (j + 0.5) * env_desc.cell_size);
+                    new_marker.pose.position.z = env_desc.min_coord.z + ( (k + 0.5) * env_desc.cell_size);
                     new_marker.pose.orientation.x = 0.0;
                     new_marker.pose.orientation.y = 0.0;
                     new_marker.pose.orientation.z = 0.0;
                     new_marker.pose.orientation.w = 1.0;
 
                     //Size of the cell
-                    new_marker.scale.x = cell_size;
-                    new_marker.scale.y = cell_size;
-                    new_marker.scale.z = cell_size;
+                    new_marker.scale.x = env_desc.cell_size;
+                    new_marker.scale.y = env_desc.cell_size;
+                    new_marker.scale.z = env_desc.cell_size;
 
                     
                     new_marker.color.r = 0.9f;
@@ -391,21 +307,18 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray &env_mark
 
 bool Environment::occupancyMapServiceCB(gaden_environment::srv::Occupancy_Request::SharedPtr request, gaden_environment::srv::Occupancy_Response::SharedPtr response)
 {
-    response->origin.x = env_min_x;
-    response->origin.y = env_min_y;
-    response->origin.z = env_min_z;
+    response->origin.x = env_desc.min_coord.x;
+    response->origin.y = env_desc.min_coord.y;
+    response->origin.z = env_desc.min_coord.z;
 
-    response->num_cells_x = env_cells_x;
-    response->num_cells_y = env_cells_y;
-    response->num_cells_z = env_cells_z;
+    response->num_cells_x = env_desc.num_cells.x;
+    response->num_cells_y = env_desc.num_cells.y;
+    response->num_cells_z = env_desc.num_cells.z;
 
-    response->resolution = cell_size;
-    response->occupancy = Env;
+    response->occupancy = env_desc.Env;
+    response->resolution = env_desc.cell_size;
 
     return true;
 }
 
-int Environment::indexFrom3D(int x, int y, int z){
-	return x + y*env_cells_x + z*env_cells_x*env_cells_y;
-}
 

@@ -19,7 +19,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 ament_export_dependencies(rosidl_default_runtime)
 
-include_directories(include)
+include_directories(
+    include
+    ../gaden_common/include
+)
 
 add_executable(environment src/environment.cpp)
 

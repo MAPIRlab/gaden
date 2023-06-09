@@ -20,6 +20,8 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/copy.hpp>
 
+#include <gaden_common/ReadEnvironment.h>
+
 struct Filament{
     public:
         double x, y, z, sigma;
@@ -79,15 +81,9 @@ public:
     std::string     gas_type;
     std::string     simulation_filename;
     std::string     occupancyFile;
-    int             environment_cells_x, environment_cells_y, environment_cells_z;
-    double          environment_cell_size;
+    GadenCommon::EnvironmentDescription envDesc;
     double          source_pos_x, source_pos_y, source_pos_z;
-    double          env_min_x;              //[m]
-    double          env_max_x;              //[m]
-    double          env_min_y;              //[m]
-    double          env_max_y;              //[m]
-    double          env_min_z;              //[m]
-    double          env_max_z;              //[m]
+    
     bool            load_wind_data;
     std::vector<double> C;  //3D Gas concentration
     std::vector<double> U;  //3D Wind U
@@ -104,7 +100,6 @@ public:
 
     //methods
     void configure_environment();
-    void readEnvFile();
     void load_data_from_logfile(int sim_iteration);
     void load_ascii_file(std::stringstream &decompressed);
     void load_binary_file(std::stringstream &decompressed);
