@@ -239,8 +239,6 @@ sim_obj::sim_obj(std::string filepath, bool load_wind_info)
 {
     gas_type = "unknown";
     simulation_filename = filepath;
-    environment_cells_x = environment_cells_y = environment_cells_z = 0;
-    environment_cell_size = 0.0; //m
     source_pos_x = source_pos_y = source_pos_z = 0.0; //m
     load_wind_data = load_wind_info;
     first_reading = true;
@@ -295,22 +293,22 @@ void sim_obj::read_headers(std::stringstream &inbuf, std::string &line){
     size_t pos = line.find(" ");
     line.erase(0, pos + 1);
     pos = line.find(" ");
-    env_min_x = atof(line.substr(0, pos).c_str());
+    envDesc.min_coord.x = atof(line.substr(0, pos).c_str());
     line.erase(0, pos + 1);
     pos = line.find(" ");
-    env_min_y = atof(line.substr(0, pos).c_str());
-    env_min_z = atof(line.substr(pos + 1).c_str());
+    envDesc.min_coord.y = atof(line.substr(0, pos).c_str());
+    envDesc.min_coord.z = atof(line.substr(pos + 1).c_str());
 
     std::getline(inbuf, line); 
     //Line 2 (max values of environment)
     pos = line.find(" ");
     line.erase(0, pos + 1);
     pos = line.find(" ");
-    env_max_x = atof(line.substr(0, pos).c_str());
+    envDesc.max_coord.x = atof(line.substr(0, pos).c_str());
     line.erase(0, pos + 1);
     pos = line.find(" ");
-    env_max_y = atof(line.substr(0, pos).c_str());
-    env_max_z = atof(line.substr(pos + 1).c_str());
+    envDesc.max_coord.y = atof(line.substr(0, pos).c_str());
+    envDesc.max_coord.z = atof(line.substr(pos + 1).c_str());
 
     std::getline(inbuf, line); 
     //Get Number of cells (X,Y,Z)
@@ -318,11 +316,11 @@ void sim_obj::read_headers(std::stringstream &inbuf, std::string &line){
     line.erase(0, pos + 1);
 
     pos = line.find(" ");
-    environment_cells_x = atoi(line.substr(0, pos).c_str());
+    envDesc.num_cells.x = atoi(line.substr(0, pos).c_str());
     line.erase(0, pos + 1);
     pos = line.find(" ");
-    environment_cells_y = atoi(line.substr(0, pos).c_str());
-    environment_cells_z = atoi(line.substr(pos + 1).c_str());
+    envDesc.num_cells.y = atoi(line.substr(0, pos).c_str());
+    envDesc.num_cells.z = atoi(line.substr(pos + 1).c_str());
 
     std::getline(inbuf, line); 
     //Get Cell_size
@@ -330,7 +328,7 @@ void sim_obj::read_headers(std::stringstream &inbuf, std::string &line){
     line.erase(0, pos + 1);
 
     pos = line.find(" ");
-    environment_cell_size = atof(line.substr(0, pos).c_str());
+    envDesc.cell_size = atof(line.substr(0, pos).c_str());
 
     std::getline(inbuf, line); 
     //Get GasSourceLocation
@@ -427,19 +425,19 @@ void sim_obj::load_binary_file(std::stringstream& decompressed){
     
     if(first_reading){
         double bufferD [5];
-        decompressed.read((char*) &env_min_x, sizeof(double));
-        decompressed.read((char*) &env_min_y, sizeof(double));
-        decompressed.read((char*) &env_min_z, sizeof(double));
+        decompressed.read((char*) &envDesc.min_coord.x, sizeof(double));
+        decompressed.read((char*) &envDesc.min_coord.y, sizeof(double));
+        decompressed.read((char*) &envDesc.min_coord.z, sizeof(double));
 
-        decompressed.read((char*) &env_max_x, sizeof(double));
-        decompressed.read((char*) &env_max_y, sizeof(double));
-        decompressed.read((char*) &env_max_z, sizeof(double));
+        decompressed.read((char*) &envDesc.max_coord.x, sizeof(double));
+        decompressed.read((char*) &envDesc.max_coord.y, sizeof(double));
+        decompressed.read((char*) &envDesc.max_coord.z, sizeof(double));
 
-        decompressed.read((char*) &environment_cells_x, sizeof(int));
-        decompressed.read((char*) &environment_cells_y, sizeof(int));
-        decompressed.read((char*) &environment_cells_z, sizeof(int));
+        decompressed.read((char*) &envDesc.num_cells.x, sizeof(int));
+        decompressed.read((char*) &envDesc.num_cells.y, sizeof(int));
+        decompressed.read((char*) &envDesc.num_cells.z, sizeof(int));
 
-        decompressed.read((char*) &environment_cell_size, sizeof(double));
+        decompressed.read((char*) &envDesc.cell_size, sizeof(double));
         
         decompressed.read((char*) &bufferD, 5*sizeof(double));
         int gt;
@@ -495,13 +493,13 @@ double sim_obj::get_gas_concentration(float x, float y, float z)
 {
 
     int xx,yy,zz;
-    xx = (int)ceil((x - env_min_x)/environment_cell_size);
-    yy = (int)ceil((y - env_min_y)/environment_cell_size);
-    zz = (int)ceil((z - env_min_z)/environment_cell_size);
+    xx = (int)ceil((x - envDesc.min_coord.x)/envDesc.cell_size);
+    yy = (int)ceil((y - envDesc.min_coord.y)/envDesc.cell_size);
+    zz = (int)ceil((z - envDesc.min_coord.z)/envDesc.cell_size);
 
-    if(xx<0|| xx>environment_cells_x
-        || yy<0|| yy>environment_cells_y
-        || zz<0|| zz>environment_cells_z)
+    if(xx<0|| xx>envDesc.num_cells.x
+        || yy<0|| yy>envDesc.num_cells.y
+        || zz<0|| zz>envDesc.num_cells.z)
     {
         ROS_ERROR("Requested gas concentration at a point outside the environment (%f, %f, %f). Are you using the correct coordinates?\n", x, y ,z);
         return 0;
@@ -558,7 +556,7 @@ bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, dou
 
 
 	// Traverse path
-	int steps = ceil( distance / environment_cell_size );	// Make sure no two iteration steps are separated more than 1 cell
+	int steps = ceil( distance / envDesc.cell_size );	// Make sure no two iteration steps are separated more than 1 cell
 	double increment = distance/steps;
 
 	for(int i=1; i<steps-1; i++)
@@ -570,9 +568,9 @@ bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, dou
 
 
 		// Determine cell to evaluate (some cells might get evaluated twice due to the current code
-		int x_idx = floor( (pose_x-env_min_x)/environment_cell_size );
-		int y_idx = floor( (pose_y-env_min_y)/environment_cell_size );
-		int z_idx = floor( (pose_z-env_min_z)/environment_cell_size );
+		int x_idx = floor( (pose_x-envDesc.min_coord.x)/envDesc.cell_size );
+		int y_idx = floor( (pose_y-envDesc.min_coord.y)/envDesc.cell_size );
+		int z_idx = floor( (pose_z-envDesc.min_coord.z)/envDesc.cell_size );
 
 
 		// Check if the cell is occupied
@@ -586,15 +584,15 @@ bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, dou
 int sim_obj::check_pose_with_environment(double pose_x, double pose_y, double pose_z)
 {
 	//1.1 Check that pose is within the boundingbox environment
-	if (pose_x<env_min_x || pose_x>env_max_x || pose_y<env_min_y || pose_y>env_max_y || pose_z<env_min_z || pose_z>env_max_z)
+	if (pose_x<envDesc.min_coord.x || pose_x>envDesc.max_coord.x || pose_y<envDesc.min_coord.y || pose_y>envDesc.max_coord.y || pose_z<envDesc.min_coord.z || pose_z>envDesc.max_coord.z)
 		return 1;
 
 	//Get 3D cell of the point
-	int x_idx = (pose_x-env_min_x)/environment_cell_size;
-	int y_idx = (pose_y-env_min_y)/environment_cell_size;
-	int z_idx = (pose_z-env_min_z)/environment_cell_size;
+	int x_idx = (pose_x-envDesc.min_coord.x)/envDesc.cell_size;
+	int y_idx = (pose_y-envDesc.min_coord.y)/envDesc.cell_size;
+	int z_idx = (pose_z-envDesc.min_coord.z)/envDesc.cell_size;
 
-	if (x_idx >= environment_cells_x || y_idx >= environment_cells_y || z_idx >= environment_cells_z)
+	if (x_idx >= envDesc.num_cells.x || y_idx >= envDesc.num_cells.y || z_idx >= envDesc.num_cells.z)
 		return 1;
 
 	//1.2. Return cell occupancy (0=free, 1=obstacle, 2=outlet)
@@ -607,13 +605,13 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
     if (load_wind_data)
     {
         int xx,yy,zz;
-        xx = (int)ceil((x - env_min_x)/environment_cell_size);
-        yy = (int)ceil((y - env_min_y)/environment_cell_size);
-        zz = (int)ceil((z - env_min_z)/environment_cell_size);
+        xx = (int)ceil((x - envDesc.min_coord.x)/envDesc.cell_size);
+        yy = (int)ceil((y - envDesc.min_coord.y)/envDesc.cell_size);
+        zz = (int)ceil((z - envDesc.min_coord.z)/envDesc.cell_size);
 
-        if(xx<0|| xx>environment_cells_x
-            || yy<0|| yy>environment_cells_y
-            || zz<0|| zz>environment_cells_z)
+        if(xx<0|| xx>envDesc.num_cells.x
+            || yy<0|| yy>envDesc.num_cells.y
+            || zz<0|| zz>envDesc.num_cells.z)
         {
             ROS_ERROR("Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
             return;
@@ -632,88 +630,35 @@ void sim_obj::get_wind_value(float x, float y, float z, double &u, double &v, do
 }
 
 
-void sim_obj::readEnvFile()
-{
-    if(occupancyFile==""){
-        ROS_ERROR(" [GADEN_PLAYER] No occupancy file specified. Use the parameter \"occupancyFile\" to input the path to the OccupancyGrid3D.csv file.\n");
-        return;
-    }
-    Env.resize(environment_cells_x * environment_cells_y * environment_cells_z);
-
-	//open file
-	std::ifstream infile(occupancyFile.c_str());
-	std::string line;
-
-    //discard the header
-    std::getline(infile, line);
-    std::getline(infile, line);
-    std::getline(infile, line);
-    std::getline(infile, line);
-
-    int x_idx = 0;
-	int y_idx = 0;
-	int z_idx = 0;
-
-	while ( std::getline(infile, line) )
-	{
-		std::stringstream ss(line);
-		if (z_idx >=environment_cells_z)
-		{
-			ROS_ERROR("Trying to read:[%s]",line.c_str());
-		}
-
-		if (line == ";")
-		{
-			//New Z-layer
-			z_idx++;
-			x_idx = 0;
-			y_idx = 0;
-		}
-		else
-		{   //New line with constant x_idx and all the y_idx values
-			while (ss)
-			{
-				double f;
-				ss >> std::skipws >> f;		//get one double value
-                Env[indexFrom3D(x_idx,y_idx,z_idx)] = f;
-                y_idx++;			
-			}
-
-			//Line has ended
-			x_idx++;
-			y_idx = 0;
-		}
-	}
-    infile.close();
-}
-
 //Init instances (for running multiple simulations)
 void sim_obj::configure_environment()
 {
-    //ROS_INFO("Configuring Enviroment");
-    //ROS_INFO("\t\t Dimension: [%i,%i,%i] cells", environment_cells_x, environment_cells_y, environment_cells_z);
-    //ROS_INFO("\t\t Gas_Type: %s", gas_type.c_str());
-    //ROS_INFO("\t\t FilePath: %s", simulation_filename.c_str());
-    //ROS_INFO("\t\t Source at location: [%.4f,%.4f,%.4f][m] ", source_pos_x, source_pos_y, source_pos_z);
-    //ROS_INFO("\t\t Loading Wind Data: %i", load_wind_data);
-
-
     //Resize Gas Concentration container
-    C.resize(environment_cells_x * environment_cells_y * environment_cells_z);
+    C.resize(envDesc.num_cells.x * envDesc.num_cells.y * envDesc.num_cells.z);
     
 
     //Resize Wind info container (if necessary)
     if (load_wind_data)
     {
 
-        U.resize(environment_cells_x * environment_cells_y * environment_cells_z);
-        V.resize(environment_cells_x * environment_cells_y * environment_cells_z);
-        W.resize(environment_cells_x * environment_cells_y * environment_cells_z); 
+        U.resize(envDesc.num_cells.x * envDesc.num_cells.y * envDesc.num_cells.z);
+        V.resize(envDesc.num_cells.x * envDesc.num_cells.y * envDesc.num_cells.z);
+        W.resize(envDesc.num_cells.x * envDesc.num_cells.y * envDesc.num_cells.z); 
     }
-    readEnvFile();
+
+    GadenCommon::ReadResult result = GadenCommon::readEnvFile(occupancyFile, envDesc);
+    if( result == GadenCommon::ReadResult::NO_FILE)
+    {
+        ROS_ERROR("No occupancy file provided to Gaden-player node!");
+        return;
+    }
+    else if (result == GadenCommon::ReadResult::READING_FAILED)
+    {
+        ROS_ERROR("Something went wrong while parsing the file!");
+    }
 
     if(createHeatmapImage)
-        heatmap = std::vector<std::vector<double> >(environment_cells_x, std::vector<double>(environment_cells_y));
+        heatmap = std::vector<std::vector<double> >(envDesc.num_cells.x, std::vector<double>(envDesc.num_cells.y));
 }
 
 
@@ -721,11 +666,11 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_point
 {
     if(!filament_log){
         //For every cell, generate as much "marker points" as [ppm]
-        for (int i=0;i<environment_cells_x;i++)
+        for (int i=0;i<envDesc.num_cells.x;i++)
         {
-            for (int j=0;j<environment_cells_y;j++)
+            for (int j=0;j<envDesc.num_cells.y;j++)
             {
-                for (int k=0;k<environment_cells_z;k++)
+                for (int k=0;k<envDesc.num_cells.z;k++)
                 {
                     geometry_msgs::Point p; //Location of point
                     std_msgs::ColorRGBA color;  //Color of point
@@ -735,9 +680,9 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_point
                     for (int N=0;N<(int)round(gas_value/2);N++)
                     {
                         //Set point position (corner of the cell + random)
-                        p.x = env_min_x + (i+0.5)*environment_cell_size + ((rand()%100)/100.0f)*environment_cell_size;
-                        p.y = env_min_y + (j+0.5)*environment_cell_size + ((rand()%100)/100.0f)*environment_cell_size;
-                        p.z = env_min_z + (k+0.5)*environment_cell_size + ((rand()%100)/100.0f)*environment_cell_size;
+                        p.x = envDesc.min_coord.x + (i+0.5)*envDesc.cell_size + ((rand()%100)/100.0f)*envDesc.cell_size;
+                        p.y = envDesc.min_coord.y + (j+0.5)*envDesc.cell_size + ((rand()%100)/100.0f)*envDesc.cell_size;
+                        p.z = envDesc.min_coord.z + (k+0.5)*envDesc.cell_size + ((rand()%100)/100.0f)*envDesc.cell_size;
 
                         //Set color of particle according to gas type
                         color.a = 1.0;
@@ -821,15 +766,15 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::Marker &mkr_point
 }
 
 int sim_obj::indexFrom3D(int x, int y, int z){
-	return x + y*environment_cells_x + z*environment_cells_x*environment_cells_y;
+	return x + y*envDesc.num_cells.x + z*envDesc.num_cells.x*envDesc.num_cells.y;
 }
 
 void sim_obj::updateHeatmap(){
     #pragma omp parallel for collapse(2)
     for(int i = 0; i<heatmap.size(); i++){
         for(int j=0; j<heatmap[0].size(); j++){
-            double p_x = env_min_x + (i+0.5)*environment_cell_size;
-            double p_y = env_min_y + (j+0.5)*environment_cell_size;
+            double p_x = envDesc.min_coord.x + (i+0.5)*envDesc.cell_size;
+            double p_y = envDesc.min_coord.y + (j+0.5)*envDesc.cell_size;
             double g_c = get_gas_concentration(p_x, p_y, heatmapHeight);
             if(g_c>heatmapThreshold)
                 heatmap[i][j]++;

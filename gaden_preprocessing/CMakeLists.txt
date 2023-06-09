@@ -3,7 +3,6 @@ project(gaden_preprocessing)
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -fopenmp ${CMAKE_CXX_FLAGS}")
 
-option ( DEBUG "" OFF)
 set(DEBUG OFF)
 
 if(DEBUG)

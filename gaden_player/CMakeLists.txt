@@ -46,7 +46,13 @@ catkin_package(
     CATKIN_DEPENDS message_runtime std_msgs
 )
 
-include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+include_directories(
+    include 
+    ../gaden_common/include
+    ${Boost_INCLUDE_DIRS} 
+    ${catkin_INCLUDE_DIRS} 
+    ${OpenCV_INCLUDE_DIRS}
+)
 
 add_executable(gaden_player  ${MYFILES_CPP})
 add_dependencies(gaden_player ${${PROJECT_NAME}_EXPORTED_TARGETS} ${olfaction_msgs_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

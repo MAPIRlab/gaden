@@ -20,6 +20,8 @@
 #include <boost/iostreams/filter/zlib.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/copy.hpp>
+#include <gaden_common/ReadEnvironment.h>
+
 class CFilamentSimulator
 {
 public:
@@ -79,16 +81,7 @@ public:
     //Enviroment
     std::string occupancy3D_data;       //Location of the 3D Occupancy GridMap of the environment
     std::string	fixed_frame;            //Frame where to publish the markers
-    int			env_cells_x;            //cells
-    int 		env_cells_y;            //cells
-    int 		env_cells_z;            //cells
-    double      env_min_x;              //[m]
-    double      env_max_x;              //[m]
-    double      env_min_y;              //[m]
-    double      env_max_y;              //[m]
-    double      env_min_z;              //[m]
-    double      env_max_z;              //[m]
-    double		cell_size;              //[m]
+    GadenCommon::EnvironmentDescription envDesc;
 
     //Gas Source Location (for releasing the filaments)
     double		gas_source_pos_x;     //[m]

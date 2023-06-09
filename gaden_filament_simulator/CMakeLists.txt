@@ -4,8 +4,7 @@ project(gaden_filament_simulator CXX)
 
 set(CMAKE_CXX_FLAGS "-lboost_iostreams -std=c++11 -fopenmp ${CMAKE_CXX_FLAGS}")
 
-option ( DEBUG "" OFF)
-set(DEBUG OFF)
+set(DEBUG ON)
 
 if(DEBUG)
   add_definitions(-DDEBUG)
@@ -29,7 +28,8 @@ catkin_package(
     DEPENDS roscpp visualization_msgs std_msgs nav_msgs Boost
 )
 
-include_directories(include)
+include_directories(include
+../gaden_common/include)
 
 include_directories(${catkin_INCLUDE_DIRS} $(PCL_INCLUDE_DIRS) ${OpenCV_INCLUDE_DIRS})
 MESSAGE("PCL ARE: ${PCL_INCLUDE_DIRS}")
