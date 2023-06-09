@@ -163,7 +163,7 @@ double TDLAS::takeMeasurement()
 
 
     // Actually get the measurement
-    gaden_player::srv::GasPosition::Request::SharedPtr request;
+    auto request = std::make_shared<gaden_player::srv::GasPosition::Request>();
     for(const auto& pair : rayData.lengthInCell)
     {
         glm::vec3 coords = glm::vec3(pair.first) * m_rayMarchResolution + m_mapOrigin;
