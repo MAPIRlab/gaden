@@ -4,7 +4,7 @@ project(gaden_filament_simulator CXX)
 
 set(CMAKE_CXX_FLAGS "-lboost_iostreams -std=c++11 -fopenmp ${CMAKE_CXX_FLAGS}")
 
-set(DEBUG ON)
+set(DEBUG OFF)
 
 if(DEBUG)
   add_definitions(-DDEBUG)

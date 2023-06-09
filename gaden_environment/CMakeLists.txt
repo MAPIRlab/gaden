@@ -3,7 +3,7 @@ project(gaden_environment)
 
 ##################
 set(CMAKE_BUILD_TYPE "None") 
-set(CMAKE_CXX_FLAGS "-std=c++11 -g -O0 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++11 -g -O2 ${CMAKE_CXX_FLAGS}")
 
 find_package(catkin REQUIRED COMPONENTS 
     roscpp
