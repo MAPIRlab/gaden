@@ -87,6 +87,7 @@ def generate_launch_description():
                     'default_coppelia_scene.ttt'
                 ]),
                 'coppelia_headless': 'True',
+                'autoplay': 'False',
             }.items()
         )
     ]) #end LaunchDescription
