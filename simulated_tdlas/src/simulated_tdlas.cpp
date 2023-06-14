@@ -139,15 +139,9 @@ void TDLAS::updatePoseInFixedFrame()
 double TDLAS::takeMeasurement()
 {
     //run the DDA algorithm
-    glm::vec3 rayOrigin;
-    rayOrigin.x = m_poseInFixedFrame.pose.translation.x;
-    rayOrigin.y = m_poseInFixedFrame.pose.translation.y;
-    rayOrigin.z = m_poseInFixedFrame.pose.translation.z;
+    Gaden::Vector3 rayOrigin = Gaden::fromGeoMSg(m_poseInFixedFrame.pose.translation);
 
-    glm::vec3 rayDirection;
-    rayDirection.x = m_poseInFixedFrame.forward().x();
-    rayDirection.y = m_poseInFixedFrame.forward().y();
-    rayDirection.z = m_poseInFixedFrame.forward().z();
+    Gaden::Vector3 rayDirection = m_poseInFixedFrame.forward();
 
     static std::function<bool(bool)> identity = [](const bool& b){return b;};
     DDA::_3D::RayMarchInfo rayData =  DDA::_3D::marchRay<bool>(rayOrigin, rayDirection, m_maxRayDistance, 
@@ -166,7 +160,7 @@ double TDLAS::takeMeasurement()
     auto request = std::make_shared<gaden_player::srv::GasPosition::Request>();
     for(const auto& pair : rayData.lengthInCell)
     {
-        glm::vec3 coords = glm::vec3(pair.first) * m_rayMarchResolution + m_mapOrigin;
+        Gaden::Vector3 coords = Gaden::Vector3(pair.first) * m_rayMarchResolution + m_mapOrigin;
         request->x.push_back(coords.x);
         request->y.push_back(coords.y);
         request->z.push_back(coords.z);
@@ -229,15 +223,9 @@ void TDLAS::publish(double measured)
         marker.color.r = 1;
         marker.color.a = 1;
 
-        marker.points.push_back( PositionAndDirection::vec_to_point( m_poseInFixedFrame.pose.translation) );
+        marker.points.push_back( Gaden::geoMsgToPoint( m_poseInFixedFrame.pose.translation) );
 
-        geometry_msgs::msg::Point endPoint = PositionAndDirection::vec_to_point(
-            tf2::Vector3(
-                m_endPointLastMeasurement.x, 
-                m_endPointLastMeasurement.y,
-                m_endPointLastMeasurement.z
-            )
-        );
+        geometry_msgs::msg::Point endPoint = Gaden::toPoint(m_endPointLastMeasurement);
 
         marker.points.push_back(endPoint);
 

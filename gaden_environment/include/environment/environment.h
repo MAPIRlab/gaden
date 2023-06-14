@@ -33,7 +33,7 @@ class Environment : public rclcpp::Node
     //Environment 3D
     std::string occupancy3D_data;       //Location of the 3D Occupancy GridMap of the environment
     std::string	fixed_frame;            //Frame where to publish the markers
-    GadenCommon::EnvironmentDescription env_desc;
+    Gaden::EnvironmentDescription env_desc;
 
     bool        verbose;
     bool        wait_preprocessing;
@@ -44,7 +44,7 @@ class Environment : public rclcpp::Node
     void loadEnvironment(visualization_msgs::msg::MarkerArray &env_marker);
     int indexFrom3D(int x, int y, int z)
     {
-       return GadenCommon::indexFrom3D(Vector3i(x,y,z), env_desc.num_cells);
+       return Gaden::indexFrom3D(Gaden::Vector3i(x,y,z), env_desc.num_cells);
     }
 
     bool occupancyMapServiceCB(gaden_environment::srv::Occupancy_Request::SharedPtr request, gaden_environment::srv::Occupancy_Response::SharedPtr response);

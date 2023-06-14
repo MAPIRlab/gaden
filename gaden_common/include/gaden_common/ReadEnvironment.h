@@ -6,7 +6,7 @@
 #include <sstream>
 #include "Vector3.h"
 
-namespace GadenCommon
+namespace Gaden
 {
 
     struct EnvironmentDescription

@@ -12,10 +12,11 @@
 #include <gaden_environment/srv/occupancy.hpp>
 #include <gaden_player/srv/gas_position.hpp>
 #include <olfaction_msgs/msg/gas_sensor.hpp>
-#include "glm/glm.hpp"
 
-#include <DDA.h>
+#include <DDA/DDA.h>
 #include <vector>
+
+#include <gaden_common/Vector_conversions.h>
 
 class TDLAS : public rclcpp::Node
 {
@@ -39,7 +40,7 @@ private:
     float m_rayMarchResolution; 
     float m_measurementFrequency;
     std::vector<std::vector<std::vector<bool>> > m_map;
-    glm::vec3 m_mapOrigin;
+    Gaden::Vector3 m_mapOrigin;
 
     void getEnvironment();
     double takeMeasurement();
@@ -47,35 +48,16 @@ private:
     struct PositionAndDirection
     {
         geometry_msgs::msg::Transform pose;
-        tf2::Vector3 forward()
+        Gaden::Vector3 forward()
         { 
             tf2::Quaternion quat;
             tf2::fromMsg(pose.rotation, quat);
-            return tf2::quatRotate(quat, tf2::Vector3{1,0,0} ); 
-        }
-
-        static geometry_msgs::msg::Point vec_to_point(const geometry_msgs::msg::Vector3& vec)
-        {
-            geometry_msgs::msg::Point p;
-            p.x = vec.x;
-            p.y = vec.y;
-            p.z = vec.z;
-            
-            return p;
-        }
-        static geometry_msgs::msg::Point vec_to_point(const tf2::Vector3& vec)
-        {
-            geometry_msgs::msg::Point p;
-            p.x = vec.x();
-            p.y = vec.y();
-            p.z = vec.z();
-            
-            return p;
+            return Gaden::fromTF( tf2::quatRotate(quat, tf2::Vector3{1,0,0} ) ); 
         }
     };
     PositionAndDirection m_poseInFixedFrame;
     void updatePoseInFixedFrame();
 
-    glm::vec3 m_endPointLastMeasurement;
+    Gaden::Vector3 m_endPointLastMeasurement;
     void publish(double measured);
 };

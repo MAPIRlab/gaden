@@ -640,13 +640,13 @@ void sim_obj::configure_environment()
         W.resize(envDesc.num_cells.x * envDesc.num_cells.y * envDesc.num_cells.z); 
     }
 
-    GadenCommon::ReadResult result = GadenCommon::readEnvFile(occupancyFile, envDesc);
-    if( result == GadenCommon::ReadResult::NO_FILE)
+    Gaden::ReadResult result = Gaden::readEnvFile(occupancyFile, envDesc);
+    if( result == Gaden::ReadResult::NO_FILE)
     {
         RCLCPP_ERROR(m_logger, "No occupancy file provided to Gaden-player node!");
         return;
     }
-    else if (result == GadenCommon::ReadResult::READING_FAILED)
+    else if (result == Gaden::ReadResult::READING_FAILED)
     {
         RCLCPP_ERROR(m_logger, "Something went wrong while parsing the file!");
     }

@@ -250,13 +250,13 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray &env_mark
         }
 	}
 
-    GadenCommon::ReadResult result = GadenCommon::readEnvFile(occupancy3D_data, env_desc);
-    if( result == GadenCommon::ReadResult::NO_FILE)
+    Gaden::ReadResult result = Gaden::readEnvFile(occupancy3D_data, env_desc);
+    if( result == Gaden::ReadResult::NO_FILE)
     {
         RCLCPP_ERROR(get_logger(), "No occupancy file provided to environment node!");
         return;
     }
-    else if (result == GadenCommon::ReadResult::READING_FAILED)
+    else if (result == Gaden::ReadResult::READING_FAILED)
     {
         RCLCPP_ERROR(get_logger(), "Something went wrong while parsing the file!");
     }

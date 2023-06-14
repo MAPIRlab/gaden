@@ -23,8 +23,8 @@ find_package(gaden_environment REQUIRED)
 
 include_directories(
 	include 
+    ../gaden_common/include
 	third_party/DDA/include
-	third_party/DDA/third_party/glm
 )
 
 set(SOURCES_FILES 

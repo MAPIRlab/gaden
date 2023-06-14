@@ -378,13 +378,13 @@ void CFilamentSimulator::read_3D_file(std::string filename, std::vector< double 
 	//If header -> read 4 Header lines & configure all matrices to given dimensions!
 	if (hasHeader)
 	{
-        GadenCommon::ReadResult result = GadenCommon::readEnvFile(occupancy3D_data, envDesc);
-        if( result == GadenCommon::ReadResult::NO_FILE)
+        Gaden::ReadResult result = Gaden::readEnvFile(occupancy3D_data, envDesc);
+        if( result == Gaden::ReadResult::NO_FILE)
         {
             RCLCPP_ERROR(get_logger(), "No occupancy file provided to filament-simulator node!");
             return;
         }
-        else if (result == GadenCommon::ReadResult::READING_FAILED)
+        else if (result == Gaden::ReadResult::READING_FAILED)
         {
             RCLCPP_ERROR(get_logger(), "Something went wrong while parsing the file!");
         }
@@ -931,8 +931,9 @@ void CFilamentSimulator::save_state_to_file()
 	fi.close();
 }
 
-int CFilamentSimulator::indexFrom3D(int x, int y, int z){
-	return GadenCommon::indexFrom3D(Vector3i(x,y,z), envDesc.num_cells);
+int CFilamentSimulator::indexFrom3D(int x, int y, int z)
+{
+	return Gaden::indexFrom3D(Gaden::Vector3i(x,y,z), envDesc.num_cells);
 }
 
 //==============================//
