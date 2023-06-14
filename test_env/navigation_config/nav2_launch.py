@@ -15,19 +15,18 @@
 import os
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable, OpaqueFunction, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable, OpaqueFunction, GroupAction
 from launch.launch_description_sources import FrontendLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch_ros.actions import Node
+from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.parameter_descriptions import ParameterFile
 from ament_index_python.packages import get_package_share_directory
-from launch.frontend.parse_substitution import parse_substitution
 
 def launch_setup(context, *args, **kwargs):
     # Get the launch directory
     my_dir = get_package_share_directory('test_env')
     map_file = os.path.join(my_dir, 'scenarios', LaunchConfiguration('scenario').perform(context), 'occupancy.yaml')
-
+    namespace = LaunchConfiguration('namespace').perform(context)
     
      # common variables
     configured_params = ParameterFile(LaunchConfiguration('nav_params_yaml').perform(context), allow_substs=True)
@@ -39,7 +38,7 @@ def launch_setup(context, *args, **kwargs):
     with open(urdf, 'r') as infp:
         robot_desc = infp.read()
 
-    return[
+    navigation_nodes =[
         Node(
             package='nav2_map_server',
             executable='map_server',
@@ -108,15 +107,17 @@ def launch_setup(context, *args, **kwargs):
                         }
                         ]
         ),
+    ]
 
-
-
+    visualization_nodes = [
         ## Visualization
         Node(
             package='rviz2',
             executable='rviz2',
             name='rviz2',
             arguments=['-d', os.path.join(my_dir, 'navigation_config', 'gaden.rviz')],
+            output="log",
+            prefix='xterm -hold -e',
         ),
 
         Node(
@@ -135,6 +136,9 @@ def launch_setup(context, *args, **kwargs):
             ],
             arguments=[urdf]
         ),
+    ]
+
+    coppelia_launch = [
         IncludeLaunchDescription(
             FrontendLaunchDescriptionSource(
                 os.path.join(get_package_share_directory('coppelia_ros2_pkg'),
@@ -147,8 +151,21 @@ def launch_setup(context, *args, **kwargs):
                     LaunchConfiguration('scenario').perform(context),
                     'coppeliaScene.ttt'
                 ]),
-                'coppelia_headless': 'True',
+                'coppelia_headless': 'False',
+                'autoplay': 'True',
             }.items()
+        )
+    ]
+    
+
+    actions=[PushRosNamespace(namespace)]
+    actions.extend(visualization_nodes)
+    actions.extend(navigation_nodes)
+    actions.extend(coppelia_launch)
+    return[
+        GroupAction
+        (
+            actions=actions
         )
     ]
 
@@ -162,10 +179,11 @@ def generate_launch_description():
         
         DeclareLaunchArgument(
             "log_level",
-            default_value=["debug"],  #debug, info
+            default_value=["info"],  #debug, info
             description="Logging level",
             ),
-        DeclareLaunchArgument('scenario', default_value=""), #required
+        DeclareLaunchArgument('namespace', default_value="aaaaaa"),
+        DeclareLaunchArgument('scenario', default_value="Exp_C"), #required
         DeclareLaunchArgument('nav_params_yaml', default_value=os.path.join(my_dir, 'navigation_config', 'nav2_params.yaml') ),
         OpaqueFunction(function = launch_setup)
     ])
