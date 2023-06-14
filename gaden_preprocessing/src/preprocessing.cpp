@@ -22,6 +22,8 @@ int main(int argc, char **argv){
 
     std::shared_ptr<Gaden_preprocessing> node = std::make_shared<Gaden_preprocessing>();
     node->parseMainModels();
+    if(!rclcpp::ok())
+        return -1;
     node->parseOutletModels();
     
     //Mark all the empty cells reachable from the empty_point as aux_empty
@@ -39,7 +41,7 @@ int main(int argc, char **argv){
     std_msgs::msg::Bool b;
     b.data=true;
     node->jobDone_pub->publish(b);
-    
+    return 0;
 }
 
 
@@ -48,12 +50,20 @@ void Gaden_preprocessing::parseMainModels()
 {
     int numModels = declare_parameter<int>("number_of_models", 0);
 
-#ifdef GENERATE_COPPELIA_SCENE
     bool generateCoppeliaScene = declare_parameter<bool>("generateCoppeliaScene", false);
+#ifdef GENERATE_COPPELIA_SCENE
     RemoteAPIClient client;
     if(generateCoppeliaScene)
         client.getObject().sim().stopSimulation();
+#else
+    if(generateCoppeliaScene)
+    {
+        RCLCPP_ERROR(get_logger(), "You are trying to generate a coppelia scene, but compiled gaden_preprocessing without coppelia support. Either disable the request in the launch file or compile with coppelia support. \nYou can enable the generation in the CMakeLists.txt file of the preprocessing package.");
+        rclcpp::shutdown();
+        return;
+    }
 #endif
+
 
     std::vector<std::string> CADfiles;     
     for(int i = 0; i< numModels; i++){
