@@ -21,22 +21,18 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.parameter_descriptions import ParameterFile
 from ament_index_python.packages import get_package_share_directory
+import xacro
 
 def launch_setup(context, *args, **kwargs):
     # Get the launch directory
     my_dir = get_package_share_directory('test_env')
     map_file = os.path.join(my_dir, 'scenarios', LaunchConfiguration('scenario').perform(context), 'occupancy.yaml')
     namespace = LaunchConfiguration('namespace').perform(context)
-    
+
      # common variables
     configured_params = ParameterFile(LaunchConfiguration('nav_params_yaml').perform(context), allow_substs=True)
     use_sim_time = True
-    remappings = [('/tf', 'tf'),
-                  ('/tf_static', 'tf_static')]
     
-    urdf = os.path.join(my_dir, 'navigation_config', 'giraff.urdf')
-    with open(urdf, 'r') as infp:
-        robot_desc = infp.read()
 
     navigation_nodes =[
         Node(
@@ -49,7 +45,6 @@ def launch_setup(context, *args, **kwargs):
                 {'yaml_filename' : map_file},
                 {'frame_id' : 'map'}
                 ],
-            remappings=remappings
             ),
         # BT NAV
         Node(
@@ -58,7 +53,6 @@ def launch_setup(context, *args, **kwargs):
             name='bt_navigator',
             output='screen',
             parameters=[configured_params],
-            remappings=remappings
             ),
 
         # PLANNER (global path planning)
@@ -68,7 +62,6 @@ def launch_setup(context, *args, **kwargs):
             name='planner_server',
             output='screen',
             parameters=[configured_params],
-            remappings=remappings
             ),
 
         # CONTROLLER (local planner / path following)
@@ -87,7 +80,7 @@ def launch_setup(context, *args, **kwargs):
             name='behavior_server',
             output='screen',
             parameters=[configured_params],
-            remappings=remappings),
+            ),
 
         # LIFECYCLE MANAGER
         Node(
@@ -109,6 +102,12 @@ def launch_setup(context, *args, **kwargs):
         ),
     ]
 
+
+
+    #robot description for state_pùblisher
+    robot_desc = xacro.process_file(os.path.join(my_dir, 'navigation_config', 'giraff.xacro'), mappings={'frame_ns': namespace})
+    robot_desc = robot_desc.toprettyxml(indent='  ')
+
     visualization_nodes = [
         ## Visualization
         Node(
@@ -119,12 +118,6 @@ def launch_setup(context, *args, **kwargs):
             output="log",
             prefix='xterm -hold -e',
         ),
-
-        Node(
-            package='joint_state_publisher',
-            executable='joint_state_publisher',
-            name='joint_state_publisher'
-        ),
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
@@ -134,7 +127,6 @@ def launch_setup(context, *args, **kwargs):
                     'robot_description': robot_desc
                 }
             ],
-            arguments=[urdf]
         ),
     ]
 
@@ -182,7 +174,7 @@ def generate_launch_description():
             default_value=["info"],  #debug, info
             description="Logging level",
             ),
-        DeclareLaunchArgument('namespace', default_value="aaaaaa"),
+        DeclareLaunchArgument('namespace', default_value="PioneerP3DX"),
         DeclareLaunchArgument('scenario', default_value="Exp_C"), #required
         DeclareLaunchArgument('nav_params_yaml', default_value=os.path.join(my_dir, 'navigation_config', 'nav2_params.yaml') ),
         OpaqueFunction(function = launch_setup)
