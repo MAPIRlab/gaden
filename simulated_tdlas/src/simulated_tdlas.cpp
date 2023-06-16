@@ -1,4 +1,5 @@
 #include "simulated_tdlas.h"
+#include <tf2_ros/buffer_interface.h>
 
 int main(int argc, char** argv)
 {
@@ -12,6 +13,9 @@ int main(int argc, char** argv)
 
 TDLAS::TDLAS() : rclcpp::Node("Simulated_tdlas")
 {
+    m_tfBuffer = std::make_unique<tf2_ros::Buffer>(get_clock());
+    m_tfListener = std::make_unique<tf2_ros::TransformListener>(*m_tfBuffer);
+
     //read params from launchfile
     m_measurementFrequency = declare_parameter<float>("measurementFrequency", 2);
     m_rayMarchResolution = declare_parameter<float>("rayMarchResolution", 0.1);
@@ -22,9 +26,13 @@ TDLAS::TDLAS() : rclcpp::Node("Simulated_tdlas")
     m_fixedFrame = declare_parameter<std::string>("fixedFrame", "map");
     m_sensor_frame = declare_parameter<std::string>("sensorFrame", "tdlas_frame");
 
-    m_readingsPub = create_publisher<olfaction_msgs::msg::GasSensor>("/tdlas/reading", 100);
+    m_readingsPub = create_publisher<olfaction_msgs::msg::TDLAS>("/tdlas/reading", 100);
     m_markerPub = create_publisher<visualization_msgs::msg::Marker>("/tdlas/arrow", 100);
-    m_playerClient = create_client<gaden_player::srv::GasPosition>("/odor_value");
+    m_playerClient = create_client<gaden_player::srv::GasPosition>("odor_value");
+
+
+    std::string reflectorLocTopic = declare_parameter<std::string>("reflectorLocTopic", "/reflector/amcl_pose");
+    m_reflectorLocSub = create_subscription<geometry_msgs::msg::PoseStamped>(reflectorLocTopic, 1, std::bind(&TDLAS::reflectorLocCB, this, std::placeholders::_1));
 }
 
 void TDLAS::run()
@@ -116,18 +124,16 @@ void TDLAS::getEnvironment()
 
 void TDLAS::updatePoseInFixedFrame()
 {
-    static tf2_ros::Buffer buffer(get_clock());
-    static tf2_ros::TransformListener listener(buffer);
 
     tf2::Stamped<tf2::Transform> poseInSensorFrame(
         tf2::Transform(tf2::Quaternion::getIdentity(), {0,0,0}),
-        tf2::get_now(),
+        tf2_ros::fromRclcpp(now()),
         m_sensor_frame
     );
     geometry_msgs::msg::TransformStamped poseInSensorFrame_msg = tf2::toMsg(poseInSensorFrame);
 
     try{
-        geometry_msgs::msg::TransformStamped poseInFixedFrame_msg = buffer.transform(poseInSensorFrame_msg, m_fixedFrame);
+        geometry_msgs::msg::TransformStamped poseInFixedFrame_msg = m_tfBuffer->transform(poseInSensorFrame_msg, m_fixedFrame);
         m_poseInFixedFrame.pose = poseInFixedFrame_msg.transform;
     }
     catch(const std::exception& e)
@@ -136,6 +142,7 @@ void TDLAS::updatePoseInFixedFrame()
     }
 }
 
+
 double TDLAS::takeMeasurement()
 {
     //run the DDA algorithm
@@ -143,10 +150,19 @@ double TDLAS::takeMeasurement()
 
     Gaden::Vector3 rayDirection = m_poseInFixedFrame.forward();
 
-    static std::function<bool(bool)> identity = [](const bool& b){return b;};
+    static auto identity = [](const bool& b){return b;};
+    
+    static auto doesNotCollideWithReflector = [this](const glm::vec3& position)
+    {
+        if(position.z < m_reflectorRobot.baseCenter.z || position.z > m_reflectorRobot.baseCenter.z+m_reflectorRobot.height)
+            return true;
+        glm::vec3 projectedCenter(m_reflectorRobot.baseCenter.x, m_reflectorRobot.baseCenter.y, position.z);
+        return glm::distance(position, projectedCenter) > m_reflectorRobot.radius;
+    };
+
     DDA::_3D::RayMarchInfo rayData =  DDA::_3D::marchRay<bool>(rayOrigin, rayDirection, m_maxRayDistance, 
-        m_map, identity, 
-        m_mapOrigin, m_rayMarchResolution);
+        {m_map, m_mapOrigin, m_rayMarchResolution},
+        identity, doesNotCollideWithReflector);
 
     //record endpoint for the rviz marker
     if(rayData.lengthInCell.size()!=0)
@@ -195,19 +211,12 @@ double TDLAS::takeMeasurement()
 void TDLAS::publish(double measured)
 {
     {
-        olfaction_msgs::msg::GasSensor msg;
+        olfaction_msgs::msg::TDLAS msg;
     
         msg.header.frame_id = m_sensor_frame;
         msg.header.stamp = now();
 
-        msg.technology = msg.TECH_TDLAS;
-        msg.mpn = msg.MPN_NOT_VALID;
-        msg.manufacturer = msg.MANU_UNKNOWN;
-        
-        msg.raw = measured;
-        msg.raw_units = msg.UNITS_PPMXM;
-        msg.raw_air = 0;
-        
+        msg.average_ppmxm = measured;        
         m_readingsPub->publish(msg);
     }
 
@@ -233,4 +242,10 @@ void TDLAS::publish(double measured)
     }
 }
 
+
+void TDLAS::reflectorLocCB(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
+{
+    geometry_msgs::msg::PoseStamped pose_fixed_frame = m_tfBuffer->transform(*msg, m_fixedFrame);
+    m_reflectorRobot.baseCenter = Gaden::fromPoint(pose_fixed_frame.pose.position);
+}
 

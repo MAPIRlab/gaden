@@ -4,9 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /LaserScan1
-        - /RobotModel1
         - /RobotModel1/Description Topic1
+        - /TDLAS1
+        - /TDLAS1/Topic1
       Splitter Ratio: 0.6309859156608582
     Tree Height: 429
   - Class: rviz_common/Selection
@@ -40,7 +40,7 @@ Visualization Manager:
         Value: /source_visualization
       Value: false
     - Class: rviz_default_plugins/Marker
-      Enabled: false
+      Enabled: true
       Name: GasDistribution
       Namespaces:
         {}
@@ -51,7 +51,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /Gas_Distribution
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: false
       Name: Wind_arrow
@@ -94,7 +94,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 1
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -115,7 +115,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /PioneerP3DX/odom
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -275,6 +275,19 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: TDLAS
+      Namespaces:
+        "": true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /tdlas/arrow
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 183; 194; 217
@@ -321,16 +334,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 22.052520751953125
+      Distance: 22.40336036682129
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 5.455471038818359
-        Y: 3.805725574493408
-        Z: 0.12467408925294876
+        X: 4.415419578552246
+        Y: 3.6979546546936035
+        Z: 0.1208873987197876
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

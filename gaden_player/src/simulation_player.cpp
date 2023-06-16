@@ -569,7 +569,7 @@ bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, dou
 
 
 		// Check if the cell is occupied
-		if(Env[indexFrom3D(x_idx,y_idx,z_idx)] != 0) { return false; }
+		if(envDesc.Env[indexFrom3D(x_idx,y_idx,z_idx)] != 0) { return false; }
 	}
 
 	// Direct line of sight confirmed!
@@ -591,7 +591,7 @@ int sim_obj::check_pose_with_environment(double pose_x, double pose_y, double po
 		return 1;
 
 	//1.2. Return cell occupancy (0=free, 1=obstacle, 2=outlet)
-	return Env[indexFrom3D(x_idx,y_idx,z_idx)];
+	return envDesc.Env[indexFrom3D(x_idx,y_idx,z_idx)];
 }
 
 //Get Wind concentration at lcoation (x,y,z)

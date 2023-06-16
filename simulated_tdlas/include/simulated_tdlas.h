@@ -11,7 +11,7 @@
 
 #include <gaden_environment/srv/occupancy.hpp>
 #include <gaden_player/srv/gas_position.hpp>
-#include <olfaction_msgs/msg/gas_sensor.hpp>
+#include <olfaction_msgs/msg/tdlas.hpp>
 
 #include <DDA/DDA.h>
 #include <vector>
@@ -27,7 +27,11 @@ public:
     void run();
 
 private:
-    rclcpp::Publisher<olfaction_msgs::msg::GasSensor>::SharedPtr m_readingsPub{nullptr};
+
+    std::unique_ptr<tf2_ros::Buffer> m_tfBuffer;
+    std::unique_ptr<tf2_ros::TransformListener> m_tfListener;
+
+    rclcpp::Publisher<olfaction_msgs::msg::TDLAS>::SharedPtr m_readingsPub{nullptr};
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr m_markerPub{nullptr};
     rclcpp::Client<gaden_player::srv::GasPosition>::SharedPtr m_playerClient{nullptr};
     rclcpp::Subscription<gaden_environment::srv::Occupancy>::SharedPtr m_mapSubscriber{nullptr};
@@ -60,4 +64,16 @@ private:
 
     Gaden::Vector3 m_endPointLastMeasurement;
     void publish(double measured);
+    
+
+    // optional reflector data. If you are using a second robot to reflect the laser off of
+    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr m_reflectorLocSub;
+    void reflectorLocCB(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
+    struct Cylinder
+    {
+        glm::vec3 baseCenter;
+        float radius = 0;
+        float height = 0;
+    };
+    Cylinder m_reflectorRobot;
 };

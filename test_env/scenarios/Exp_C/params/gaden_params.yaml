@@ -72,7 +72,7 @@ gaden_filament_simulator:
 # ================
 gaden_player:
   ros__parameters:
-    verbose: true
+    verbose: false
     player_freq: 2.0         ### (Hz) Freq for loading the simulation log_files
     initial_iteration: 30
     num_simulators: 1        ### Number of simulations to load [1-inf] (useful for multiple sources and gases)
@@ -80,6 +80,7 @@ gaden_player:
     # Data from the "filament_simulator" pkg. Multiple sources can be set here
     simulation_data_0: "$(var pkg_dir)/scenarios/$(var scenario)/gas_simulations/$(var simulation)/FilamentSimulation_gasType_0_sourcePosition_$(var source_location_x)_$(var source_location_y)_$(var source_location_z)"
 
+    occupancyFile: "$(var pkg_dir)/scenarios/$(var scenario)/OccupancyGrid3D.csv"
     # Loop options        
     allow_looping: false
     loop_from_iteration: 280
