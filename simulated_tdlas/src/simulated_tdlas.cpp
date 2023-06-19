@@ -35,11 +35,18 @@ TDLAS::TDLAS() : rclcpp::Node("Simulated_tdlas")
 
     std::string reflectorLocTopic = declare_parameter<std::string>("reflectorLocTopic", "/reflector/amcl_pose");
     m_reflectorLocSub = create_subscription<geometry_msgs::msg::PoseStamped>(reflectorLocTopic, 1, std::bind(&TDLAS::reflectorLocCB, this, std::placeholders::_1));
+
+    m_reflectorRobot.radius = declare_parameter<float>("reflector_radius", 0.3); 
+    m_reflectorRobot.height = declare_parameter<float>("reflector_height", 2);
+
 }
 
 void TDLAS::run()
 {
     auto shared_this = shared_from_this();
+    while(!m_playerClient->wait_for_service(5s))
+        RCLCPP_INFO(get_logger(), "WAITING FOR GADEN_PLAYER SERVICE");
+
     getEnvironment();
 
     rclcpp::Rate rate(m_measurementFrequency);
@@ -61,20 +68,23 @@ void TDLAS::getEnvironment()
     gaden_environment::srv::Occupancy::Response::SharedPtr response{nullptr};
     {
         auto client = create_client<gaden_environment::srv::Occupancy>("gaden_environment/occupancyMap3D");
+        while(!client->wait_for_service(5s))
+            RCLCPP_INFO(get_logger(), "WAITING FOR GADEN_ENVIRONMENT/OCCUPANCY SERVICE");
+
         auto request = std::make_shared<gaden_environment::srv::Occupancy::Request>();
         rclcpp::Rate wait_rate(1);
         bool done = false;
         while(!done)
         {
             auto result = client->async_send_request(request);
-            if (rclcpp::spin_until_future_complete(shared_from_this(), result, 1s) == rclcpp::FutureReturnCode::SUCCESS)
+            if (rclcpp::spin_until_future_complete(shared_from_this(), result, 10s) == rclcpp::FutureReturnCode::SUCCESS)
             {
                 response = result.get();
                 done = true;
             }
             else
             {
-                RCLCPP_INFO(get_logger(), "WAITING FOR GADEN_ENVIRONMENT/OCCUPANCY SERVICE");
+                RCLCPP_ERROR(get_logger(), "DID NOT GET AN ANSWER FROM GADEN_ENVIRONMENT/OCCUPANCY SERVICE");
                 wait_rate.sleep();
             }
         }
