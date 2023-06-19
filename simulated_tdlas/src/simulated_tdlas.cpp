@@ -1,5 +1,7 @@
 #include "simulated_tdlas.h"
 #include <tf2_ros/buffer_interface.h>
+using namespace std::chrono_literals;
+
 
 int main(int argc, char** argv)
 {
@@ -65,7 +67,7 @@ void TDLAS::getEnvironment()
         while(!done)
         {
             auto result = client->async_send_request(request);
-            if (rclcpp::spin_until_future_complete(shared_from_this(), result) == rclcpp::FutureReturnCode::SUCCESS)
+            if (rclcpp::spin_until_future_complete(shared_from_this(), result, 1s) == rclcpp::FutureReturnCode::SUCCESS)
             {
                 response = result.get();
                 done = true;
@@ -184,7 +186,7 @@ double TDLAS::takeMeasurement()
 
     double totalMeasured = 0;
     auto future = m_playerClient->async_send_request(request);
-    if(rclcpp::spin_until_future_complete(shared_from_this(), future) == rclcpp::FutureReturnCode::SUCCESS)
+    if(rclcpp::spin_until_future_complete(shared_from_this(), future, 1s) == rclcpp::FutureReturnCode::SUCCESS)
     {
         auto response = future.get();
         for( int i=0; i<response->positions.size(); i++)

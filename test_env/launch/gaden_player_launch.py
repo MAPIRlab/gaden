@@ -17,7 +17,7 @@ from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterFile
-from nav2_common.launch import RewrittenYaml
+from launch.conditions import IfCondition
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -67,11 +67,15 @@ def generate_launch_description():
             ),
         DeclareLaunchArgument(
             "source_location_y", default_value=[source_y],
-            description="pose.x of the source",
+            description="pose.y of the source",
             ),
         DeclareLaunchArgument(
             "source_location_z", default_value=[source_z],
-            description="pose.x of the source",
+            description="pose.z of the source",
+            ),
+        DeclareLaunchArgument(
+            "use_rviz", default_value=['True'],
+            description="",
             ),
     
         #========
@@ -80,6 +84,7 @@ def generate_launch_description():
 
         # RVIZ
         Node(
+            condition=IfCondition(LaunchConfiguration("use_rviz")),
             package='rviz2',
             executable='rviz2',
             name='rviz2',
@@ -94,7 +99,6 @@ def generate_launch_description():
             executable='environment',
             name='gaden_environment',
             output='screen',
-            prefix='xterm -hold -e',
             parameters=[ParameterFile(params_yaml_file, allow_substs=True)]
             ),
 
@@ -104,28 +108,6 @@ def generate_launch_description():
             executable='player',
             name='gaden_player',
             output='screen',
-            prefix='xterm -hold -e',
             parameters=[ParameterFile(params_yaml_file, allow_substs=True)]
             ),
-        
-        # MAP_SERVER
-        Node(
-            package='nav2_map_server',
-            executable='map_server',
-            name='map_server',
-            output='screen',
-            parameters=[{'use_sim_time': True},
-                        {'yaml_filename' : os.path.join(pkg_dir, 'scenarios', scenario, 'occupancy.yaml')}]
-            ),
-        # LIFECYCLE MANAGER
-        Node(
-            package='nav2_lifecycle_manager',
-            executable='lifecycle_manager',
-            name='lifecycle_manager_localization',
-            output='screen',
-            parameters=[{'use_sim_time': True},
-                        {'autostart': True},
-                        {'node_names': ['map_server']}
-                       ]
-            )
     ]) #end LaunchDescription
