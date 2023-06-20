@@ -67,8 +67,8 @@ private:
     
 
     // optional reflector data. If you are using a second robot to reflect the laser off of
-    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr m_reflectorLocSub;
-    void reflectorLocCB(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
+    rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr m_reflectorLocSub;
+    void reflectorLocCB(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
     struct Cylinder
     {
         glm::vec3 baseCenter;

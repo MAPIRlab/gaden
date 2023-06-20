@@ -34,7 +34,7 @@ TDLAS::TDLAS() : rclcpp::Node("Simulated_tdlas")
 
 
     std::string reflectorLocTopic = declare_parameter<std::string>("reflectorLocTopic", "/reflector/amcl_pose");
-    m_reflectorLocSub = create_subscription<geometry_msgs::msg::PoseStamped>(reflectorLocTopic, 1, std::bind(&TDLAS::reflectorLocCB, this, std::placeholders::_1));
+    m_reflectorLocSub = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(reflectorLocTopic, 1, std::bind(&TDLAS::reflectorLocCB, this, std::placeholders::_1));
 
     m_reflectorRobot.radius = declare_parameter<float>("reflector_radius", 0.3); 
     m_reflectorRobot.height = declare_parameter<float>("reflector_height", 2);
@@ -255,9 +255,13 @@ void TDLAS::publish(double measured)
 }
 
 
-void TDLAS::reflectorLocCB(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
+void TDLAS::reflectorLocCB(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
 {
-    geometry_msgs::msg::PoseStamped pose_fixed_frame = m_tfBuffer->transform(*msg, m_fixedFrame);
+    geometry_msgs::msg::PoseStamped pose_original_frame;
+    pose_original_frame.header = msg->header;
+    pose_original_frame.pose = msg->pose.pose;
+    
+    geometry_msgs::msg::PoseStamped pose_fixed_frame = m_tfBuffer->transform(pose_original_frame, m_fixedFrame);
     m_reflectorRobot.baseCenter = Gaden::fromPoint(pose_fixed_frame.pose.position);
 }
 
