@@ -28,9 +28,9 @@ TDLAS::TDLAS() : rclcpp::Node("Simulated_tdlas")
     m_fixedFrame = declare_parameter<std::string>("fixedFrame", "map");
     m_sensor_frame = declare_parameter<std::string>("sensorFrame", "tdlas_frame");
 
-    m_readingsPub = create_publisher<olfaction_msgs::msg::TDLAS>("/tdlas/reading", 100);
-    m_markerPub = create_publisher<visualization_msgs::msg::Marker>("/tdlas/arrow", 100);
-    m_playerClient = create_client<gaden_player::srv::GasPosition>("odor_value");
+    m_readingsPub = create_publisher<olfaction_msgs::msg::TDLAS>("tdlas/reading", 100);
+    m_markerPub = create_publisher<visualization_msgs::msg::Marker>("tdlas/arrow", 100);
+    m_playerClient = create_client<gaden_player::srv::GasPosition>("/odor_value");
 
 
     std::string reflectorLocTopic = declare_parameter<std::string>("reflectorLocTopic", "/reflector/amcl_pose");
@@ -67,7 +67,7 @@ void TDLAS::getEnvironment()
 
     gaden_environment::srv::Occupancy::Response::SharedPtr response{nullptr};
     {
-        auto client = create_client<gaden_environment::srv::Occupancy>("gaden_environment/occupancyMap3D");
+        auto client = create_client<gaden_environment::srv::Occupancy>("/gaden_environment/occupancyMap3D");
         while(!client->wait_for_service(5s))
             RCLCPP_INFO(get_logger(), "WAITING FOR GADEN_ENVIRONMENT/OCCUPANCY SERVICE");
 
@@ -260,7 +260,7 @@ void TDLAS::reflectorLocCB(const geometry_msgs::msg::PoseWithCovarianceStamped::
     geometry_msgs::msg::PoseStamped pose_original_frame;
     pose_original_frame.header = msg->header;
     pose_original_frame.pose = msg->pose.pose;
-    
+
     geometry_msgs::msg::PoseStamped pose_fixed_frame = m_tfBuffer->transform(pose_original_frame, m_fixedFrame);
     m_reflectorRobot.baseCenter = Gaden::fromPoint(pose_fixed_frame.pose.position);
 }

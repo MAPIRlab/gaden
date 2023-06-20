@@ -216,7 +216,7 @@ void CFilamentSimulator::loadNodeParameters()
 	occupancy3D_data = declare_parameter<std::string>("occupancy3D_data", "");
 
 	//fixed frame (to disaply the gas particles on RVIZ)
-	fixed_frame = declare_parameter<std::string>("fixed_frame", "/map");
+	fixed_frame = declare_parameter<std::string>("fixed_frame", "map");
 
 	//Source postion (x,y,z)
 	gas_source_pos_x = declare_parameter<double>("source_position_x", 1.0);
