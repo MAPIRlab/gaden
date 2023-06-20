@@ -269,7 +269,27 @@ void CFilamentSimulator::initSimulator()
 		//Files exist!, keep going!
 		fclose(file);
         if (verbose) ROS_INFO("[filament] Loading 3D Occupancy GridMap");
-		read_3D_file(occupancy3D_data, Env, true, false);
+		GadenCommon::ReadResult result = GadenCommon::readEnvFile(occupancy3D_data, envDesc);
+        if( result == GadenCommon::ReadResult::NO_FILE)
+        {
+            ROS_ERROR("No occupancy file provided to filament-simulator node!");
+            return;
+        }
+        else if (result == GadenCommon::ReadResult::READING_FAILED)
+        {
+            ROS_ERROR("Something went wrong while parsing the file!");
+        }
+
+        if (verbose) ROS_INFO("[filament] Env dimensions (%.2f,%.2f,%.2f) to (%.2f,%.2f,%.2f)",envDesc.min_coord.x, envDesc.min_coord.y, envDesc.min_coord.z, envDesc.max_coord.x, envDesc.max_coord.y, envDesc.max_coord.z );
+        if (verbose) ROS_INFO("[filament] Env size in cells	 (%d,%d,%d) - with cell size %f [m]",envDesc.num_cells.x,envDesc.num_cells.y,envDesc.num_cells.z, envDesc.cell_size);
+
+		//Reserve memory for the 3D matrices: U,V,W,C and Env, according to provided num_cells of the environment.
+		//It also init them to 0.0 values
+		configure3DMatrix(U);
+		configure3DMatrix(V);
+		configure3DMatrix(W);
+		configure3DMatrix(C);
+		configure3DMatrix(envDesc.Env);
 	}
 	else
 	{
@@ -292,7 +312,10 @@ void CFilamentSimulator::configure3DMatrix(std::vector< double > &A)
 {
 	A.resize(envDesc.num_cells.x* envDesc.num_cells.y * envDesc.num_cells.z);
 }
-
+void CFilamentSimulator::configure3DMatrix(std::vector< uint8_t > &A)
+{
+	A.resize(envDesc.num_cells.x* envDesc.num_cells.y * envDesc.num_cells.z);
+}
 
 
 //==========================//
@@ -325,9 +348,9 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
     	ist.read((char*) &check, sizeof(int));
 		ist.close();
 
-		read_3D_file(U_filename, U, false, (check==999));
-		read_3D_file(V_filename, V, false, (check==999));
-		read_3D_file(W_filename, W, false, (check==999));
+		read_3D_file(U_filename, U, (check==999));
+		read_3D_file(V_filename, V, (check==999));
+		read_3D_file(W_filename, W, (check==999));
 		
 		if(!wind_finished){
 			//dump the binary wind data to file
@@ -364,7 +387,7 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 //==========================//
 //                          //
 //==========================//
-void CFilamentSimulator::read_3D_file(std::string filename, std::vector< double > &A, bool hasHeader, bool binary)
+void CFilamentSimulator::read_3D_file(std::string filename, std::vector< double > &A, bool binary)
 {
 	if(binary){
 		std::ifstream infile(filename, std::ios_base::binary);
@@ -373,33 +396,6 @@ void CFilamentSimulator::read_3D_file(std::string filename, std::vector< double 
 		infile.close();
 		return;
 	}
-
-	//If header -> read 4 Header lines & configure all matrices to given dimensions!
-	if (hasHeader)
-	{
-        GadenCommon::ReadResult result = GadenCommon::readEnvFile(occupancy3D_data, envDesc);
-        if( result == GadenCommon::ReadResult::NO_FILE)
-        {
-            ROS_ERROR("No occupancy file provided to filament-simulator node!");
-            return;
-        }
-        else if (result == GadenCommon::ReadResult::READING_FAILED)
-        {
-            ROS_ERROR("Something went wrong while parsing the file!");
-        }
-
-        if (verbose) ROS_INFO("[filament] Env dimensions (%.2f,%.2f,%.2f) to (%.2f,%.2f,%.2f)",envDesc.min_coord.x, envDesc.min_coord.y, envDesc.min_coord.z, envDesc.max_coord.x, envDesc.max_coord.y, envDesc.max_coord.z );
-        if (verbose) ROS_INFO("[filament] Env size in cells	 (%d,%d,%d) - with cell size %f [m]",envDesc.num_cells.x,envDesc.num_cells.y,envDesc.num_cells.z, envDesc.cell_size);
-
-		//Reserve memory for the 3D matrices: U,V,W,C and Env, according to provided num_cells of the environment.
-		//It also init them to 0.0 values
-		configure3DMatrix(U);
-		configure3DMatrix(V);
-		configure3DMatrix(W);
-		configure3DMatrix(C);
-		configure3DMatrix(Env);
-	}
-
 
 	//open file
 	std::ifstream infile(filename.c_str());
@@ -619,7 +615,7 @@ int CFilamentSimulator::check_pose_with_environment(double pose_x, double pose_y
 		return 1;
 
 	//1.2. Return cell occupancy (0=free, 1=obstacle, 2=outlet)
-	return Env[indexFrom3D(x_idx,y_idx,z_idx)];
+	return envDesc.Env[indexFrom3D(x_idx,y_idx,z_idx)];
 }
 
 
@@ -667,7 +663,7 @@ bool CFilamentSimulator::check_environment_for_obstacle(double start_x, double s
 
 
 		// Check if the cell is occupied
-		if(Env[indexFrom3D(x_idx,y_idx,z_idx)] != 0) { return PATH_OBSTRUCTED; }
+		if(envDesc.Env[indexFrom3D(x_idx,y_idx,z_idx)] != 0) { return PATH_OBSTRUCTED; }
 	}
 
 	// Direct line of sight confirmed!

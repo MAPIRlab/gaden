@@ -64,7 +64,6 @@ public:
     double num_moles_all_gases_in_cm3;
     std::map<int, Filament> activeFilaments;
 
-    std::vector<uint8_t> Env;
 
     //methods
     void configure_environment();
