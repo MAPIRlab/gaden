@@ -18,36 +18,32 @@ else()
 endif()
 
 
-if(GENERATE_COPPELIA_SCENE)
-    add_definitions(-DGENERATE_COPPELIA_SCENE)
-    find_package(coppelia_remote_api REQUIRED) 
-endif()
-
 
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(std_msgs REQUIRED)
+set(AMENT_DEPS
+    rclcpp
+    tf2
+    std_msgs
+    )
+
+if(GENERATE_COPPELIA_SCENE)
+    add_definitions(-DGENERATE_COPPELIA_SCENE)
+    list(APPEND AMENT_DEPS coppelia_remote_api)
+endif()
+
+foreach(Dependency IN ITEMS ${AMENT_DEPS})
+  find_package(${Dependency} REQUIRED)
+endforeach()
+
+
+
+
 
 include_directories(
   include
 )
 
 add_executable(preprocessing src/preprocessing.cpp)
-
-
-
-
-
-set(AMENT_DEPS
-    rclcpp
-    tf2
-    std_msgs
-)
-if(GENERATE_COPPELIA_SCENE)
-    list(APPEND AMENT_DEPS coppelia_remote_api)
-    target_link_libraries(preprocessing zmq)
-endif()
 
 
 ament_target_dependencies(
