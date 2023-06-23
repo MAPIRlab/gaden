@@ -54,7 +54,7 @@ void Environment::run()
         cad.id = i;
         cad.type = visualization_msgs::msg::Marker::MESH_RESOURCE;
         cad.action = visualization_msgs::msg::Marker::ADD;
-        cad.mesh_resource = CAD_models[i];
+        cad.mesh_resource = "file://"+CAD_models[i];
         cad.scale.x = 1.0;
         cad.scale.y = 1.0;
         cad.scale.z = 1.0;
