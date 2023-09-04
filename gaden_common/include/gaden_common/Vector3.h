@@ -3,6 +3,6 @@
 
 namespace Gaden
 {
-    using Vector3=glm::vec3;
-    using Vector3i=glm::ivec3;
+    using Vector3 = glm::vec3;
+    using Vector3i = glm::ivec3;
 }

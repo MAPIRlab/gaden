@@ -7,7 +7,6 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-
 #include <visualization_msgs/msg/marker.hpp>
 #include <olfaction_msgs/msg/anemometer.hpp>
 #include <gaden_player/srv/wind_position.hpp>
@@ -18,7 +17,6 @@
 #include <fstream>
 #include <iostream>
 
-
 class SimulatedAnemometer : public rclcpp::Node
 {
 public:
@@ -27,18 +25,15 @@ public:
 
 private:
     // Sensor Parameters
-    std::string		input_sensor_frame;
-    std::string		input_fixed_frame;
-    double			noise_std;
-    bool                    use_map_ref_system;
-
+    std::string input_sensor_frame;
+    std::string input_fixed_frame;
+    double noise_std;
+    bool use_map_ref_system;
 
     // Vars
     bool first_reading = true;
     bool notified = false;
 
-
-    //functions:
-    void  loadNodeParameters();
-
+    // functions:
+    void loadNodeParameters();
 };

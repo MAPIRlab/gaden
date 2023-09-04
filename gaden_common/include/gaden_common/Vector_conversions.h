@@ -10,7 +10,6 @@ namespace Gaden
         return tf2::Vector3(v.x, v.y, v.z);
     }
 
-
     static tf2::Vector3 toTF(const Vector3i& v)
     {
         return tf2::Vector3(v.x, v.y, v.z);
@@ -49,14 +48,13 @@ namespace Gaden
         return Vector3(v.x, v.y, v.z);
     }
 
-
     static geometry_msgs::msg::Point geoMsgToPoint(const geometry_msgs::msg::Vector3& vec)
     {
         geometry_msgs::msg::Point p;
         p.x = vec.x;
         p.y = vec.y;
         p.z = vec.z;
-        
+
         return p;
     }
 

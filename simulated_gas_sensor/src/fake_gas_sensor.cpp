@@ -11,40 +11,41 @@
 
 #include "fake_gas_sensor.h"
 
-int main( int argc, char** argv )
+int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
     std::shared_ptr<FakeGasSensor> node = std::make_shared<FakeGasSensor>();
     node->run();
-    
+
     return 0;
 }
 
 FakeGasSensor::FakeGasSensor() : rclcpp::Node("Fake_Gas_Sensor")
-{}
+{
+}
 
 void FakeGasSensor::run()
 {
-     //Read parameters
+    // Read parameters
     loadNodeParameters();
-	
-    //Publishers
+
+    // Publishers
     auto sensor_read_pub = create_publisher<olfaction_msgs::msg::GasSensor>("Sensor_reading", 500);
-	auto marker_pub = create_publisher<visualization_msgs::msg::Marker>("Sensor_display", 100);
-	
-    //Service to request gas concentration
+    auto marker_pub = create_publisher<visualization_msgs::msg::Marker>("Sensor_display", 100);
+
+    // Service to request gas concentration
     auto client = create_client<gaden_player::srv::GasPosition>("/odor_value");
-	
+
     auto shared_this = shared_from_this();
 
-    //Init Visualization data (marker)
+    // Init Visualization data (marker)
     //---------------------------------
-    // sensor = sphere
-    // conector = stick from the floor to the sensor
-	visualization_msgs::msg::Marker sensor,connector;
-	{
+    //  sensor = sphere
+    //  conector = stick from the floor to the sensor
+    visualization_msgs::msg::Marker sensor, connector;
+    {
         sensor.header.frame_id = input_fixed_frame.c_str();
-        sensor.ns = "sensor_visualization";	
+        sensor.ns = "sensor_visualization";
         sensor.action = visualization_msgs::msg::Marker::ADD;
         sensor.type = visualization_msgs::msg::Marker::SPHERE;
         sensor.id = 0;
@@ -54,42 +55,42 @@ void FakeGasSensor::run()
         sensor.color.r = 2.0f;
         sensor.color.g = 1.0f;
         sensor.color.a = 1.0;
-        
+
         connector.header.frame_id = input_fixed_frame.c_str();
-        connector.ns  = "sensor_visualization";
+        connector.ns = "sensor_visualization";
         connector.action = visualization_msgs::msg::Marker::ADD;
         connector.type = visualization_msgs::msg::Marker::CYLINDER;
         connector.id = 1;
         connector.scale.x = 0.1;
         connector.scale.y = 0.1;
-        connector.color.a  = 1.0;
+        connector.color.a = 1.0;
         connector.color.r = 1.0f;
         connector.color.b = 1.0f;
         connector.color.g = 1.0f;
     }
 
     // Loop
-	auto tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    auto tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     auto listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
-    
+
     rclcpp::Rate rate(node_rate);
     first_reading = true;
     notified = false;
     while (rclcpp::ok())
     {
-        //Vars
-		geometry_msgs::msg::TransformStamped sensor_transform_map;
+        // Vars
+        geometry_msgs::msg::TransformStamped sensor_transform_map;
         bool know_sensor_pose = true;
 
-        //Get pose of the sensor in the /map reference
+        // Get pose of the sensor in the /map reference
         try
         {
-          sensor_transform_map = tf_buffer->lookupTransform(input_fixed_frame, input_sensor_frame,
-                                   rclcpp::Time(0));
+            sensor_transform_map = tf_buffer->lookupTransform(input_fixed_frame, input_sensor_frame,
+                rclcpp::Time(0));
         }
         catch (tf2::TransformException ex)
         {
-            RCLCPP_ERROR(get_logger(), "%s",ex.what());
+            RCLCPP_ERROR(get_logger(), "%s", ex.what());
             know_sensor_pose = false;
             using namespace std::literals::chrono_literals;
             rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(1s));
@@ -97,7 +98,7 @@ void FakeGasSensor::run()
 
         if (know_sensor_pose)
         {
-            //Current sensor pose
+            // Current sensor pose
             float x_pos = sensor_transform_map.transform.translation.x;
             float y_pos = sensor_transform_map.transform.translation.y;
             float z_pos = sensor_transform_map.transform.translation.z;
@@ -107,72 +108,71 @@ void FakeGasSensor::run()
             auto request = std::make_shared<gaden_player::srv::GasPosition::Request>();
             request->x.push_back(x_pos);
             request->y.push_back(y_pos);
-            request->z.push_back(z_pos);    
-			
-			auto result = client->async_send_request(request);
-            if (rclcpp::spin_until_future_complete(shared_this, result) == rclcpp::FutureReturnCode::SUCCESS)
-			{
-                auto response = result.get().get();        
+            request->z.push_back(z_pos);
 
-                //Simulate Gas_Sensor response given this GT values of the concentration!
+            auto result = client->async_send_request(request);
+            if (rclcpp::spin_until_future_complete(shared_this, result) == rclcpp::FutureReturnCode::SUCCESS)
+            {
+                auto response = result.get().get();
+
+                // Simulate Gas_Sensor response given this GT values of the concentration!
                 olfaction_msgs::msg::GasSensor sensor_msg;
                 sensor_msg.header.frame_id = input_sensor_frame;
                 sensor_msg.header.stamp = now();
                 switch (input_sensor_model)
                 {
-                case 0: //MOX TGS2620
+                case 0: // MOX TGS2620
                     sensor_msg.technology = sensor_msg.TECH_MOX;
                     sensor_msg.manufacturer = sensor_msg.MANU_FIGARO;
                     sensor_msg.mpn = sensor_msg.MPN_TGS2620;
                     sensor_msg.raw_units = sensor_msg.UNITS_OHM;
                     sensor_msg.raw = simulate_mox_as_line_loglog(response);
-                    sensor_msg.raw_air = Sensitivity_Air[input_sensor_model]*R0[input_sensor_model];
-                    sensor_msg.calib_a = sensitivity_lineloglog[input_sensor_model][0][0];  //Calib for Ethanol
-                    sensor_msg.calib_b = sensitivity_lineloglog[input_sensor_model][0][1];  //Calib for Ethanol
+                    sensor_msg.raw_air = Sensitivity_Air[input_sensor_model] * R0[input_sensor_model];
+                    sensor_msg.calib_a = sensitivity_lineloglog[input_sensor_model][0][0]; // Calib for Ethanol
+                    sensor_msg.calib_b = sensitivity_lineloglog[input_sensor_model][0][1]; // Calib for Ethanol
                     break;
-                case 1:  //MOX TGS2600
+                case 1: // MOX TGS2600
                     sensor_msg.technology = sensor_msg.TECH_MOX;
                     sensor_msg.manufacturer = sensor_msg.MANU_FIGARO;
                     sensor_msg.mpn = sensor_msg.MPN_TGS2600;
                     sensor_msg.raw_units = sensor_msg.UNITS_OHM;
                     sensor_msg.raw = simulate_mox_as_line_loglog(response);
-                    sensor_msg.raw_air = Sensitivity_Air[input_sensor_model]*R0[input_sensor_model];
-                    sensor_msg.calib_a = sensitivity_lineloglog[input_sensor_model][0][0];  //Calib for Ethanol
-                    sensor_msg.calib_b = sensitivity_lineloglog[input_sensor_model][0][1];  //Calib for Ethanol
+                    sensor_msg.raw_air = Sensitivity_Air[input_sensor_model] * R0[input_sensor_model];
+                    sensor_msg.calib_a = sensitivity_lineloglog[input_sensor_model][0][0]; // Calib for Ethanol
+                    sensor_msg.calib_b = sensitivity_lineloglog[input_sensor_model][0][1]; // Calib for Ethanol
                     break;
-                case 2:  //MOX TGS2611
+                case 2: // MOX TGS2611
                     sensor_msg.technology = sensor_msg.TECH_MOX;
                     sensor_msg.manufacturer = sensor_msg.MANU_FIGARO;
                     sensor_msg.mpn = sensor_msg.MPN_TGS2611;
                     sensor_msg.raw_units = sensor_msg.UNITS_OHM;
                     sensor_msg.raw = simulate_mox_as_line_loglog(response);
-                    sensor_msg.raw_air = Sensitivity_Air[input_sensor_model]*R0[input_sensor_model];
-                    sensor_msg.calib_a = sensitivity_lineloglog[input_sensor_model][0][0];  //Calib for Ethanol
-                    sensor_msg.calib_b = sensitivity_lineloglog[input_sensor_model][0][1];  //Calib for Ethanol
+                    sensor_msg.raw_air = Sensitivity_Air[input_sensor_model] * R0[input_sensor_model];
+                    sensor_msg.calib_a = sensitivity_lineloglog[input_sensor_model][0][0]; // Calib for Ethanol
+                    sensor_msg.calib_b = sensitivity_lineloglog[input_sensor_model][0][1]; // Calib for Ethanol
                     break;
-                case 3:  //MOX TGS2610
+                case 3: // MOX TGS2610
                     sensor_msg.technology = sensor_msg.TECH_MOX;
                     sensor_msg.manufacturer = sensor_msg.MANU_FIGARO;
                     sensor_msg.mpn = sensor_msg.MPN_TGS2610;
                     sensor_msg.raw_units = sensor_msg.UNITS_OHM;
                     sensor_msg.raw = simulate_mox_as_line_loglog(response);
-                    sensor_msg.raw_air = Sensitivity_Air[input_sensor_model]*R0[input_sensor_model];
-                    sensor_msg.calib_a = sensitivity_lineloglog[input_sensor_model][0][0];  //Calib for Ethanol
-                    sensor_msg.calib_b = sensitivity_lineloglog[input_sensor_model][0][1];  //Calib for Ethanol
+                    sensor_msg.raw_air = Sensitivity_Air[input_sensor_model] * R0[input_sensor_model];
+                    sensor_msg.calib_a = sensitivity_lineloglog[input_sensor_model][0][0]; // Calib for Ethanol
+                    sensor_msg.calib_b = sensitivity_lineloglog[input_sensor_model][0][1]; // Calib for Ethanol
                     break;
-                case 4:  //MOX TGS2612
+                case 4: // MOX TGS2612
                     sensor_msg.technology = sensor_msg.TECH_MOX;
                     sensor_msg.manufacturer = sensor_msg.MANU_FIGARO;
                     sensor_msg.mpn = sensor_msg.MPN_TGS2612;
                     sensor_msg.raw_units = sensor_msg.UNITS_OHM;
                     sensor_msg.raw = simulate_mox_as_line_loglog(response);
-                    sensor_msg.raw_air = Sensitivity_Air[input_sensor_model]*R0[input_sensor_model];
-                    sensor_msg.calib_a = sensitivity_lineloglog[input_sensor_model][0][0];  //Calib for Ethanol
-                    sensor_msg.calib_b = sensitivity_lineloglog[input_sensor_model][0][1];  //Calib for Ethanol
+                    sensor_msg.raw_air = Sensitivity_Air[input_sensor_model] * R0[input_sensor_model];
+                    sensor_msg.calib_a = sensitivity_lineloglog[input_sensor_model][0][0]; // Calib for Ethanol
+                    sensor_msg.calib_b = sensitivity_lineloglog[input_sensor_model][0][1]; // Calib for Ethanol
                     break;
 
-
-                case 30:  //PID miniRaeLite
+                case 30: // PID miniRaeLite
                     sensor_msg.technology = sensor_msg.TECH_PID;
                     sensor_msg.manufacturer = sensor_msg.MANU_RAE;
                     sensor_msg.mpn = sensor_msg.MPN_MINIRAELITE;
@@ -186,8 +186,7 @@ void FakeGasSensor::run()
                     break;
                 }
 
-
-                //Publish simulated sensor reading
+                // Publish simulated sensor reading
                 sensor_read_pub->publish(sensor_msg);
                 notified = false;
             }
@@ -200,8 +199,7 @@ void FakeGasSensor::run()
                 }
             }
 
-
-            //Publish RVIZ sensor pose
+            // Publish RVIZ sensor pose
             sensor.header.stamp = now();
             sensor.pose.position.x = x_pos;
             sensor.pose.position.y = y_pos;
@@ -211,7 +209,7 @@ void FakeGasSensor::run()
             connector.scale.z = z_pos;
             connector.pose.position.x = x_pos;
             connector.pose.position.y = y_pos;
-            connector.pose.position.z = float(z_pos)/2;
+            connector.pose.position.z = float(z_pos) / 2;
             marker_pub->publish(connector);
         }
 
@@ -227,35 +225,35 @@ float FakeGasSensor::simulate_mox_as_line_loglog(gaden_player::srv::GasPosition_
 {
     if (first_reading)
     {
-        //Init sensor to its Baseline lvl
-        sensor_output = Sensitivity_Air[input_sensor_model];    //RS_R0 value at air
+        // Init sensor to its Baseline lvl
+        sensor_output = Sensitivity_Air[input_sensor_model]; // RS_R0 value at air
         previous_sensor_output = sensor_output;
         first_reading = false;
     }
     else
-    {        
-        //1. Set Sensor Output based on gas concentrations (gas type dependent)
+    {
+        // 1. Set Sensor Output based on gas concentrations (gas type dependent)
         //---------------------------------------------------------------------
-        // RS/R0 = A*conc^B (a line in the loglog scale)
+        //  RS/R0 = A*conc^B (a line in the loglog scale)
         float resistance_variation = 0.0;
 
-        //Handle multiple gases
-        for (int i=0; i<GT_gas_concentrations->positions[0].concentration.size(); i++)
+        // Handle multiple gases
+        for (int i = 0; i < GT_gas_concentrations->positions[0].concentration.size(); i++)
         {
             int gas_id;
-            if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(),"ethanol"))
+            if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(), "ethanol"))
                 gas_id = 0;
-            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(),"methane"))
+            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(), "methane"))
                 gas_id = 1;
-            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(),"hydrogen"))
+            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(), "hydrogen"))
                 gas_id = 2;
-            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(),"propanol"))
+            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(), "propanol"))
                 gas_id = 3;
-            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(),"chlorine"))
+            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(), "chlorine"))
                 gas_id = 4;
-            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(),"fluorine"))
+            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(), "fluorine"))
                 gas_id = 5;
-            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(),"acetone"))
+            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(), "acetone"))
                 gas_id = 6;
             else
             {
@@ -263,7 +261,7 @@ float FakeGasSensor::simulate_mox_as_line_loglog(gaden_player::srv::GasPosition_
                 return 0.0;
             }
 
-            //JUST FOR VIDEO DEMO
+            // JUST FOR VIDEO DEMO
             /*
             if (input_sensor_model == 0)
             {
@@ -275,42 +273,40 @@ float FakeGasSensor::simulate_mox_as_line_loglog(gaden_player::srv::GasPosition_
             }
             */
 
-            //Value of RS/R0 for the given gas and concentration
+            // Value of RS/R0 for the given gas and concentration
             RS_R0 = sensitivity_lineloglog[input_sensor_model][gas_id][0] * pow(GT_gas_concentrations->positions[0].concentration[i], sensitivity_lineloglog[input_sensor_model][gas_id][1]);
 
-            //Ensure we never overpass the baseline level (max allowed)
+            // Ensure we never overpass the baseline level (max allowed)
             if (RS_R0 > Sensitivity_Air[input_sensor_model])
-                RS_R0= Sensitivity_Air[input_sensor_model];
+                RS_R0 = Sensitivity_Air[input_sensor_model];
 
-            //Increment with respect the Baseline
+            // Increment with respect the Baseline
             resistance_variation += Sensitivity_Air[input_sensor_model] - RS_R0;
         }
 
-        //Calculate final RS_R0 given the final resistance variation
+        // Calculate final RS_R0 given the final resistance variation
         RS_R0 = Sensitivity_Air[input_sensor_model] - resistance_variation;
 
-        //Ensure a minimum sensor resitance
+        // Ensure a minimum sensor resitance
         if (RS_R0 <= 0.0)
             RS_R0 = 0.01;
 
-
-
-        //2. Simulate transient response (dynamic behaviour, tau_r and tau_d)
+        // 2. Simulate transient response (dynamic behaviour, tau_r and tau_d)
         //---------------------------------------------------------------------
         float tau;
-        if (RS_R0 < previous_sensor_output)  //rise
+        if (RS_R0 < previous_sensor_output) // rise
             tau = tau_value[input_sensor_model][0][0];
-        else //decay
+        else // decay
             tau = tau_value[input_sensor_model][0][1];
 
         // Use a low pass filter
-        //alpha value = At/(tau+At)
-        float alpha = (1/node_rate) / (tau+(1/node_rate));
+        // alpha value = At/(tau+At)
+        float alpha = (1 / node_rate) / (tau + (1 / node_rate));
 
-        //filtered response (uses previous estimation):
-        sensor_output = (alpha*RS_R0) + (1-alpha)*previous_sensor_output;
+        // filtered response (uses previous estimation):
+        sensor_output = (alpha * RS_R0) + (1 - alpha) * previous_sensor_output;
 
-        //Update values
+        // Update values
         previous_sensor_output = sensor_output;
     }
 
@@ -318,23 +314,21 @@ float FakeGasSensor::simulate_mox_as_line_loglog(gaden_player::srv::GasPosition_
     return (sensor_output * R0[input_sensor_model]);
 }
 
-
-
 // Simulate PID response : Weighted Sum of all gases
 float FakeGasSensor::simulate_pid(gaden_player::srv::GasPosition_Response* GT_gas_concentrations)
 {
-    //Handle multiple gases
+    // Handle multiple gases
     float accumulated_conc = 0.0;
-    for (int i=0; i<GT_gas_concentrations->positions[0].concentration.size(); i++)
+    for (int i = 0; i < GT_gas_concentrations->positions[0].concentration.size(); i++)
     {
         if (use_PID_correction_factors)
         {
             int gas_id;
-            if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(),"ethanol"))
+            if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(), "ethanol"))
                 gas_id = 0;
-            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(),"methane"))
+            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(), "methane"))
                 gas_id = 1;
-            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(),"hydrogen"))
+            else if (!strcmp(GT_gas_concentrations->gas_type[i].c_str(), "hydrogen"))
                 gas_id = 2;
             else
             {
@@ -354,34 +348,21 @@ float FakeGasSensor::simulate_pid(gaden_player::srv::GasPosition_Response* GT_ga
 //      Load Node Parameters      //
 // ===============================//
 void FakeGasSensor::loadNodeParameters()
-{	
-    //fixed frame
+{
+    // fixed frame
     input_fixed_frame = declare_parameter<std::string>("fixed_frame", "map");
 
-    //Sensor Model
+    // Sensor Model
     input_sensor_model = declare_parameter<int>("sensor_model", 30);
 
-    //sensor_frame
+    // sensor_frame
     input_sensor_frame = declare_parameter<std::string>("sensor_frame", "sensor_frame");
 
-
-    //PID_correction_factors
+    // PID_correction_factors
     use_PID_correction_factors = declare_parameter<bool>("use_PID_correction_factors", false);
 
-
-
-
     RCLCPP_INFO(get_logger(), "The data provided in the roslaunch file is:");
-	RCLCPP_INFO(get_logger(), "Sensor model: %d",input_sensor_model);
-	RCLCPP_INFO(get_logger(), "Fixed frame: %s",input_fixed_frame.c_str());
-    RCLCPP_INFO(get_logger(), "Sensor frame: %s",input_sensor_frame.c_str());    
+    RCLCPP_INFO(get_logger(), "Sensor model: %d", input_sensor_model);
+    RCLCPP_INFO(get_logger(), "Fixed frame: %s", input_fixed_frame.c_str());
+    RCLCPP_INFO(get_logger(), "Sensor frame: %s", input_sensor_frame.c_str());
 }
-
-
-
-
-
-
-
-
-

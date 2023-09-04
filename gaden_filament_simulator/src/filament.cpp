@@ -8,30 +8,28 @@
  * See: Filament-Based Atmospheric DispersionModel to Achieve Short Time-Scale Structure of Odor Plumes, Farrell et al, 2002
  ---------------------------------------------------------------------------------------*/
 
-
 #include "filament_simulator/filament.h"
 
-//Default Constructor
+ // Default Constructor
 CFilament::CFilament()
 {
-    //Create a new filament!
-    pose_x = 0.0;               //[m] Filament center pose
-    pose_y = 0.0;               //[m] Filament center pose
-    pose_z = 0.0;               //[m] Filament center pose
-    sigma = 0.01;               //[cm] The sigma of a 3D gaussian (controlls the shape of the filament)
+    // Create a new filament!
+    pose_x = 0.0; //[m] Filament center pose
+    pose_y = 0.0; //[m] Filament center pose
+    pose_z = 0.0; //[m] Filament center pose
+    sigma = 0.01; //[cm] The sigma of a 3D gaussian (controlls the shape of the filament)
     birth_time = 0.0;
     valid = false;
 }
 
-
-//Overload Constructor
+// Overload Constructor
 CFilament::CFilament(double x, double y, double z, double sigma_filament)
 {
-    //Create a new filament!
-    pose_x = x;                 //[m] Filament center pose
-    pose_y = y;                 //[m] Filament center pose
-    pose_z = z;                 //[m] Filament center pose
-    sigma = sigma_filament;     //[cm] The sigma of a 3D gaussian (controlls the shape of the filament)
+    // Create a new filament!
+    pose_x = x;             //[m] Filament center pose
+    pose_y = y;             //[m] Filament center pose
+    pose_z = z;             //[m] Filament center pose
+    sigma = sigma_filament; //[cm] The sigma of a 3D gaussian (controlls the shape of the filament)
     birth_time = 0.0;
     valid = false;
 }
@@ -42,7 +40,7 @@ CFilament::~CFilament()
 
 void CFilament::activate_filament(double x, double y, double z, double birth)
 {
-    //Active the filament at given location
+    // Active the filament at given location
     pose_x = x;
     pose_y = y;
     pose_z = z;
@@ -52,6 +50,6 @@ void CFilament::activate_filament(double x, double y, double z, double birth)
 
 void CFilament::deactivate_filament()
 {
-    //de-Active the filament
+    // de-Active the filament
     valid = false;
 }
