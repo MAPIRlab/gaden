@@ -4,6 +4,8 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Map1
+        - /Map1/Topic1
         - /RobotModel1/Description Topic1
         - /TDLAS1
         - /TDLAS1/Topic1
@@ -43,7 +45,7 @@ Visualization Manager:
       Enabled: true
       Name: GasDistribution
       Namespaces:
-        {}
+        Gas_Dispersion: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -69,7 +71,8 @@ Visualization Manager:
       Enabled: true
       Name: Environment_CAD
       Namespaces:
-        {}
+        part_0: true
+        part_1: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -158,7 +161,7 @@ Visualization Manager:
       Name: Map
       Topic:
         Depth: 5
-        Durability Policy: Volatile
+        Durability Policy: Transient Local
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
@@ -279,7 +282,7 @@ Visualization Manager:
       Enabled: true
       Name: TDLAS
       Namespaces:
-        "": true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile

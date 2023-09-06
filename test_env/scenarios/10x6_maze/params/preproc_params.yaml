@@ -6,9 +6,10 @@ gaden_preprocessing:
     cell_size: 0.1
 
     # CAD models of the enviroment (.stl)
-    number_of_models: 2
+    number_of_models: 3
     model_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_walls.stl"
-    model_1: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_central_obstacle.stl"
+    model_1: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_maze_obj_1.stl"
+    model_2: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_maze_obj_2.stl"
 
     # CAD model of the outlets (.stl)
     number_of_outlet_models: 2

@@ -569,7 +569,7 @@ void CFilamentSimulator::update_gas_concentration_from_filament(int fil_i)
 void CFilamentSimulator::update_gas_concentration_from_filaments()
 {
     // First, set all cells to 0.0 gas concentration (clear previous state)
-#pragma omp parallel for collapse(3)
+    #pragma omp parallel for collapse(3)
     for (size_t i = 0; i < envDesc.num_cells.x; i++)
     {
         for (size_t j = 0; j < envDesc.num_cells.y; j++)
@@ -581,7 +581,7 @@ void CFilamentSimulator::update_gas_concentration_from_filaments()
         }
     }
 
-#pragma omp parallel for
+    #pragma omp parallel for
     for (int i = 0; i < current_number_filaments; i++)
     {
         if (filaments[i].valid)
@@ -773,7 +773,7 @@ void CFilamentSimulator::update_filament_location(int i)
 //==========================//
 void CFilamentSimulator::update_filaments_location()
 {
-#pragma omp parallel for
+    #pragma omp parallel for
     for (int i = 0; i < current_number_filaments; i++)
     {
         if (filaments[i].valid)

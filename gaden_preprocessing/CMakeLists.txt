@@ -19,6 +19,7 @@ endif()
 
 
 
+# Ament dependencies
 find_package(ament_cmake REQUIRED)
 set(AMENT_DEPS
     rclcpp
@@ -38,7 +39,7 @@ endforeach()
 
 
 
-
+# Target
 include_directories(
   include
 )
@@ -51,7 +52,10 @@ ament_target_dependencies(
     ${AMENT_DEPS}
 )
 
+find_package(fmt)
+target_link_libraries(preprocessing fmt)
 
+# Install
 install(
   TARGETS preprocessing
   DESTINATION lib/${PROJECT_NAME}
