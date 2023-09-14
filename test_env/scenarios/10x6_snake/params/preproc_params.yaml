@@ -1,4 +1,4 @@
-# PARAMETERS FOR GEADEN PREPROCESSING NODE #
+# PARAMETERS FOR GADEN PREPROCESSING NODE #
 # ======================================== #
 gaden_preprocessing:
   ros__parameters:
@@ -18,10 +18,10 @@ gaden_preprocessing:
     empty_point_x: 1.0      ### (m)
     empty_point_y: 1.0      ### (m)
     empty_point_z: 0.5      ### (m)
-    
+
     # Wind Data (the node will append _i.csv to the name that is specified here)
     uniformWind: false
-    wind_files: "$(var pkg_dir)/scenarios/$(var scenario)/wind_simulations/$(var simulation)/wind_at_cell_centers"
+    wind_files: "$(var pkg_dir)/scenarios/$(var scenario)/wind_simulations/$(var wind_sim_path)"
     
     # Where to write the output files
     output_path: "$(var pkg_dir)/scenarios/$(var scenario)"

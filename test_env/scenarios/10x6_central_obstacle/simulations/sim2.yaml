@@ -1,0 +1,7 @@
+source_x: 1.0
+source_y: 4.5
+source_z: 0.50
+
+gas_type: 10
+
+wind_sim_path: "05ms/wind_at_cell_centers" # _i.csv automatically appended

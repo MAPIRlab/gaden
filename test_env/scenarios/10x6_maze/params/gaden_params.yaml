@@ -1,4 +1,4 @@
-# PARAMETERS FOR GEADEN #
+# PARAMETERS FOR GADEN #
 # ===================== #
 
 # ================
@@ -26,9 +26,9 @@ gaden_environment:
 
     # Plot gas sources
     number_of_sources: 1
-    source_0_position_x: $(var source_location_x)
-    source_0_position_y: $(var source_location_y)
-    source_0_position_z: $(var source_location_z)
+    source_0_position_x: $(var source_x)
+    source_0_position_y: $(var source_y)
+    source_0_position_z: $(var source_z)
     source_0_scale: 0.2
     source_0_color: [0.0, 1.0, 0.0] 
 
@@ -47,7 +47,7 @@ gaden_filament_simulator:
     filament_initial_std: 10.0         ### [cm] Sigma of the filament at t=0-> 3DGaussian shape
     filament_growth_gamma: 10.0        ### [cm²/s] Growth ratio of the filament_std
     filament_noise_std: 0.02           ### [m] Range of the white noise added on each iteration
-    gas_type: 0                        ### 0=Ethanol, 1=Methane, 2=Hydrogen, 6=Acetone
+    gas_type: $(var gas_type)          ### 0=Ethanol, 1=Methane, 2=Hydrogen, 6=Acetone
     temperature: 298.0                 ### [Kelvins]
     pressure: 1.0                      ### [Atm]
     concentration_unit_choice: 1       ### 0=molecules/cm3, 1=ppm (when ppm is used, set temp and pressure accordingly)
@@ -57,7 +57,7 @@ gaden_filament_simulator:
     fixed_frame: "map"
 
     # WindFlow data (from CFD)
-    wind_data: "$(var pkg_dir)/scenarios/$(var scenario)/wind_simulations/$(var simulation)_"
+    wind_data: "$(var pkg_dir)/scenarios/$(var scenario)/wind_simulations/$(var wind_sim_path)"
     wind_time_step: 1.0                ### (sec) time increment between Wind snapshots
 
     # Loop options
@@ -66,9 +66,9 @@ gaden_filament_simulator:
     loop_to_step: 24
 
     # Location of the release point!
-    source_position_x: $(var source_location_x)            ### (m)
-    source_position_y: $(var source_location_y)            ### (m)
-    source_position_z: $(var source_location_z)            ### (m)
+    source_position_x: $(var source_x)            ### (m)
+    source_position_y: $(var source_y)            ### (m)
+    source_position_z: $(var source_z)            ### (m)
 
     save_results: 1                    #1=true, 0=false
     results_time_step: 0.5             #(sec) Time increment between saving state to file
@@ -84,9 +84,10 @@ gaden_player:
     num_simulators: 1        ### Number of simulations to load [1-inf] (useful for multiple sources and gases)
 
     # Data from the "filament_simulator" pkg. Multiple sources can be set here
-    simulation_data_0: "$(var pkg_dir)/scenarios/$(var scenario)/gas_simulations/$(var simulation)/FilamentSimulation_gasType_0_sourcePosition_$(var source_location_x)_$(var source_location_y)_$(var source_location_z)"
+    simulation_data_0: "$(var pkg_dir)/scenarios/$(var scenario)/gas_simulations/$(var simulation)"
+    occupancyFile: "$(var pkg_dir)/scenarios/$(var scenario)/OccupancyGrid3D.csv"
 
     # Loop options        
-    allow_looping: true
+    allow_looping: false
     loop_from_iteration: 15
     loop_to_iteration: 24
