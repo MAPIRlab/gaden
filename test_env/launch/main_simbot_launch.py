@@ -11,8 +11,8 @@ import xacro
 #===========================
 def launch_arguments():
     return [
-		DeclareLaunchArgument("scenario", default_value="Exp_C"),
-		DeclareLaunchArgument("simulation", default_value="sim1"),
+        DeclareLaunchArgument("scenario", default_value="Exp_C"),
+        DeclareLaunchArgument("simulation", default_value="sim1"),
         DeclareLaunchArgument("namespace", default_value="PioneerP3DX"),
     ]
 #==========================
@@ -97,7 +97,7 @@ def launch_setup(context, *args, **kwargs):
     namespaced_actions.extend(coppelia_launch)
     return [GroupAction(actions=namespaced_actions), 
             nav2_nodes, gaden_player
-		]
+        ]
 
 
 def generate_launch_description():
@@ -113,8 +113,8 @@ def generate_launch_description():
         SetLaunchConfiguration(
             name="nav_params_yaml",
             value=[PathJoinSubstitution(
-				[LaunchConfiguration("pkg_dir"), "navigation_config", "nav2_params.yaml"]
-			)],
+                [LaunchConfiguration("pkg_dir"), "navigation_config", "nav2_params.yaml"]
+            )],
         ),
     ]
     

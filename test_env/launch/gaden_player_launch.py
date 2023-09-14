@@ -48,11 +48,11 @@ def launch_arguments():
             default_value=["sim1"],
             description="name of the simulation yaml file",
         ),     
-		DeclareLaunchArgument(
-			"use_rviz",
-			default_value=["True"],
-			description="",
-		),
+        DeclareLaunchArgument(
+            "use_rviz",
+            default_value=["True"],
+            description="",
+        ),
     ]
 #==========================
 
@@ -69,20 +69,20 @@ def launch_setup(context, *args, **kwargs):
     
     return [
         Node(
-			condition=IfCondition(LaunchConfiguration("use_rviz")),
-			package="rviz2",
-			executable="rviz2",
-			name="rviz2",
-			output="screen",
-			prefix="xterm -hold -e",
-			arguments=[
-				"-d" + os.path.join(pkg_dir, "launch", "gaden.rviz")
-			],
-			remappings=[
-				("/initialpose", "/PioneerP3DX/initialpose"),
-				("/goal_pose", "/PioneerP3DX/goal_pose"),
-			],
-		),
+            condition=IfCondition(LaunchConfiguration("use_rviz")),
+            package="rviz2",
+            executable="rviz2",
+            name="rviz2",
+            output="screen",
+            prefix="xterm -hold -e",
+            arguments=[
+                "-d" + os.path.join(pkg_dir, "launch", "gaden.rviz")
+            ],
+            remappings=[
+                ("/initialpose", "/PioneerP3DX/initialpose"),
+                ("/goal_pose", "/PioneerP3DX/goal_pose"),
+            ],
+        ),
 
         # gaden_environment (for RVIZ visualization)
         Node(
@@ -94,13 +94,13 @@ def launch_setup(context, *args, **kwargs):
             ),
 
         # gaden_player
-		Node(
-			package="gaden_player",
-			executable="player",
-			name="gaden_player",
-			output="screen",
-			parameters=[ParameterFile(params_yaml_file, allow_substs=True)],
-		),
+        Node(
+            package="gaden_player",
+            executable="player",
+            name="gaden_player",
+            output="screen",
+            parameters=[ParameterFile(params_yaml_file, allow_substs=True)],
+        ),
     ]
 
 
