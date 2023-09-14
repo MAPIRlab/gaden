@@ -36,19 +36,19 @@ gaden_filament_simulator:
   ros__parameters:
     verbose: true
     wait_preprocessing: false          ### wait for the ok from preprocessing before starting the simulation
-    sim_time: 300.0                    ### [sec] Total time of the gas dispersion simulation
-    time_step: 0.1                     ### [sec] Time increment between snapshots. Set aprox = cell_size/max_wind_speed.
-    num_filaments_sec: 10              ### Num of filaments released each second
-    variable_rate: true                ### If true the number of released filaments would be random(0,numFilaments_sec)
-    filament_stop_steps: 0  
-    ppm_filament_center: 10.0          ### [ppm] Gas concentration at the center of the 3D gaussian (filament)
-    filament_initial_std: 10.0         ### [cm] Sigma of the filament at t=0-> 3DGaussian shape
-    filament_growth_gamma: 10.0        ### [cm²/s] Growth ratio of the filament_std
-    filament_noise_std: 0.02           ### [m] Range of the white noise added on each iteration
-    gas_type: $(var gas_type)          ### 0=Ethanol, 1=Methane, 2=Hydrogen, 6=Acetone
-    temperature: 298.0                 ### [Kelvins]
-    pressure: 1.0                      ### [Atm]
-    concentration_unit_choice: 1       ### 0=molecules/cm3, 1=ppm (when ppm is used, set temp and pressure accordingly)
+    sim_time: $(var sim_time)                                       ### [sec] Total time of the gas dispersion simulation
+    time_step: $(var time_step)                                     ### [sec] Time increment between snapshots. Set aprox = cell_size/max_wind_speed.
+    num_filaments_sec: $(var num_filaments_sec)                     ### Num of filaments released each second
+    variable_rate: $(var variable_rate)                             ### If true the number of released filaments would be random(0,numFilaments_sec)
+    filament_stop_steps: $(var filament_stop_steps)    
+    ppm_filament_center: $(var ppm_filament_center)                 ### [ppm] Gas concentration at the center of the 3D gaussian (filament)
+    filament_initial_std: $(var filament_initial_std)               ### [cm] Sigma of the filament at t=0-> 3DGaussian shape
+    filament_growth_gamma: $(var filament_growth_gamma)             ### [cm²/s] Growth ratio of the filament_std
+    filament_noise_std: $(var filament_noise_std)                   ### [m] Range of the white noise added on each iteration
+    gas_type: $(var gas_type)                                       ### 0=Ethanol, 1=Methane, 2=Hydrogen, 6=Acetone
+    temperature: $(var temperature)                                 ### [Kelvins]
+    pressure: 1.0                                                   ### [Atm]
+    concentration_unit_choice: 1                                    ### 0=molecules/cm3, 1=ppm (when ppm is used, set temp and pressure accordingly)
 
     # In the occupancyGrid.csv file we set: cell_size, num_cells, etc. which come from the CFD wind simulation
     occupancy3D_data: "$(var pkg_dir)/scenarios/$(var scenario)/OccupancyGrid3D.csv"
