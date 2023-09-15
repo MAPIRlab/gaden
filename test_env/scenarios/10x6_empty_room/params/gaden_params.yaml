@@ -4,7 +4,7 @@
 # ================
 gaden_environment:
   ros__parameters:
-    verbose: true
+    verbose: false
     wait_preprocessing: false   # wait for the ok from gaden_preprocessing before running
     fixed_frame: "map"
 
@@ -32,7 +32,7 @@ gaden_environment:
 # ================
 gaden_filament_simulator:
   ros__parameters:
-    verbose: true
+    verbose: false
     wait_preprocessing: false          ### wait for the ok from preprocessing before starting the simulation
     sim_time: $(var sim_time)                                       ### [sec] Total time of the gas dispersion simulation
     time_step: $(var time_step)                                     ### [sec] Time increment between snapshots. Set aprox = cell_size/max_wind_speed.
@@ -74,7 +74,7 @@ gaden_filament_simulator:
 # ================
 gaden_player:
   ros__parameters:
-    verbose: true
+    verbose: false
     player_freq: 2.0         ### (Hz) Freq for loading the simulation log_files
     initial_iteration: 0
     num_simulators: 1        ### Number of simulations to load [1-inf] (useful for multiple sources and gases)

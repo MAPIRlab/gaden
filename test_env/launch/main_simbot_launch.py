@@ -6,6 +6,7 @@ from launch.launch_description_sources import FrontendLaunchDescriptionSource, P
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
 from ament_index_python.packages import get_package_share_directory
+from launch.frontend.parse_substitution import parse_substitution
 import xacro
 
 #===========================
@@ -92,11 +93,60 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
+
+    anemometer = [
+        Node(
+            package="simulated_anemometer",
+            executable="simulated_anemometer",
+            name="fake_anemometer",
+            parameters=[
+                {"sensor_frame" : parse_substitution("$(var namespace)_anemometer_frame") },
+                {"fixed_frame" : "map"},
+                {"noise_std" : 0.3},
+                {"use_map_ref_system" : False},
+                {'use_sim_time': True},
+            ]
+        ),
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='anemometer_tf_pub',
+            arguments = ['0', '0', '0.5', '1.0', '0.0', '0', '0', parse_substitution('$(var namespace)_base_link'), parse_substitution('$(var namespace)_anemometer_frame')],
+            parameters=[{'use_sim_time': True}]
+        ),
+    ]
+
+    PID = [
+        Node(
+            package="simulated_gas_sensor",
+            executable="simulated_gas_sensor",
+            name="fake_pid",
+            parameters=[
+                {"sensor_model" : 30 },
+                {"sensor_frame" : parse_substitution("$(var namespace)_pid_frame") },
+                {"fixed_frame" : "map"},
+                {"noise_std" : 20.1},
+                {'use_sim_time': True},
+            ]
+        ),
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='pid_tf_pub',
+            arguments = ['0', '0', '0.5', '1.0', '0.0', '0', '0', parse_substitution('$(var namespace)_base_link'), parse_substitution('$(var namespace)_pid_frame')],
+            parameters=[{'use_sim_time': True}]
+        ),
+    ]
+
     namespaced_actions = [PushRosNamespace(namespace)]
     namespaced_actions.extend(visualization_nodes)
     namespaced_actions.extend(coppelia_launch)
+    other_actions = [gaden_player]
+    other_actions.extend(anemometer)
+    other_actions.extend(PID)
+    other_actions.append(nav2_nodes)
     return [GroupAction(actions=namespaced_actions), 
-            nav2_nodes, gaden_player
+            GroupAction(actions=other_actions)
         ]
 
 
