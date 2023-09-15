@@ -20,20 +20,20 @@
 class SimulatedAnemometer : public rclcpp::Node
 {
 public:
-    SimulatedAnemometer();
-    void run();
+	SimulatedAnemometer();
+	void run();
 
 private:
-    // Sensor Parameters
-    std::string input_sensor_frame;
-    std::string input_fixed_frame;
-    double noise_std;
-    bool use_map_ref_system;
+	// Sensor Parameters
+	std::string input_sensor_frame;
+	std::string input_fixed_frame;
+	double noise_std;
+	bool use_map_ref_system;
 
-    // Vars
-    bool first_reading = true;
-    bool notified = false;
+	// Vars
+	bool first_reading = true;
+	bool notified = false;
 
-    // functions:
-    void loadNodeParameters();
+	// functions:
+	void loadNodeParameters();
 };
