@@ -194,7 +194,22 @@ void Environment::loadNodeParameters()
 	// CAD MODELS
 	//-------------
 	// CAD model files
-	number_of_CAD = declare_parameter<int>("number_of_CAD", 0);
+
+	//count them
+	{
+		int i = 0;
+		while (true)
+		{
+			std::string param_name = boost::str(boost::format("CAD_%i") % i);
+			std::string value = declare_parameter<std::string>(param_name, "");
+			if (value != "")
+				number_of_CAD++;
+			else
+				break;
+			i++;
+		}
+	}
+
 	if (verbose)
 		RCLCPP_INFO(get_logger(), "[env] number_of_CAD: %i", number_of_CAD);
 
@@ -206,7 +221,7 @@ void Environment::loadNodeParameters()
 		std::string paramName = boost::str(boost::format("CAD_%i") % i);
 		std::string paramColor = boost::str(boost::format("CAD_%i_color") % i);
 
-		CAD_models[i] = declare_parameter<std::string>(paramName.c_str(), "");
+		CAD_models[i] = get_parameter_or<std::string>(paramName.c_str(), "");
 		CAD_color[i].resize(3);
 		CAD_color[i] = declare_parameter<std::vector<double>>(paramColor.c_str(), { 0, 0, 0 });
 		if (verbose)

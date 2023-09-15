@@ -46,7 +46,20 @@ int main(int argc, char** argv)
 
 void Gaden_preprocessing::parseMainModels()
 {
-	int numModels = declare_parameter<int>("number_of_models", 0);
+	int numModels;
+	{
+		int i = 0;
+		while (true)
+		{
+			std::string param_name = fmt::format("model_{}", i);
+			std::string value = declare_parameter<std::string>(param_name, "");
+			if (value != "")
+				numModels++;
+			else
+				break;
+			i++;
+		}
+	}
 
 	bool generateCoppeliaScene = declare_parameter<bool>("generateCoppeliaScene", false);
 	#ifdef GENERATE_COPPELIA_SCENE
@@ -66,8 +79,7 @@ void Gaden_preprocessing::parseMainModels()
 	for (int i = 0; i < numModels; i++)
 	{
 		std::string paramName = fmt::format("model_{}", i); // each of the stl models
-		std::string filename;
-		filename = declare_parameter<std::string>(paramName, "");
+		std::string filename = get_parameter_or<std::string>(paramName, "");
 		CADfiles.push_back(filename.c_str());
 	}
 
@@ -84,6 +96,7 @@ void Gaden_preprocessing::parseMainModels()
 
 	for (int i = 0; i < numModels; i++)
 	{
+		RCLCPP_INFO(get_logger(), "Parsing environment model: %s", CADfiles[i].c_str());
 		parse(CADfiles[i], cell_state::occupied);
 		#ifdef GENERATE_COPPELIA_SCENE
 		if (generateCoppeliaScene)
@@ -108,19 +121,32 @@ void Gaden_preprocessing::parseMainModels()
 void Gaden_preprocessing::parseOutletModels()
 {
 
-	int numOutletModels = declare_parameter<int>("number_of_outlet_models", 1); // number of CAD models
+	int numOutletModels;
+	{
+		int i = 0;
+		while (true)
+		{
+			std::string param_name = fmt::format("outlets_model_{}", i);
+			std::string value = declare_parameter<std::string>(param_name, "");
+			if (value != "")
+				numOutletModels++;
+			else
+				break;
+			i++;
+		}
+	}
 
 	std::vector<std::string> outletFiles;
 	for (int i = 0; i < numOutletModels; i++)
 	{
 		std::string paramName = fmt::format("outlets_model_{}", i); // each of the stl models
-		std::string filename;
-		filename = declare_parameter<std::string>(paramName, "");
+		std::string filename = get_parameter_or<std::string>(paramName, "");
 		outletFiles.push_back(filename.c_str());
 	}
 
 	for (int i = 0; i < numOutletModels; i++)
 	{
+		RCLCPP_INFO(get_logger(), "Parsing outlet model: %s", outletFiles[i].c_str());
 		parse(outletFiles[i], cell_state::outlet);
 	}
 }
@@ -346,7 +372,6 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles,
 	cell_state value_to_write)
 {
 
-	std::cout << "Processing the mesh...\n0%\n";
 	int numberOfProcessedTriangles = 0; // for logging, doesn't actually do anything
 	std::mutex mtx;
 	// Let's occupy the enviroment!
@@ -437,7 +462,7 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles,
 		if (i > numberOfProcessedTriangles + triangles.size() / 10)
 		{
 			mtx.lock();
-			std::cout << (100 * i) / triangles.size() << "%\n";
+			RCLCPP_INFO(get_logger(), "%d%%", (int)((100 * i) / triangles.size()));
 			numberOfProcessedTriangles = i;
 			mtx.unlock();
 		}
@@ -639,11 +664,17 @@ void Gaden_preprocessing::findDimensions(const std::string& filename)
 			infile.seekg(sizeof(uint16_t), std::ios_base::cur); // skip the attribute data
 		}
 	}
+	std::string dimensions = fmt::format(
+		std::string(
+			"Dimensions are:\n"
+			"	x : ({}, {})\n"
+			"	y : ({}, {})\n"
+			"	z : ({}, {})\n"),
+		env_min_x, env_max_x,
+		env_min_y, env_max_y,
+		env_min_z, env_max_z);
 
-	std::cout << "Dimensions are:\n"
-		<< "x: (" << env_min_x << ", " << env_max_x << ")\n"
-		<< "y: (" << env_min_y << ", " << env_max_y << ")\n"
-		<< "z: (" << env_min_z << ", " << env_max_z << ")\n";
+	RCLCPP_INFO(get_logger(), dimensions.c_str());
 }
 
 void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)

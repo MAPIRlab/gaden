@@ -8,8 +8,7 @@ gaden_environment:
     wait_preprocessing: false   # wait for the ok from gaden_preprocessing before running
     fixed_frame: "map"
 
-    # Plot CAD models (Collada format .dae)
-    number_of_CAD: 2
+    # Plot CAD models (Collada format .dae)2
     CAD_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-walls.dae"
     CAD_0_color: [0.92, 0.96, 0.96]
     CAD_1: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlets.dae"

@@ -5,12 +5,10 @@ gaden_preprocessing:
     # Cell size
     cell_size: 0.1
 
-    # CAD models of the enviroment (.stl)
-    number_of_models: 1
+    # CAD models of the enviroment (.stl)1
     model_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-walls.stl"
 
-    # CAD model of the outlets (.stl)
-    number_of_outlet_models: 6
+    # CAD model of the outlets (.stl)6
     outlets_model_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-1.stl"
     outlets_model_1: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-2.stl"
     outlets_model_2: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-3.stl"
