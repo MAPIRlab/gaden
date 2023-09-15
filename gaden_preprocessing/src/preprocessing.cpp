@@ -665,11 +665,10 @@ void Gaden_preprocessing::findDimensions(const std::string& filename)
 		}
 	}
 	std::string dimensions = fmt::format(
-		std::string(
-			"Dimensions are:\n"
-			"	x : ({}, {})\n"
-			"	y : ({}, {})\n"
-			"	z : ({}, {})\n"),
+		"Dimensions are:\n"
+		"	x : ({}, {})\n"
+		"	y : ({}, {})\n"
+		"	z : ({}, {})\n",
 		env_min_x, env_max_x,
 		env_min_y, env_max_y,
 		env_min_z, env_max_z);
