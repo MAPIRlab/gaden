@@ -140,8 +140,9 @@ def launch_setup(context, *args, **kwargs):
 
     namespaced_actions = [PushRosNamespace(namespace)]
     namespaced_actions.extend(visualization_nodes)
-    namespaced_actions.extend(coppelia_launch)
+    
     other_actions = [gaden_player]
+    other_actions.extend(coppelia_launch)
     other_actions.extend(anemometer)
     other_actions.extend(PID)
     other_actions.append(nav2_nodes)
