@@ -4,10 +4,8 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Map1
         - /Map1/Topic1
         - /RobotModel1/Description Topic1
-        - /TDLAS1
         - /TDLAS1/Topic1
       Splitter Ratio: 0.6309859156608582
     Tree Height: 429
@@ -30,17 +28,17 @@ Visualization Manager:
   Class: ""
   Displays:
     - Class: rviz_default_plugins/MarkerArray
-      Enabled: false
+      Enabled: true
       Name: Source
       Namespaces:
-        {}
+        gas_source_visualization: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /source_visualization
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
       Name: GasDistribution
@@ -220,56 +218,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        PioneerP3DX_base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_body:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_green_button:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_head:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_hokuyo_front:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_left_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_neck:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_red_button:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_right_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_screen:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -337,25 +285,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 22.40336036682129
+      Distance: 14.57762622833252
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 4.415419578552246
-        Y: 3.6979546546936035
-        Z: 0.1208873987197876
+        X: 4.707931041717529
+        Y: 4.591640949249268
+        Z: 0.4371432363986969
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5397963523864746
+      Pitch: 1.4797964096069336
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.6985859870910645
+      Yaw: 4.723585605621338
     Saved: ~
 Window Geometry:
   Displays:

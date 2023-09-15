@@ -42,7 +42,7 @@ Visualization Manager:
       Enabled: true
       Name: Filaments
       Namespaces:
-        filaments: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -55,7 +55,7 @@ Visualization Manager:
       Enabled: true
       Name: GasDistribution
       Namespaces:
-        {}
+        Gas_Dispersion: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -230,6 +230,56 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        PioneerP3DX_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        PioneerP3DX_body:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        PioneerP3DX_green_button:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        PioneerP3DX_head:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        PioneerP3DX_hokuyo_front:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        PioneerP3DX_left_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        PioneerP3DX_neck:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        PioneerP3DX_red_button:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        PioneerP3DX_right_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        PioneerP3DX_screen:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -238,6 +288,19 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Wind
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /WindSensor_display
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 183; 194; 217
