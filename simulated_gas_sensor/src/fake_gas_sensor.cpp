@@ -10,6 +10,7 @@
  * -----------------------------------------------------------------------------------------------*/
 
 #include "fake_gas_sensor.h"
+#include "fmt/format.h"
 
 int main(int argc, char** argv)
 {
@@ -30,16 +31,16 @@ void FakeGasSensor::run()
 	loadNodeParameters();
 
 	// Publishers
-	auto sensor_read_pub = create_publisher<olfaction_msgs::msg::GasSensor>("Sensor_reading", 500);
-	auto marker_pub = create_publisher<visualization_msgs::msg::Marker>("Sensor_display", 100);
+	auto sensor_read_pub = create_publisher<olfaction_msgs::msg::GasSensor>(fmt::format("{}/{}", get_fully_qualified_name(), "Sensor_reading"), 500);
+	auto marker_pub = create_publisher<visualization_msgs::msg::Marker>(fmt::format("{}/{}", get_fully_qualified_name(), "Sensor_display"), 100);
 
 	// Service to request gas concentration
-	auto client = create_client<gaden_player::srv::GasPosition>("/odor_value");
+	auto playerClient = create_client<gaden_player::srv::GasPosition>("/odor_value");
 
 	auto shared_this = shared_from_this();
 
 	// Init Visualization data (marker)
-	//---------------------------------
+	//---------------------------------2
 	//  sensor = sphere
 	//  conector = stick from the floor to the sensor
 	visualization_msgs::msg::Marker sensor, connector;
@@ -72,6 +73,9 @@ void FakeGasSensor::run()
 	// Loop
 	auto tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
 	auto listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+
+	while (!playerClient->wait_for_service(std::chrono::seconds(5)))
+		RCLCPP_INFO(get_logger(), "WAITING FOR GADEN_PLAYER SERVICE");
 
 	rclcpp::Rate rate(node_rate);
 	first_reading = true;
@@ -110,10 +114,10 @@ void FakeGasSensor::run()
 			request->y.push_back(y_pos);
 			request->z.push_back(z_pos);
 
-			auto result = client->async_send_request(request);
+			auto result = playerClient->async_send_request(request);
 			if (rclcpp::spin_until_future_complete(shared_this, result) == rclcpp::FutureReturnCode::SUCCESS)
 			{
-				auto response = result.get().get();
+				auto response = result.get();
 
 				// Simulate Gas_Sensor response given this GT values of the concentration!
 				olfaction_msgs::msg::GasSensor sensor_msg;
@@ -221,7 +225,7 @@ void FakeGasSensor::run()
 // Simulate MOX response: Sensitivity + Dynamic response
 // RS = R0*( A * conc^B )
 // This method employes a curve fitting based on a line in the loglog scale to set the sensitivity
-float FakeGasSensor::simulate_mox_as_line_loglog(gaden_player::srv::GasPosition_Response* GT_gas_concentrations)
+float FakeGasSensor::simulate_mox_as_line_loglog(std::shared_ptr<gaden_player::srv::GasPosition_Response> GT_gas_concentrations)
 {
 	if (first_reading)
 	{
@@ -315,7 +319,7 @@ float FakeGasSensor::simulate_mox_as_line_loglog(gaden_player::srv::GasPosition_
 }
 
 // Simulate PID response : Weighted Sum of all gases
-float FakeGasSensor::simulate_pid(gaden_player::srv::GasPosition_Response* GT_gas_concentrations)
+float FakeGasSensor::simulate_pid(std::shared_ptr<gaden_player::srv::GasPosition_Response> GT_gas_concentrations)
 {
 	// Handle multiple gases
 	float accumulated_conc = 0.0;
@@ -361,8 +365,11 @@ void FakeGasSensor::loadNodeParameters()
 	// PID_correction_factors
 	use_PID_correction_factors = declare_parameter<bool>("use_PID_correction_factors", false);
 
+	node_rate = declare_parameter<float>("rate", 10.0);
+
 	RCLCPP_INFO(get_logger(), "The data provided in the roslaunch file is:");
 	RCLCPP_INFO(get_logger(), "Sensor model: %d", input_sensor_model);
 	RCLCPP_INFO(get_logger(), "Fixed frame: %s", input_fixed_frame.c_str());
 	RCLCPP_INFO(get_logger(), "Sensor frame: %s", input_sensor_frame.c_str());
+	RCLCPP_INFO(get_logger(), "Running at %fHz", node_rate);
 }

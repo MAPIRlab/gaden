@@ -4,6 +4,7 @@
 #include <stdlib.h> /* srand, rand */
 #include <time.h>
 #include <random>
+#include <fmt/format.h>
 
 typedef std::normal_distribution<double> NormalDistribution;
 typedef std::mt19937 RandomGenerator;
@@ -31,8 +32,8 @@ void SimulatedAnemometer::run()
 
 	// Publishers
 	// rclcpp::Publisher sensor_read_pub = n.advertise<std_msgs::Float32MultiArray>("WindSensor_reading", 500);
-	auto sensor_read_pub = create_publisher<olfaction_msgs::msg::Anemometer>("WindSensor_reading", 500);
-	auto marker_pub = create_publisher<visualization_msgs::msg::Marker>("WindSensor_display", 100);
+	auto sensor_read_pub = create_publisher<olfaction_msgs::msg::Anemometer>(fmt::format("{}/{}", get_fully_qualified_name(), "WindSensor_reading"), 500);
+	auto marker_pub = create_publisher<visualization_msgs::msg::Marker>(fmt::format("{}/{}", get_fully_qualified_name(), "WindSensor_display"), 100);
 
 	// Service to request wind values to simulator
 	auto playerClient = create_client<gaden_player::srv::WindPosition>("/wind_value");

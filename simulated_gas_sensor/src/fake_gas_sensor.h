@@ -39,8 +39,8 @@ private:
 
 	// functions:
 	void loadNodeParameters();
-	float simulate_mox_as_line_loglog(gaden_player::srv::GasPosition_Response* GT_gas_concentrations);
-	float simulate_pid(gaden_player::srv::GasPosition_Response* GT_gas_concentrations);
+	float simulate_mox_as_line_loglog(std::shared_ptr<gaden_player::srv::GasPosition_Response> GT_gas_concentrations);
+	float simulate_pid(std::shared_ptr<gaden_player::srv::GasPosition_Response> GT_gas_concentrations);
 
 	//------------------------ SENSOR CHARACTERIZATION PARAMS ----------------------------------//
 
