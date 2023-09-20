@@ -4,8 +4,11 @@ set(CMAKE_BUILD_TYPE "None")
 set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp ${CMAKE_CXX_FLAGS}")
 
 
-set(GENERATE_COPPELIA_SCENE ON)
+# OPTIONS!
+#==============================================
+set(GENERATE_COPPELIA_SCENE OFF)
 set(DEBUG OFF)
+#==============================================
 
 
 
@@ -35,29 +38,31 @@ endif()
 foreach(Dependency IN ITEMS ${AMENT_DEPS})
   find_package(${Dependency} REQUIRED)
 endforeach()
+find_package(fmt)
 
 
 
 
-# Target
 include_directories(
   include
+  ../gaden_common/include
 )
 
+# Main Target
 add_executable(preprocessing src/preprocessing.cpp)
-
-
-ament_target_dependencies(
-    preprocessing 
-    ${AMENT_DEPS}
-)
-
-find_package(fmt)
+ament_target_dependencies(preprocessing	${AMENT_DEPS})
 target_link_libraries(preprocessing fmt)
+
+# Coppelia utils
+add_executable(moveCoppeliaRobot src/moveCoppeliaRobot.cpp)
+ament_target_dependencies(moveCoppeliaRobot ${AMENT_DEPS})
+target_link_libraries(moveCoppeliaRobot fmt)
+
+
 
 # Install
 install(
-  TARGETS preprocessing
+  TARGETS preprocessing moveCoppeliaRobot
   DESTINATION lib/${PROJECT_NAME}
 )
 ament_package()

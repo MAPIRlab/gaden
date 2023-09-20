@@ -1,5 +1,6 @@
 #include <gaden_preprocessing/Gaden_preprocessing.h>
 #include <gaden_preprocessing/TriangleBoxIntersection.h>
+#include <gaden_common/Utils.h>
 
 #include <string>
 #include <fstream>
@@ -52,7 +53,7 @@ void Gaden_preprocessing::parseMainModels()
 		while (true)
 		{
 			std::string param_name = fmt::format("model_{}", i);
-			std::string value = declare_parameter<std::string>(param_name, "");
+			std::string value = getParam<std::string>(shared_from_this(), param_name, "");
 			if (value != "")
 				numModels++;
 			else
@@ -61,11 +62,17 @@ void Gaden_preprocessing::parseMainModels()
 		}
 	}
 
-	bool generateCoppeliaScene = declare_parameter<bool>("generateCoppeliaScene", false);
+	bool generateCoppeliaScene = getParam<bool>(shared_from_this(), "generateCoppeliaScene", false);
 	#ifdef GENERATE_COPPELIA_SCENE
 	RemoteAPIClient client;
 	if (generateCoppeliaScene)
-		client.getObject().sim().stopSimulation();
+	{
+		RemoteAPIObject::sim sim = client.getObject().sim();
+		sim.stopSimulation();
+		float floor_height = getParam<float>(shared_from_this(), "floor_height", 0.0);
+		sim.setObjectPosition(sim.getObject("/MobileRobots"), sim.handle_world, { 0,0,floor_height });
+		sim.setObjectPosition(sim.getObject("/ResizableFloorLarge"), sim.handle_world, { 0,0,floor_height });
+	}
 	#else
 	if (generateCoppeliaScene)
 	{
@@ -110,7 +117,7 @@ void Gaden_preprocessing::parseMainModels()
 		#endif
 	}
 
-	std::string outputFolder = declare_parameter<std::string>("output_path", "");
+	std::string outputFolder = getParam<std::string>(shared_from_this(), "output_path", "");
 
 	#ifdef GENERATE_COPPELIA_SCENE
 	if (generateCoppeliaScene)
@@ -127,7 +134,7 @@ void Gaden_preprocessing::parseOutletModels()
 		while (true)
 		{
 			std::string param_name = fmt::format("outlets_model_{}", i);
-			std::string value = declare_parameter<std::string>(param_name, "");
+			std::string value = getParam<std::string>(shared_from_this(), param_name, "");
 			if (value != "")
 				numOutletModels++;
 			else
@@ -171,7 +178,7 @@ void Gaden_preprocessing::changeWorldFile(const std::string& filename)
 	std::stringstream ss;
 	std::string line;
 
-	float floor_height = get_parameter("floor_height").as_double();
+	float floor_height = getParam<float>(shared_from_this(), "floor_height", 0.0);
 	while (getline(input, line))
 	{
 		if (line.substr(0, 8) == "floorMap")
@@ -208,7 +215,7 @@ void Gaden_preprocessing::printMap(std::string filename, int scale, bool block_o
 		<< "1\n";
 	// things are repeated to scale them up (the image is too small!)
 
-	float floor_height = declare_parameter<float>("floor_height", 0);
+	float floor_height = getParam<float>(shared_from_this(), "floor_height", 0);
 	int height = (floor_height - env_min_z) / cell_size; // a xy slice of the 3D environment is used as a geometric map for navigation
 
 	for (int row = env.size() - 1; row >= 0; row--)
@@ -717,9 +724,9 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
 
 void Gaden_preprocessing::fill()
 {
-	float empty_point_x = declare_parameter<float>("empty_point_x", 0);
-	float empty_point_y = declare_parameter<float>("empty_point_y", 0);
-	float empty_point_z = declare_parameter<float>("empty_point_z", 0);
+	float empty_point_x = getParam<float>(shared_from_this(), "empty_point_x", 0);
+	float empty_point_y = getParam<float>(shared_from_this(), "empty_point_y", 0);
+	float empty_point_z = getParam<float>(shared_from_this(), "empty_point_z", 0);
 
 	int x = (empty_point_y - env_min_y) / cell_size;
 	int z = (empty_point_z - env_min_z) / cell_size;
@@ -808,10 +815,10 @@ void Gaden_preprocessing::generateOutput()
 	printMap(
 		fmt::format("{}/occupancy.pgm", outputFolder),
 		10, // scale
-		declare_parameter<bool>("block_outlets", false));
+		getParam<bool>(shared_from_this(), "block_outlets", false));
 
 	std::string worldFile;
-	if ((worldFile = declare_parameter<std::string>("worldFile", "")) != "")
+	if ((worldFile = getParam<std::string>(shared_from_this(), "worldFile", "")) != "")
 		changeWorldFile(worldFile);
 
 	// output - path, occupancy vector, scale
@@ -821,10 +828,10 @@ void Gaden_preprocessing::generateOutput()
 
 void Gaden_preprocessing::processWind()
 {
-	bool uniformWind = declare_parameter<bool>("uniformWind", false);
+	bool uniformWind = getParam<bool>(shared_from_this(), "uniformWind", false);
 
 	// path to the point cloud files with the wind data
-	std::string windFileName = declare_parameter<std::string>("wind_files", "");
+	std::string windFileName = getParam<std::string>(shared_from_this(), "wind_files", "");
 	int idx = 0;
 
 	if (uniformWind)
