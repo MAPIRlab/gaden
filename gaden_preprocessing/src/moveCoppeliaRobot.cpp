@@ -4,7 +4,6 @@
 #endif
 
 #include <rclcpp/rclcpp.hpp>
-#include <gaden_common/Utils.h>
 #include <fmt/format.h>
 
 
@@ -19,6 +18,7 @@ int main(int argc, char** argv)
 
 	// Params
 	rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("MoveCoppeliaObject");
+	std::string robotName = node->declare_parameter<std::string>("robotName", "PioneerP3DX");
 	bool permanentChange = node->declare_parameter<bool>("permanentChange", false);
 
 	#define POSITION_NOT_SET DBL_MAX
@@ -29,7 +29,6 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	std::string robotName = node->declare_parameter<std::string>("robotName", "PioneerP3DX");
 
 
 	//Let's go
@@ -40,11 +39,7 @@ int main(int argc, char** argv)
 	int64_t robot_handle = sim.getObject(fmt::format("/MobileRobots/{}_root", robotName));
 	sim.setObjectPosition(robot_handle, sim.handle_world, position);
 
-	auto BB = sim.getShapeBB(robot_handle);
-	RCLCPP_INFO(rclcpp::get_logger("coppelia"), "BB: %f, %f, %f", BB[0], BB[1], BB[2]);
-
 	//probably unnecessary, but might as well
-	sim.resetDynamicObject(robot_handle);
 	sim.announceSceneContentChange();
 
 	if (permanentChange)
