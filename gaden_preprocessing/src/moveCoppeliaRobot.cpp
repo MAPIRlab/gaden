@@ -37,8 +37,13 @@ int main(int argc, char** argv)
 	RemoteAPIObject::sim sim = client.getObject().sim();
 
 	sim.stopSimulation();
-	int64_t robot_handle = sim.getObject(fmt::format("/MobileRobots/{}", robotName));
+	int64_t robot_handle = sim.getObject(fmt::format("/MobileRobots/{}_root", robotName));
 	sim.setObjectPosition(robot_handle, sim.handle_world, position);
+
+	auto BB = sim.getShapeBB(robot_handle);
+	RCLCPP_INFO(rclcpp::get_logger("coppelia"), "BB: %f, %f, %f", BB[0], BB[1], BB[2]);
+
+	//probably unnecessary, but might as well
 	sim.resetDynamicObject(robot_handle);
 	sim.announceSceneContentChange();
 

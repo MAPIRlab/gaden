@@ -70,7 +70,6 @@ void Gaden_preprocessing::parseMainModels()
 		RemoteAPIObject::sim sim = client.getObject().sim();
 		sim.stopSimulation();
 		float floor_height = getParam<float>(shared_from_this(), "floor_height", 0.0);
-		sim.setObjectPosition(sim.getObject("/MobileRobots"), sim.handle_world, { 0,0,floor_height });
 		sim.setObjectPosition(sim.getObject("/ResizableFloorLarge"), sim.handle_world, { 0,0,floor_height });
 	}
 	#else
