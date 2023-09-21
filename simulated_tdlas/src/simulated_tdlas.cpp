@@ -41,7 +41,7 @@ TDLAS::TDLAS() : rclcpp::Node("Simulated_tdlas")
 void TDLAS::run()
 {
 	auto shared_this = shared_from_this();
-	while (!m_playerClient->wait_for_service(5s))
+	while (rclcpp::ok() && !m_playerClient->wait_for_service(5s))
 		RCLCPP_INFO(get_logger(), "WAITING FOR GADEN_PLAYER SERVICE");
 
 	getEnvironment();
@@ -65,7 +65,7 @@ void TDLAS::getEnvironment()
 	gaden_environment::srv::Occupancy::Response::SharedPtr response{ nullptr };
 	{
 		auto client = create_client<gaden_environment::srv::Occupancy>("/gaden_environment/occupancyMap3D");
-		while (!client->wait_for_service(5s))
+		while (rclcpp::ok() && !client->wait_for_service(5s))
 			RCLCPP_INFO(get_logger(), "WAITING FOR GADEN_ENVIRONMENT/OCCUPANCY SERVICE");
 
 		auto request = std::make_shared<gaden_environment::srv::Occupancy::Request>();

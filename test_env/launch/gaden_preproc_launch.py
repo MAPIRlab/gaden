@@ -38,7 +38,7 @@ def launch_arguments():
         ),
         DeclareLaunchArgument(
             "generateCoppeliaScene",
-            default_value=["False"],
+            default_value=["True"],
             description="(bool) whether to generate a coppelia scene from this environment. See the tutorial for requirements",
         ),
     ]

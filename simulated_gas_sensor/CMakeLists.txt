@@ -8,7 +8,7 @@ set(DEBUG OFF)
 
 if(DEBUG)
   add_definitions(-DDEBUG)
-  set(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-g -O0 ${CMAKE_CXX_FLAGS}")
 else()
   set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
 endif(DEBUG) 
@@ -24,6 +24,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 
 find_package(geometry_msgs REQUIRED)
 find_package(gaden_player REQUIRED)
+find_package(fmt REQUIRED)
 
 
 include_directories(include)
@@ -43,6 +44,7 @@ ament_target_dependencies(simulated_gas_sensor
     tf2_geometry_msgs
     gaden_player
 ) 
+target_link_libraries(simulated_gas_sensor fmt)
 
 
 install(

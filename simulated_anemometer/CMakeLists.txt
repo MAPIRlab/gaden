@@ -26,6 +26,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 
 find_package(geometry_msgs REQUIRED)
 find_package(gaden_player REQUIRED)
+find_package(fmt REQUIRED)
 
 
 include_directories(include)
@@ -42,7 +43,7 @@ ament_target_dependencies(simulated_anemometer
     tf2_geometry_msgs
     gaden_player
 ) 
-
+target_link_libraries(simulated_anemometer fmt)
 
 install(
   TARGETS simulated_anemometer

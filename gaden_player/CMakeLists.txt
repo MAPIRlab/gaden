@@ -19,6 +19,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(fmt REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS iostreams)
 
@@ -58,6 +59,7 @@ ament_target_dependencies(player
     visualization_msgs
     Boost
 ) 
+target_link_libraries(player fmt)
 
 
 install(

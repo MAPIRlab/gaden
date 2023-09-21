@@ -7,6 +7,8 @@
 
 #include <boost/format.hpp>
 #include "simulation_player.h"
+#include <filesystem>
+#include <fmt/format.h>
 
 int main(int argc, char** argv)
 {
@@ -163,7 +165,7 @@ void Player::loadNodeParameters()
 	for (int i = 0; i < num_simulators; i++)
 	{
 		// Get location of simulation data for instance (i)
-		std::string paramName = boost::str(boost::format("simulation_data_%i") % i);
+		std::string paramName = fmt::format("simulation_data_{}", i);
 		simulation_data[i] = declare_parameter<std::string>(paramName.c_str(), "");
 		if (verbose)
 			RCLCPP_INFO(get_logger(), "simulation_data_%i:  %s", i, simulation_data[i].c_str());
@@ -236,6 +238,13 @@ sim_obj::sim_obj(std::string filepath, bool load_wind_info, rclcpp::Logger logge
 	load_wind_data = load_wind_info;
 	first_reading = true;
 	filament_log = false;
+
+
+	if (!std::filesystem::exists(simulation_filename))
+	{
+		RCLCPP_ERROR(logger, "Simulation folder does not exist: %s", simulation_filename.c_str());
+		exit(-1);
+	}
 }
 
 sim_obj::~sim_obj() {}
@@ -351,7 +360,7 @@ void sim_obj::read_headers(std::stringstream& inbuf, std::string& line)
 // Load a new file with Gas+Wind data
 void sim_obj::load_data_from_logfile(int sim_iteration)
 {
-	std::string filename = boost::str(boost::format("%s/iteration_%i") % simulation_filename.c_str() % sim_iteration);
+	std::string filename = fmt::format("{}/iteration_{}", simulation_filename, sim_iteration);
 	FILE* fileCheck;
 	if ((fileCheck = fopen(filename.c_str(), "rb")) == NULL)
 	{
@@ -474,7 +483,7 @@ void sim_obj::load_wind_file(int wind_index)
 		return;
 	last_wind_idx = wind_index;
 
-	std::ifstream infile(boost::str(boost::format("%s/wind/wind_iteration_%i") % simulation_filename.c_str() % wind_index), std::ios_base::binary);
+	std::ifstream infile(fmt::format("{}/wind/wind_iteration_{}", simulation_filename, wind_index), std::ios_base::binary);
 	infile.read((char*)U.data(), sizeof(double) * U.size());
 	infile.read((char*)V.data(), sizeof(double) * U.size());
 	infile.read((char*)W.data(), sizeof(double) * U.size());
@@ -648,11 +657,12 @@ void sim_obj::configure_environment()
 	if (result == Gaden::ReadResult::NO_FILE)
 	{
 		RCLCPP_ERROR(m_logger, "No occupancy file provided to Gaden-player node!");
-		return;
+		exit(-1);
 	}
 	else if (result == Gaden::ReadResult::READING_FAILED)
 	{
 		RCLCPP_ERROR(m_logger, "Something went wrong while parsing the file!");
+		exit(-1);
 	}
 }
 
