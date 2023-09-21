@@ -36,6 +36,8 @@ int main(int argc, char** argv)
 	RemoteAPIObject::sim sim = client.getObject().sim();
 
 	sim.stopSimulation();
+	while (sim.getSimulationState() != sim.simulation_stopped);
+
 	int64_t robot_handle = sim.getObject(fmt::format("/MobileRobots/{}_root", robotName));
 	sim.setObjectPosition(robot_handle, sim.handle_world, position);
 

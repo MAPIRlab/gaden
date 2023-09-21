@@ -1,3 +1,9 @@
+## 2.2.1
+
+### Bug fixes
+- Fixed an issue with the coppelia scene resetting halfway through the automatic preprocessing changes.
+- Fixed an issue with the number of models being uninitialized in **preprocessing** and **environment**.
+
 ## 2.2.0
 
 ### Major changes

@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 
 void Gaden_preprocessing::parseMainModels()
 {
-	int numModels;
+	int numModels = 0;
 	{
 		int i = 0;
 		while (true)
@@ -60,6 +60,7 @@ void Gaden_preprocessing::parseMainModels()
 				break;
 			i++;
 		}
+		RCLCPP_INFO(get_logger(), "Number of models: %d", numModels);
 	}
 
 	bool generateCoppeliaScene = getParam<bool>(shared_from_this(), "generateCoppeliaScene", false);
@@ -69,8 +70,10 @@ void Gaden_preprocessing::parseMainModels()
 	{
 		RemoteAPIObject::sim sim = client.getObject().sim();
 		sim.stopSimulation();
+		while (sim.getSimulationState() != sim.simulation_stopped);
 		float floor_height = getParam<float>(shared_from_this(), "floor_height", 0.0);
 		sim.setObjectPosition(sim.getObject("/ResizableFloorLarge"), sim.handle_world, { 0,0,floor_height });
+		sim.announceSceneContentChange();
 	}
 	#else
 	if (generateCoppeliaScene)

@@ -194,7 +194,7 @@ void Environment::loadNodeParameters()
 	// CAD MODELS
 	//-------------
 	// CAD model files
-
+	number_of_CAD = 0;
 	//count them
 	{
 		int i = 0;
