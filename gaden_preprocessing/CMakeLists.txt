@@ -6,7 +6,7 @@ set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp ${CMAKE_CXX_FLAGS}")
 
 # OPTIONS!
 #==============================================
-set(GENERATE_COPPELIA_SCENE OFF)
+set(GENERATE_COPPELIA_SCENE ON)
 set(DEBUG OFF)
 #==============================================
 
