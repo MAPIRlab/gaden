@@ -4,7 +4,7 @@
 
 <launch>
     <arg name="scenario" default="10x6_central_obstacle" />
-    <arg name="simulation" default="05ms" />
+    <arg name="simulation" default="1ms" />
     <arg name="source_location_x" default="0.50" />
     <arg name="source_location_y" default="3.00" />
     <arg name="source_location_z" default="0.50" />
@@ -77,7 +77,7 @@
 	    <param name="source_position_z" value="$(arg source_location_z)"/>            ### (m)
 	    
 	    <param name="save_results" value="1" />                  #1=true, 0=false
-	    <param name="restuls_time_step" value="0.5" />           #(sec) Time increment between saving state to file
+	    <param name="results_time_step" value="0.5" />           #(sec) Time increment between saving state to file
 	    <param name="results_min_time" value="0.0" />            #(sec) Time to start saving results to file
 	    <param name="results_location" value="$(find test_env)/$(arg scenario)/gas_simulations/$(arg simulation)" />
     </node>

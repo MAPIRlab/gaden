@@ -3,7 +3,7 @@
 <launch>  
     
     <arg name="scenario" default="10x6_maze" />
-    <arg name="simulation" default="05ms" />
+    <arg name="simulation" default="1ms" />
     <arg name="source_location_x" default="1.50" />
     <arg name="source_location_y" default="3.00" />
     <arg name="source_location_z" default="0.75" />
