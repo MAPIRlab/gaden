@@ -92,7 +92,7 @@ void SimulatedAnemometer::run()
     while (rclcpp::ok() && !playerClient->wait_for_service(std::chrono::seconds(5)))
         RCLCPP_INFO(get_logger(), "WAITING FOR GADEN_PLAYER SERVICE");
 
-    rclcpp::Rate r(2);
+    rclcpp::Rate r(frequency);
     while (rclcpp::ok())
     {
         // Vars
@@ -283,6 +283,9 @@ void SimulatedAnemometer::loadNodeParameters()
 
     // Noise
     noise_std = declare_parameter<double>("noise_std", 0.1);
+
+    // Frequency (Hz)
+    frequency = declare_parameter<double>("frequency", 2);
 
     // What ref system to use for publishing measurements
     use_map_ref_system = declare_parameter<bool>("use_map_ref_system", false);

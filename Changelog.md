@@ -1,3 +1,11 @@
+## 2.3.0
+### Major changes
+- Renamed `moveCoppeliaRobot` node (under `preprocessing`) to `configureCoppeliaSim`, since it now has a more general role.
+- `configureCoppeliaSim` can now control the speed of the coppelia simulation, set with a ros parameter.
+
+### Minor changes
+- Added `frequency` parameter to `fake_anemometer` to control how often it produces a new measurement .
+
 ## 2.2.1
 
 ### Bug fixes

@@ -54,15 +54,15 @@ ament_target_dependencies(preprocessing	${AMENT_DEPS})
 target_link_libraries(preprocessing fmt)
 
 # Coppelia utils
-add_executable(moveCoppeliaRobot src/moveCoppeliaRobot.cpp)
-ament_target_dependencies(moveCoppeliaRobot ${AMENT_DEPS})
-target_link_libraries(moveCoppeliaRobot fmt)
+add_executable(configureCoppeliaSim src/configureCoppeliaSim.cpp)
+ament_target_dependencies(configureCoppeliaSim ${AMENT_DEPS})
+target_link_libraries(configureCoppeliaSim fmt)
 
 
 
 # Install
 install(
-  TARGETS preprocessing moveCoppeliaRobot
+  TARGETS preprocessing configureCoppeliaSim
   DESTINATION lib/${PROJECT_NAME}
 )
 ament_package()

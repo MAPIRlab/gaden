@@ -28,6 +28,7 @@ private:
     std::string input_sensor_frame;
     std::string input_fixed_frame;
     double noise_std;
+    double frequency;
     bool use_map_ref_system;
 
     // Vars

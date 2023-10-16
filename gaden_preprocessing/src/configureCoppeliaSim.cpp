@@ -1,6 +1,6 @@
 #ifdef GENERATE_COPPELIA_SCENE
-    #define SIM_REMOTEAPICLIENT_OBJECTS
-    #include <RemoteAPIClient.h>
+#define SIM_REMOTEAPICLIENT_OBJECTS
+#include <RemoteAPIClient.h>
 #endif
 
 #include <rclcpp/rclcpp.hpp>
@@ -20,8 +20,9 @@ int main(int argc, char** argv)
     rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("MoveCoppeliaObject");
     std::string robotName = node->declare_parameter<std::string>("robotName", "PioneerP3DX");
     bool permanentChange = node->declare_parameter<bool>("permanentChange", false);
+    float simulationSpeed = node->declare_parameter<float>("simulationSpeed", 1.0);
 
-    #define POSITION_NOT_SET DBL_MAX
+#define POSITION_NOT_SET DBL_MAX
     std::vector<double> position = node->declare_parameter<std::vector<double>>("position", {POSITION_NOT_SET, POSITION_NOT_SET, POSITION_NOT_SET});
     if (position[0] == POSITION_NOT_SET)
     {
@@ -47,5 +48,14 @@ int main(int argc, char** argv)
         sim.saveScene(sim.getStringParam(sim.stringparam_scene_path_and_name)); // overwrite existing scene
 
     sim.startSimulation();
+    client.setStepping(true);
+
+    double period = sim.getFloatParam(sim.floatparam_simulation_time_step) / simulationSpeed;
+    rclcpp::Rate rate(1.0 / period);
+    while (rclcpp::ok())
+    {
+        client.step();
+        rate.sleep();
+    }
 #endif
 }
