@@ -9,6 +9,8 @@
 #include "simulation_player.h"
 #include <filesystem>
 #include <fmt/format.h>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
 
 int main(int argc, char** argv)
 {
@@ -189,13 +191,13 @@ void Player::init_all_simulation_instances()
     RCLCPP_INFO(get_logger(), "Initializing %i instances", num_simulators);
 
     // At least one instance is needed which loads the wind field data!
-    sim_obj so(simulation_data[0], true, get_logger(), occupancyFile);
+    sim_obj so(simulation_data[0], true, shared_from_this(), occupancyFile);
     player_instances.push_back(so);
 
     // Create other instances, but do not save wind information! It is the same for all instances
     for (int i = 1; i < num_simulators; i++)
     {
-        sim_obj so(simulation_data[i], false, get_logger(), occupancyFile);
+        sim_obj so(simulation_data[i], false, shared_from_this(), occupancyFile);
         player_instances.push_back(so);
     }
 
@@ -231,8 +233,8 @@ void Player::display_current_gas_distribution()
 //==================================== SIM_OBJ ==============================//
 
 // Constructor
-sim_obj::sim_obj(std::string filepath, bool load_wind_info, rclcpp::Logger logger, std::string occupancy_filePath)
-    : m_logger(logger), occupancyFile(occupancy_filePath)
+sim_obj::sim_obj(std::string filepath, bool load_wind_info, rclcpp::Node::SharedPtr node, std::string occupancy_filePath)
+    : m_logger(node->get_logger()), occupancyFile(occupancy_filePath)
 {
     gas_type = "unknown";
     simulation_filename = filepath;
@@ -241,9 +243,15 @@ sim_obj::sim_obj(std::string filepath, bool load_wind_info, rclcpp::Logger logge
     first_reading = true;
     filament_log = false;
 
+    createHeatmapImage = node->declare_parameter<bool>("createHeatmapImage", false);
+    heatmapPath = node->declare_parameter<std::string>("heatmapPath", "");
+    heatmapHeight = node->declare_parameter<float>("heatmapHeight", 0);
+    heatmapThreshold = node->declare_parameter<double>("heatmapThreshold", 0.1);
+    heatMapIterations = node->declare_parameter<int>("heatMapIterations", 100);
+
     if (!std::filesystem::exists(simulation_filename))
     {
-        RCLCPP_ERROR(logger, "Simulation folder does not exist: %s", simulation_filename.c_str());
+        RCLCPP_ERROR(m_logger, "Simulation folder does not exist: %s", simulation_filename.c_str());
         exit(-1);
     }
 }
@@ -391,6 +399,17 @@ void sim_obj::load_data_from_logfile(int sim_iteration)
     else
         load_ascii_file(decompressed);
     infile.close();
+
+    static int iterationCounter = 0;
+    if (createHeatmapImage)
+    {
+        if (iterationCounter < heatMapIterations)
+            updateHeatmap();
+        else if (iterationCounter == heatMapIterations)
+            writeHeatmapImage();
+
+        iterationCounter++;
+    }
 }
 
 void sim_obj::load_ascii_file(std::stringstream& decompressed)
@@ -697,9 +716,9 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::msg::Marker& mkr_
                         color.a = 1.0;
                         if (!strcmp(gas_type.c_str(), "ethanol"))
                         {
-                            color.r = 0.2;
-                            color.g = 0.9;
-                            color.b = 0;
+                            color.r = 0.6;
+                            color.g = 0.6;
+                            color.b = 0.6;
                         }
                         else if (!strcmp(gas_type.c_str(), "methane"))
                         {
@@ -786,9 +805,9 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::msg::Marker& mkr_
                 p.z = (filament.z) + ((std::rand() % 1000) / 1000.0 - 0.5) * filament.sigma / 200;
 
                 color.a = 1;
-                color.r = 0;
-                color.g = 1;
-                color.b = 0;
+                color.r = 0.6;
+                color.g = 0.6;
+                color.b = 0.6;
                 // Add particle marker
                 mkr_points.points.push_back(p);
                 mkr_points.colors.push_back(color);
@@ -800,4 +819,51 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::msg::Marker& mkr_
 int sim_obj::indexFrom3D(int x, int y, int z)
 {
     return x + y * envDesc.num_cells.x + z * envDesc.num_cells.x * envDesc.num_cells.y;
+}
+
+void sim_obj::updateHeatmap()
+{
+#pragma omp parallel for collapse(2)
+    for (int i = 0; i < heatmap.size(); i++)
+    {
+        for (int j = 0; j < heatmap[0].size(); j++)
+        {
+            double p_x = envDesc.min_coord.x + (i + 0.5) * envDesc.cell_size;
+            double p_y = envDesc.min_coord.y + (j + 0.5) * envDesc.cell_size;
+            double g_c = get_gas_concentration(p_x, p_y, heatmapHeight);
+            if (g_c > heatmapThreshold)
+                heatmap[i][j]++;
+        }
+    }
+}
+
+void sim_obj::writeHeatmapImage()
+{
+
+    // std::ofstream pgmFile ("/home/pepe/catkin_ws/asd");
+    // pgmFile<<"P2\n";
+    // pgmFile<<heatmap[0].size()<<" "<<heatmap.size()<<"\n";
+    // pgmFile<<"255\n";
+
+    // for(int i = 0; i<heatmap.size(); i++){
+    //     for(int j=0; j<heatmap[0].size(); j++){
+    //         pgmFile<< (int)((heatmap[i][j]/heatMapIterations) * 255) <<" ";
+    //     }
+    //     pgmFile<<"\n";
+    // }
+
+    cv::Mat image(cv::Size(heatmap.size(), heatmap[0].size()), CV_32F, cv::Scalar(0));
+
+#pragma omp parallel for collapse(2)
+    for (int i = 0; i < heatmap.size(); i++)
+    {
+        for (int j = 0; j < heatmap[0].size(); j++)
+        {
+            image.at<float>(heatmap[0].size() - 1 - j, i) = (heatmap[i][j] / heatMapIterations) * 255;
+        }
+    }
+
+    cv::imwrite(heatmapPath, image);
+
+    RCLCPP_WARN(m_logger, "Heatmap image saved");
 }

@@ -75,8 +75,17 @@ private:
 class sim_obj
 {
 public:
-    sim_obj(std::string filepath, bool load_wind_info, rclcpp::Logger logger, std::string occupancy_filepath);
+    sim_obj(std::string filepath, bool load_wind_info, rclcpp::Node::SharedPtr node, std::string occupancy_filepath);
     ~sim_obj();
+
+    bool createHeatmapImage;
+    std::string heatmapPath;
+    float heatmapHeight;
+    double heatmapThreshold;
+    int heatMapIterations;
+    std::vector<std::vector<double>> heatmap;
+    void updateHeatmap();
+    void writeHeatmapImage();
 
     rclcpp::Logger m_logger;
     std::string gas_type;
