@@ -14,44 +14,44 @@
 #include <olfaction_msgs/gas_sensor.h>
 #include "glm/glm.hpp"
 
-#include "DDA.h"
+#include "DDA/DDA.h"
 
 class TDLAS
 {
 public:
-    TDLAS();
-    ~TDLAS() = default;
+	TDLAS();
+	~TDLAS() = default;
 
-    void run();
+	void run();
 
 private:
-    ros::NodeHandle m_nodeHandle;
-    ros::Publisher m_readingsPub;
-    ros::Publisher m_markerPub;
-    ros::ServiceClient m_playerClient;
-    ros::Subscriber m_mapSubscriber;
+	ros::NodeHandle m_nodeHandle;
+	ros::Publisher m_readingsPub;
+	ros::Publisher m_markerPub;
+	ros::ServiceClient m_playerClient;
+	ros::Subscriber m_mapSubscriber;
 
-    bool m_verbose;
-    std::string m_fixedFrame;
-    std::string m_sensor_frame;
-    
-    float m_maxRayDistance;
-    float m_rayMarchResolution; 
-    float m_measurementFrequency;
-    std::vector<std::vector<std::vector<bool>> > m_map;
-    glm::vec3 m_mapOrigin;
+	bool m_verbose;
+	std::string m_fixedFrame;
+	std::string m_sensor_frame;
 
-    void getEnvironment();
-    double takeMeasurement();
+	float m_maxRayDistance;
+	float m_rayMarchResolution;
+	float m_measurementFrequency;
+	std::vector<std::vector<std::vector<bool>> > m_map;
+	glm::vec3 m_mapOrigin;
 
-    struct PositionAndDirection
-    {
-        geometry_msgs::PointStamped position;
-        geometry_msgs::Vector3Stamped forward;
-    };
-    PositionAndDirection m_poseInFixedFrame;
-    void updatePoseInFixedFrame();
+	void getEnvironment();
+	double takeMeasurement();
 
-    glm::vec3 m_endPointLastMeasurement;
-    void publish(double measured);
+	struct PositionAndDirection
+	{
+		geometry_msgs::PointStamped position;
+		geometry_msgs::Vector3Stamped forward;
+	};
+	PositionAndDirection m_poseInFixedFrame;
+	void updatePoseInFixedFrame();
+
+	glm::vec3 m_endPointLastMeasurement;
+	void publish(double measured);
 };
