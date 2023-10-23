@@ -11,9 +11,9 @@ struct Triangle
 
 int main(int argc, char** argv)
 {
-    if (!(argc == 3 || argc == 4))
+    if (argc < 3 || argc > 5)
         spdlog::error("Wrong number of arguments. Correct format is:\n"
-                      "OccupancyGridToSTL <input path> <output path> [(bool) ascii = false]");
+                      "OccupancyGridToSTL <input path> <output path> [(bool) innerVolume = true] [(bool) ascii = false]");
 
     Gaden::EnvironmentDescription environmentDesc;
     Gaden::ReadResult result = Gaden::readEnvFile(argv[1], environmentDesc);
@@ -26,6 +26,11 @@ int main(int argc, char** argv)
 
     // Generate the triangles
     //-----------------------
+    bool generateInnerVolume = true;
+    if (argc >= 4)
+        generateInnerVolume = strcmp(argv[3], "true") == 0 || strcmp(argv[3], "True") == 0;
+
+    Gaden::CellState targetState = generateInnerVolume ? Gaden::CellState::Obstacle : Gaden::CellState::Free;
     std::vector<Triangle> triangles;
     for (int z = 0; z < environmentDesc.num_cells.z; z++)
     {
@@ -33,14 +38,14 @@ int main(int argc, char** argv)
         {
             for (int y = 0; y < environmentDesc.num_cells.y; y++)
             {
-                if (environmentDesc.at(x, y, z) == Gaden::CellState::Free)
+                if (environmentDesc.at(x, y, z) == targetState)
                     continue;
 
                 Gaden::Vector3 center = environmentDesc.coordsOfCellCenter({x, y, z});
                 float offset = environmentDesc.cell_size * 0.5f;
                 // Z
                 {
-                    if (z - 1 < 0 || environmentDesc.at(x, y, z - 1) == Gaden::CellState::Free)
+                    if (z - 1 < 0 || environmentDesc.at(x, y, z - 1) == targetState)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {0, 0, -1};
@@ -55,7 +60,7 @@ int main(int argc, char** argv)
                         triangles.back().vertices[2] = center + offset * Gaden::Vector3{-1, -1, -1};
                     }
 
-                    if (z + 1 >= environmentDesc.num_cells.z || environmentDesc.at(x, y, z + 1) == Gaden::CellState::Free)
+                    if (z + 1 >= environmentDesc.num_cells.z || environmentDesc.at(x, y, z + 1) == targetState)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {0, 0, 1};
@@ -73,7 +78,7 @@ int main(int argc, char** argv)
 
                 // X
                 {
-                    if (x - 1 < 0 || environmentDesc.at(x - 1, y, z) == Gaden::CellState::Free)
+                    if (x - 1 < 0 || environmentDesc.at(x - 1, y, z) == targetState)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {-1, 0, 0};
@@ -88,7 +93,7 @@ int main(int argc, char** argv)
                         triangles.back().vertices[2] = center + offset * Gaden::Vector3{-1, -1, -1};
                     }
 
-                    if (x + 1 >= environmentDesc.num_cells.x || environmentDesc.at(x + 1, y, z) == Gaden::CellState::Free)
+                    if (x + 1 >= environmentDesc.num_cells.x || environmentDesc.at(x + 1, y, z) == targetState)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {1, 0, 0};
@@ -106,7 +111,7 @@ int main(int argc, char** argv)
 
                 // Y
                 {
-                    if (y - 1 < 0 || environmentDesc.at(x, y - 1, z) == Gaden::CellState::Free)
+                    if (y - 1 < 0 || environmentDesc.at(x, y - 1, z) == targetState)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {0, -1, 0};
@@ -121,7 +126,7 @@ int main(int argc, char** argv)
                         triangles.back().vertices[2] = center + offset * Gaden::Vector3{-1, -1, -1};
                     }
 
-                    if (y + 1 >= environmentDesc.num_cells.y || environmentDesc.at(x, y + 1, z) == Gaden::CellState::Free)
+                    if (y + 1 >= environmentDesc.num_cells.y || environmentDesc.at(x, y + 1, z) == targetState)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {0, 1, 0};
@@ -144,7 +149,7 @@ int main(int argc, char** argv)
     //-----------------------
 
     // ASCII file
-    if (argc == 4 && (argv[3] == "true" || argv[3] == "True"))
+    if (argc == 5 && (strcmp(argv[4], "true") == 0 || strcmp(argv[4], "True") == 0))
     {
         std::ofstream outfile(argv[2]);
         outfile << "solid OccupancyGrid\n";
