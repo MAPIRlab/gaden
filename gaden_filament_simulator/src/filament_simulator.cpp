@@ -344,14 +344,15 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
             RCLCPP_INFO(get_logger(), "[filament] Loading Wind Snapshot %i", idx);
 
         // binary format files start with the code "999"
+        constexpr int IS_BINARY_FILE = 999;
         std::ifstream ist(U_filename, std::ios_base::binary);
         int check = 0;
         ist.read((char*)&check, sizeof(int));
         ist.close();
 
-        read_3D_file(U_filename, U, (check == 999));
-        read_3D_file(V_filename, V, (check == 999));
-        read_3D_file(W_filename, W, (check == 999));
+        read_3D_file(U_filename, U, (check == IS_BINARY_FILE));
+        read_3D_file(V_filename, V, (check == IS_BINARY_FILE));
+        read_3D_file(W_filename, W, (check == IS_BINARY_FILE));
 
         if (!wind_finished)
         {
@@ -500,7 +501,7 @@ void CFilamentSimulator::update_gas_concentration_from_filament(int fil_i)
     // To avoid resolution problems, we evaluate each filament according to the minimum between:
     // the env_cell_size and filament_sigma. This way we ensure a filament is always well evaluated (not only one point).
 
-    double grid_size_m = std::min(envDesc.cell_size, (filaments[fil_i].sigma / 100)); //[m] grid size to evaluate the filament
+    double grid_size_m = std::min((double)envDesc.cell_size, (filaments[fil_i].sigma / 100)); //[m] grid size to evaluate the filament
     // Compute at which increments the Filament has to be evaluated.
     // If the sigma of the Filament is very big (i.e. the Filament is very flat), the use the world's cell_size.
     // If the Filament is very small (i.e in only spans one or few world cells), then use increments equal to sigma
