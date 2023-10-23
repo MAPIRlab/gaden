@@ -5,3 +5,4 @@
 
 *COLCON_IGNORE
 *__pycache__*
+utils/OccupancyGridToSTL/build

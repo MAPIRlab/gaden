@@ -8,21 +8,42 @@
 
 namespace Gaden
 {
+    static int indexFrom3D(const Vector3i& index, const Vector3i& num_cells_env)
+    {
+        return index.x + index.y * num_cells_env.x + index.z * num_cells_env.x * num_cells_env.y;
+    }
+
+    enum CellState : uint8_t
+    {
+        Free = 0,
+        Obstacle = 1,
+        Outlet = 2
+    };
 
     struct EnvironmentDescription
     {
         Vector3i num_cells;
         Vector3 min_coord; //[m]
         Vector3 max_coord; //[m]
-        double cell_size;  //[m]
+        float cell_size;   //[m]
 
         std::vector<uint8_t> Env;
-    };
 
-    static int indexFrom3D(const Vector3i& index, const Vector3i& num_cells_env)
-    {
-        return index.x + index.y * num_cells_env.x + index.z * num_cells_env.x * num_cells_env.y;
-    }
+        CellState& at(int i, int j, int k)
+        {
+            return (CellState&)Env[indexFrom3D({i, j, k}, num_cells)];
+        }
+
+        Vector3 coordsOfCellCenter(const Vector3i& indices)
+        {
+            return min_coord + (static_cast<Vector3>(indices) + 0.5f) * cell_size;
+        }
+
+        Vector3 coordsOfCellOrigin(const Vector3i& indices)
+        {
+            return min_coord + (static_cast<Vector3>(indices)) * cell_size;
+        }
+    };
 
     enum class ReadResult
     {

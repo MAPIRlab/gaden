@@ -5,6 +5,7 @@
 
 ### Minor changes
 - Added `frequency` parameter to `fake_anemometer` to control how often it produces a new measurement .
+- Added `OccupancyGridToSTL` to the `utils` directory. Pretty self-explanatory.
 
 ## 2.2.1
 
