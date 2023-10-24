@@ -663,13 +663,38 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
     // let's parse the file
     std::ifstream infile(filename.c_str());
     std::string line;
+    struct ParsedLine
+	{
+		double point[3];
+		double windVector[3];
+	};
+	ParsedLine parsedLine;
 
-    // ignore the first line (column names)
-    std::getline(infile, line);
+	//Depending on the verion of Paraview used to export the file, lines might be (Point, vector) OR (vector, Point)
+	//so we need to check the header before we know where to put what
+	double* firstPartOfLine;
+	double* secondPartOfLine;
+	{
+    	std::getline(infile, line);
+		size_t pos = line.find(",");
+		std::string firstElement = line.substr(0, pos);
+
+		if(firstElement.find("Points") != std::string::npos)
+		{
+			firstPartOfLine = parsedLine.point;
+			secondPartOfLine = parsedLine.windVector;
+		}
+		else
+		{
+			firstPartOfLine = parsedLine.windVector;
+			secondPartOfLine = parsedLine.point;
+		}
+	}
+
     std::vector<double> U(env[0].size() * env.size() * env[0][0].size());
     std::vector<double> V(env[0].size() * env.size() * env[0][0].size());
     std::vector<double> W(env[0].size() * env.size() * env[0][0].size());
-    std::vector<double> v(6);
+
     int x_idx = 0;
     int y_idx = 0;
     int z_idx = 0;
@@ -677,19 +702,27 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
     {
         if (line.length() != 0)
         {
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 3; i++)
             {
                 size_t pos = line.find(",");
-                v[i] = atof(line.substr(0, pos).c_str());
+                firstPartOfLine[i] = atof(line.substr(0, pos).c_str());
                 line.erase(0, pos + 1);
             }
+
+			for (int i = 0; i < 3; i++)
+            {
+                size_t pos = line.find(",");
+                secondPartOfLine[i] = atof(line.substr(0, pos).c_str());
+                line.erase(0, pos + 1);
+            }
+
             // assign each of the points we have information about to the nearest cell
-            x_idx = (int)roundf((v[3] - env_min_x) / cell_size * roundFactor) / roundFactor;
-            y_idx = (int)roundf((v[4] - env_min_y) / cell_size * roundFactor) / roundFactor;
-            z_idx = (int)roundf((v[5] - env_min_z) / cell_size * roundFactor) / roundFactor;
-            U[indexFrom3D(x_idx, y_idx, z_idx)] = v[0];
-            V[indexFrom3D(x_idx, y_idx, z_idx)] = v[1];
-            W[indexFrom3D(x_idx, y_idx, z_idx)] = v[2];
+            x_idx = (int)roundf((parsedLine.point[0] - env_min_x) / cell_size * roundFactor) / roundFactor;
+            y_idx = (int)roundf((parsedLine.point[1] - env_min_y) / cell_size * roundFactor) / roundFactor;
+            z_idx = (int)roundf((parsedLine.point[2] - env_min_z) / cell_size * roundFactor) / roundFactor;
+            U[indexFrom3D(x_idx, y_idx, z_idx)] = parsedLine.windVector[0];
+            V[indexFrom3D(x_idx, y_idx, z_idx)] = parsedLine.windVector[1];
+            W[indexFrom3D(x_idx, y_idx, z_idx)] = parsedLine.windVector[2];
         }
     }
     infile.close();

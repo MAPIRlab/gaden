@@ -6,6 +6,7 @@
 ### Minor changes
 - Added `frequency` parameter to `fake_anemometer` to control how often it produces a new measurement .
 - Added `OccupancyGridToSTL` to the `utils` directory. Pretty self-explanatory.
+- Added support for wind files exported from new paraview versions, which might order the columns differently.
 
 ## 2.2.1
 
