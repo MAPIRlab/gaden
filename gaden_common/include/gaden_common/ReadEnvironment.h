@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include "Vector3.h"
+#include "GadenVersion.h"
 
 namespace Gaden
 {
@@ -20,28 +21,33 @@ namespace Gaden
         Outlet = 2
     };
 
-    struct EnvironmentDescription
+    struct Environment
     {
-        Vector3i num_cells;
-        Vector3 min_coord; //[m]
-        Vector3 max_coord; //[m]
-        float cell_size;   //[m]
+		int versionMajor = GADEN_VERSION_MAJOR, versionMinor = GADEN_VERSION_MINOR; //version of gaden used to generate a log file. Used to figure out how to parse the binary format
+		struct Description
+		{
+			Vector3i num_cells;
+			Vector3 min_coord; //[m]
+			Vector3 max_coord; //[m]
+			float cell_size;   //[m]
+		};
+		Description description;
 
         std::vector<uint8_t> Env;
 
         CellState& at(int i, int j, int k)
         {
-            return (CellState&)Env[indexFrom3D({i, j, k}, num_cells)];
+            return (CellState&)Env[indexFrom3D({i, j, k}, description.num_cells)];
         }
 
         Vector3 coordsOfCellCenter(const Vector3i& indices)
         {
-            return min_coord + (static_cast<Vector3>(indices) + 0.5f) * cell_size;
+            return description.min_coord + (static_cast<Vector3>(indices) + 0.5f) * description.cell_size;
         }
 
         Vector3 coordsOfCellOrigin(const Vector3i& indices)
         {
-            return min_coord + (static_cast<Vector3>(indices)) * cell_size;
+            return description.min_coord + (static_cast<Vector3>(indices)) * description.cell_size;
         }
     };
 
@@ -52,7 +58,7 @@ namespace Gaden
         READING_FAILED
     };
 
-    static ReadResult readEnvFile(const std::string& filePath, EnvironmentDescription& desc)
+    static ReadResult readEnvFile(const std::string& filePath, Environment& environment)
     {
         if (filePath == "")
             return ReadResult::NO_FILE;
@@ -68,41 +74,41 @@ namespace Gaden
             size_t pos = line.find(" ");
             line.erase(0, pos + 1);
             pos = line.find(" ");
-            desc.min_coord.x = atof(line.substr(0, pos).c_str());
+            environment.description.min_coord.x = atof(line.substr(0, pos).c_str());
             line.erase(0, pos + 1);
             pos = line.find(" ");
-            desc.min_coord.y = atof(line.substr(0, pos).c_str());
-            desc.min_coord.z = atof(line.substr(pos + 1).c_str());
+            environment.description.min_coord.y = atof(line.substr(0, pos).c_str());
+            environment.description.min_coord.z = atof(line.substr(pos + 1).c_str());
 
             // Line 2 (max values of environment)
             std::getline(infile, line);
             pos = line.find(" ");
             line.erase(0, pos + 1);
             pos = line.find(" ");
-            desc.max_coord.x = atof(line.substr(0, pos).c_str());
+            environment.description.max_coord.x = atof(line.substr(0, pos).c_str());
             line.erase(0, pos + 1);
             pos = line.find(" ");
-            desc.max_coord.y = atof(line.substr(0, pos).c_str());
-            desc.max_coord.z = atof(line.substr(pos + 1).c_str());
+            environment.description.max_coord.y = atof(line.substr(0, pos).c_str());
+            environment.description.max_coord.z = atof(line.substr(pos + 1).c_str());
 
             // Line 3 (Num cells on eahc dimension)
             std::getline(infile, line);
             pos = line.find(" ");
             line.erase(0, pos + 1);
             pos = line.find(" ");
-            desc.num_cells.x = atoi(line.substr(0, pos).c_str());
+            environment.description.num_cells.x = atoi(line.substr(0, pos).c_str());
             line.erase(0, pos + 1);
             pos = line.find(" ");
-            desc.num_cells.y = atof(line.substr(0, pos).c_str());
-            desc.num_cells.z = atof(line.substr(pos + 1).c_str());
+            environment.description.num_cells.y = atof(line.substr(0, pos).c_str());
+            environment.description.num_cells.z = atof(line.substr(pos + 1).c_str());
 
             // Line 4 cell_size (m)
             std::getline(infile, line);
             pos = line.find(" ");
-            desc.cell_size = atof(line.substr(pos + 1).c_str());
+            environment.description.cell_size = atof(line.substr(pos + 1).c_str());
         }
 
-        desc.Env.resize(desc.num_cells.x * desc.num_cells.y * desc.num_cells.z);
+        environment.Env.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
 
         int x_idx = 0;
         int y_idx = 0;
@@ -111,9 +117,9 @@ namespace Gaden
         while (std::getline(infile, line))
         {
             std::stringstream ss(line);
-            if (z_idx >= desc.num_cells.z)
+            if (z_idx >= environment.description.num_cells.z)
             {
-                printf("Too many lines! z_idx=%d but num_cells_z=%d", z_idx, desc.num_cells.z);
+                printf("Too many lines! z_idx=%d but num_cells_z=%d", z_idx, environment.description.num_cells.z);
                 return ReadResult::READING_FAILED;
             }
 
@@ -132,7 +138,7 @@ namespace Gaden
                     ss >> std::skipws >> f;
                     if (!ss.fail())
                     {
-                        desc.Env[indexFrom3D(Vector3i(x_idx, y_idx, z_idx), desc.num_cells)] = f;
+                        environment.Env[indexFrom3D(Vector3i(x_idx, y_idx, z_idx), environment.description.num_cells)] = f;
                         y_idx++;
                     }
                 }

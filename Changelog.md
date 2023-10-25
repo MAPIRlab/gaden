@@ -1,5 +1,7 @@
 ## 2.3.0
 ### Major changes
+- Changed the internal format of simulation-result files. `Gaden_player` still supports the old format, so existing simulations can still be played back, but it is recommended to re-run any simulations you have to update them to the new format, since the simulations generated with the last few versions of Gaden had a bug which will now cause problems.
+- Removed support for the legacy ASCII logfiles. This almost certainly does not affect you, since these files have not been a thing for years now.
 - Renamed `moveCoppeliaRobot` node (under `preprocessing`) to `configureCoppeliaSim`, since it now has a more general role.
 - `configureCoppeliaSim` can now control the speed of the coppelia simulation, set with a ros parameter.
 

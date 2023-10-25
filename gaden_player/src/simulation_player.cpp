@@ -83,19 +83,12 @@ void Player::run()
     // Read Node Parameters
     loadNodeParameters();
 
-    // Publishers
-    marker_pub = create_publisher<visualization_msgs::msg::Marker>("Gas_Distribution", 1);
-
-    // Services offered
-    auto serviceGas = create_service<gaden_player::srv::GasPosition>(
-        "odor_value", std::bind(&Player::get_gas_value_srv, this, std::placeholders::_1, std::placeholders::_2));
-    auto serviceWind = create_service<gaden_player::srv::WindPosition>(
-        "wind_value", std::bind(&Player::get_wind_value_srv, this, std::placeholders::_1, std::placeholders::_2));
-
     // Init variables
     init_all_simulation_instances();
     rclcpp::Time time_last_loaded_file = now();
     srand(time(NULL)); // initialize random seed
+
+    load_all_data_from_logfiles(0); // On the first time, we configure gas type, source pos, etc.
 
     // Init Markers for RVIZ visualization
     mkr_gas_points.header.frame_id = "map";
@@ -109,6 +102,15 @@ void Player::run()
     mkr_gas_points.scale.z = 0.025;
     mkr_gas_points.pose.orientation.w = 1.0;
 
+    // Services offered
+    auto serviceGas = create_service<gaden_player::srv::GasPosition>(
+        "odor_value", std::bind(&Player::get_gas_value_srv, this, std::placeholders::_1, std::placeholders::_2));
+    auto serviceWind = create_service<gaden_player::srv::WindPosition>(
+        "wind_value", std::bind(&Player::get_wind_value_srv, this, std::placeholders::_1, std::placeholders::_2));
+
+    // Publishers
+    marker_pub = create_publisher<visualization_msgs::msg::Marker>("Gas_Distribution", 1);
+
     // Loop
     rclcpp::Rate r(100); // Set max rate at 100Hz (for handling services - Top Speed!!)
     int iteration_counter = initial_iteration;
@@ -120,8 +122,8 @@ void Player::run()
             if (verbose)
                 RCLCPP_INFO(get_logger(), "Playing simulation iteration %i", iteration_counter);
             // Read Gas and Wind data from log_files
-            load_all_data_from_logfiles(iteration_counter); // On the first time, we configure gas type, source pos, etc.
-            display_current_gas_distribution();             // Rviz visualization
+            load_all_data_from_logfiles(iteration_counter);
+            display_current_gas_distribution(); // Rviz visualization
             iteration_counter++;
 
             // Looping?
@@ -239,7 +241,6 @@ sim_obj::sim_obj(std::string filepath, bool load_wind_info, rclcpp::Logger logge
     source_pos_x = source_pos_y = source_pos_z = 0.0; // m
     load_wind_data = load_wind_info;
     first_reading = true;
-    filament_log = false;
 
     if (!std::filesystem::exists(simulation_filename))
     {
@@ -250,114 +251,6 @@ sim_obj::sim_obj(std::string filepath, bool load_wind_info, rclcpp::Logger logge
 
 sim_obj::~sim_obj()
 {
-}
-
-void sim_obj::read_concentration_line(std::string line)
-{
-    size_t pos;
-    double conc, u, v, w;
-    int x, y, z;
-    // A line has the format x y z conc u v w
-    pos = line.find(" ");
-    x = atoi(line.substr(0, pos).c_str());
-    line.erase(0, pos + 1);
-
-    pos = line.find(" ");
-    y = atoi(line.substr(0, pos).c_str());
-    line.erase(0, pos + 1);
-
-    pos = line.find(" ");
-    z = atoi(line.substr(0, pos).c_str());
-    line.erase(0, pos + 1);
-
-    pos = line.find(" ");
-    conc = atof(line.substr(0, pos).c_str());
-    line.erase(0, pos + 1);
-
-    pos = line.find(" ");
-    u = atof(line.substr(0, pos).c_str());
-    line.erase(0, pos + 1);
-
-    pos = line.find(" ");
-    v = atof(line.substr(0, pos).c_str());
-    w = atof(line.substr(pos + 1).c_str());
-
-    // Save data to internal storage
-    C[indexFrom3D(x, y, z)] = conc / 1000;
-    if (load_wind_data)
-    {
-        U[indexFrom3D(x, y, z)] = u / 1000;
-        V[indexFrom3D(x, y, z)] = v / 1000;
-        W[indexFrom3D(x, y, z)] = w / 1000;
-    }
-}
-
-void sim_obj::read_headers(std::stringstream& inbuf, std::string& line)
-{
-    std::getline(inbuf, line);
-    // Line 1 (min values of environment)
-    size_t pos = line.find(" ");
-    line.erase(0, pos + 1);
-    pos = line.find(" ");
-    envDesc.min_coord.x = atof(line.substr(0, pos).c_str());
-    line.erase(0, pos + 1);
-    pos = line.find(" ");
-    envDesc.min_coord.y = atof(line.substr(0, pos).c_str());
-    envDesc.min_coord.z = atof(line.substr(pos + 1).c_str());
-
-    std::getline(inbuf, line);
-    // Line 2 (max values of environment)
-    pos = line.find(" ");
-    line.erase(0, pos + 1);
-    pos = line.find(" ");
-    envDesc.max_coord.x = atof(line.substr(0, pos).c_str());
-    line.erase(0, pos + 1);
-    pos = line.find(" ");
-    envDesc.max_coord.y = atof(line.substr(0, pos).c_str());
-    envDesc.max_coord.z = atof(line.substr(pos + 1).c_str());
-
-    std::getline(inbuf, line);
-    // Get Number of cells (X,Y,Z)
-    pos = line.find(" ");
-    line.erase(0, pos + 1);
-
-    pos = line.find(" ");
-    envDesc.num_cells.x = atoi(line.substr(0, pos).c_str());
-    line.erase(0, pos + 1);
-    pos = line.find(" ");
-    envDesc.num_cells.y = atoi(line.substr(0, pos).c_str());
-    envDesc.num_cells.z = atoi(line.substr(pos + 1).c_str());
-
-    std::getline(inbuf, line);
-    // Get Cell_size
-    pos = line.find(" ");
-    line.erase(0, pos + 1);
-
-    pos = line.find(" ");
-    envDesc.cell_size = atof(line.substr(0, pos).c_str());
-
-    std::getline(inbuf, line);
-    // Get GasSourceLocation
-    pos = line.find(" ");
-    line.erase(0, pos + 1);
-    pos = line.find(" ");
-    source_pos_x = atof(line.substr(0, pos).c_str());
-    line.erase(0, pos + 1);
-
-    pos = line.find(" ");
-    source_pos_y = atof(line.substr(0, pos).c_str());
-    source_pos_z = atof(line.substr(pos + 1).c_str());
-
-    std::getline(inbuf, line);
-    // Get Gas_Type
-    pos = line.find(" ");
-    gas_type = line.substr(pos + 1);
-    // Configure instances
-    configure_environment();
-
-    std::getline(inbuf, line);
-    std::getline(inbuf, line);
-    std::getline(inbuf, line);
 }
 
 // Load a new file with Gas+Wind data
@@ -380,71 +273,54 @@ void sim_obj::load_data_from_logfile(int sim_iteration)
     std::stringstream decompressed;
     boost::iostreams::copy(inbuf, decompressed);
 
-    // if the file starts with a 1, the contents are in binary
-    int check = 0;
-    decompressed.read((char*)&check, sizeof(int));
-    if (check == 1)
+    // check the version of gaden used to generate the file
+    decompressed.read((char*)&environment.versionMajor, sizeof(int));
+    if (environment.versionMajor == 1)
     {
-        filament_log = true;
-        load_binary_file(decompressed);
+        environment.versionMinor = 0;
+        load_logfile_version_1(decompressed);
     }
     else
-        load_ascii_file(decompressed);
+    {
+        decompressed.read((char*)&environment.versionMinor, sizeof(int));
+        load_logfile_version_2(decompressed);
+    }
+
     infile.close();
 }
 
-void sim_obj::load_ascii_file(std::stringstream& decompressed)
+void sim_obj::load_logfile_version_1(std::stringstream& decompressed)
 {
-    std::string line;
-
-    size_t pos;
-    double conc, u, v, w;
-    int x, y, z;
-
     if (first_reading)
     {
-        read_headers(decompressed, line);
-        first_reading = false;
-    }
-    else
-    {
-        // if already initialized, skip the header
-        for (int i = 0; i < 8; i++)
-        {
-            std::getline(decompressed, line);
-        }
-    }
+        RCLCPP_WARN(
+            m_logger,
+            "You are reading a log file that was generated with an old version of gaden. While it should work correctly, if you experience any bugs, "
+            "this is likely the cause. You can just re-run the filament simulator node to generate an updated version of the simulation");
+        // coordinates were initially written as doubles, but we want to read them as floats now, so we need a buffer
+        double bufferDoubles[5];
+        decompressed.read((char*)&bufferDoubles, 3 * sizeof(double));
+        environment.description.min_coord.x = bufferDoubles[0];
+        environment.description.min_coord.y = bufferDoubles[1];
+        environment.description.min_coord.z = bufferDoubles[2];
 
-    do
-    {
-        read_concentration_line(line);
-    } while (std::getline(decompressed, line));
-}
+        decompressed.read((char*)&bufferDoubles, 3 * sizeof(double));
+        environment.description.max_coord.x = bufferDoubles[0];
+        environment.description.max_coord.y = bufferDoubles[1];
+        environment.description.max_coord.z = bufferDoubles[2];
 
-void sim_obj::load_binary_file(std::stringstream& decompressed)
-{
+        decompressed.read((char*)&environment.description.num_cells.x, sizeof(int));
+        decompressed.read((char*)&environment.description.num_cells.y, sizeof(int));
+        decompressed.read((char*)&environment.description.num_cells.z, sizeof(int));
 
-    if (first_reading)
-    {
-        double bufferD[5];
-        decompressed.read((char*)&envDesc.min_coord.x, sizeof(double));
-        decompressed.read((char*)&envDesc.min_coord.y, sizeof(double));
-        decompressed.read((char*)&envDesc.min_coord.z, sizeof(double));
+        decompressed.read((char*)&bufferDoubles, 3 * sizeof(double));
+        environment.description.cell_size = bufferDoubles[0];
 
-        decompressed.read((char*)&envDesc.max_coord.x, sizeof(double));
-        decompressed.read((char*)&envDesc.max_coord.y, sizeof(double));
-        decompressed.read((char*)&envDesc.max_coord.z, sizeof(double));
+        decompressed.read((char*)&bufferDoubles, 3 * sizeof(double)); // ground truth source position, we can ignore it
 
-        decompressed.read((char*)&envDesc.num_cells.x, sizeof(int));
-        decompressed.read((char*)&envDesc.num_cells.y, sizeof(int));
-        decompressed.read((char*)&envDesc.num_cells.z, sizeof(int));
-
-        decompressed.read((char*)&envDesc.cell_size, sizeof(double));
-
-        decompressed.read((char*)&bufferD, 5 * sizeof(double));
-        int gt;
-        decompressed.read((char*)&gt, sizeof(int));
-        gas_type = gasTypesByCode[gt];
+        int gas_type_index;
+        decompressed.read((char*)&gas_type_index, sizeof(int));
+        gas_type = gasTypesByCode[gas_type_index];
 
         decompressed.read((char*)&total_moles_in_filament, sizeof(double));
         decompressed.read((char*)&num_moles_all_gases_in_cm3, sizeof(double));
@@ -480,6 +356,55 @@ void sim_obj::load_binary_file(std::stringstream& decompressed)
     load_wind_file(wind_index);
 }
 
+void sim_obj::load_logfile_version_2(std::stringstream& decompressed)
+{
+    if (first_reading)
+    {
+        decompressed.read((char*)&environment.description, sizeof(environment.description));
+        Gaden::Vector3 source_position;
+        decompressed.read((char*)&source_position, sizeof(source_position));
+
+        int gas_type_index;
+        decompressed.read((char*)&gas_type_index, sizeof(int));
+        gas_type = gasTypesByCode[gas_type_index];
+
+        decompressed.read((char*)&total_moles_in_filament, sizeof(double));
+        decompressed.read((char*)&num_moles_all_gases_in_cm3, sizeof(double));
+        configure_environment();
+        first_reading = false;
+    }
+    else
+    {
+        // skip header
+        decompressed.seekg(2 * sizeof(int)                   // version
+                           + sizeof(environment.description) // description
+                           + sizeof(Gaden::Vector3)          // source position
+                           + sizeof(int)                     // gas type
+                           + 2 * sizeof(double)              // moles constants
+        );
+    }
+
+    int wind_index;
+    decompressed.read((char*)&wind_index, sizeof(int));
+
+    activeFilaments.clear();
+    int filament_index;
+    double x, y, z, stdDev;
+    while (decompressed.peek() != EOF)
+    {
+
+        decompressed.read((char*)&filament_index, sizeof(int));
+        decompressed.read((char*)&x, sizeof(double));
+        decompressed.read((char*)&y, sizeof(double));
+        decompressed.read((char*)&z, sizeof(double));
+        decompressed.read((char*)&stdDev, sizeof(double));
+
+        std::pair<int, Filament> pair(filament_index, Filament(x, y, z, stdDev));
+        activeFilaments.insert(pair);
+    }
+
+    load_wind_file(wind_index);
+}
 void sim_obj::load_wind_file(int wind_index)
 {
     if (wind_index == last_wind_idx)
@@ -498,11 +423,12 @@ double sim_obj::get_gas_concentration(float x, float y, float z)
 {
 
     int xx, yy, zz;
-    xx = (int)ceil((x - envDesc.min_coord.x) / envDesc.cell_size);
-    yy = (int)ceil((y - envDesc.min_coord.y) / envDesc.cell_size);
-    zz = (int)ceil((z - envDesc.min_coord.z) / envDesc.cell_size);
+    xx = (int)ceil((x - environment.description.min_coord.x) / environment.description.cell_size);
+    yy = (int)ceil((y - environment.description.min_coord.y) / environment.description.cell_size);
+    zz = (int)ceil((z - environment.description.min_coord.z) / environment.description.cell_size);
 
-    if (xx < 0 || xx > envDesc.num_cells.x || yy < 0 || yy > envDesc.num_cells.y || zz < 0 || zz > envDesc.num_cells.z)
+    if (xx < 0 || xx > environment.description.num_cells.x || yy < 0 || yy > environment.description.num_cells.y || zz < 0 ||
+        zz > environment.description.num_cells.z)
     {
         RCLCPP_ERROR(m_logger,
                      "Requested gas concentration at a point outside the environment (%f, %f, %f). Are you using the correct coordinates?\n", x, y,
@@ -510,25 +436,16 @@ double sim_obj::get_gas_concentration(float x, float y, float z)
         return 0;
     }
     double gas_conc = 0;
-    if (filament_log)
+    for (auto it = activeFilaments.begin(); it != activeFilaments.end(); it++)
     {
-        for (auto it = activeFilaments.begin(); it != activeFilaments.end(); it++)
-        {
-            Filament fil = it->second;
-            double distSQR = (x - fil.x) * (x - fil.x) + (y - fil.y) * (y - fil.y) + (z - fil.z) * (z - fil.z);
+        Filament fil = it->second;
+        double distSQR = (x - fil.x) * (x - fil.x) + (y - fil.y) * (y - fil.y) + (z - fil.z) * (z - fil.z);
 
-            double limitDistance = fil.sigma * 5 / 100;
-            if (distSQR < limitDistance * limitDistance && check_environment_for_obstacle(x, y, z, fil.x, fil.y, fil.z))
-            {
-                gas_conc += concentration_from_filament(x, y, z, fil);
-            }
+        double limitDistance = fil.sigma * 5 / 100;
+        if (distSQR < limitDistance * limitDistance && check_environment_for_obstacle(x, y, z, fil.x, fil.y, fil.z))
+        {
+            gas_conc += concentration_from_filament(x, y, z, fil);
         }
-    }
-    else
-    {
-        // Get cell idx from point location
-        // Get gas concentration from that cell
-        gas_conc = C[indexFrom3D(xx, yy, zz)];
     }
 
     return gas_conc;
@@ -570,7 +487,7 @@ bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, dou
     vector_z = vector_z / distance;
 
     // Traverse path
-    int steps = ceil(distance / envDesc.cell_size); // Make sure no two iteration steps are separated more than 1 cell
+    int steps = ceil(distance / environment.description.cell_size); // Make sure no two iteration steps are separated more than 1 cell
     double increment = distance / steps;
 
     for (int i = 1; i < steps - 1; i++)
@@ -581,12 +498,12 @@ bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, dou
         double pose_z = start_z + vector_z * increment * i;
 
         // Determine cell to evaluate (some cells might get evaluated twice due to the current code
-        int x_idx = floor((pose_x - envDesc.min_coord.x) / envDesc.cell_size);
-        int y_idx = floor((pose_y - envDesc.min_coord.y) / envDesc.cell_size);
-        int z_idx = floor((pose_z - envDesc.min_coord.z) / envDesc.cell_size);
+        int x_idx = floor((pose_x - environment.description.min_coord.x) / environment.description.cell_size);
+        int y_idx = floor((pose_y - environment.description.min_coord.y) / environment.description.cell_size);
+        int z_idx = floor((pose_z - environment.description.min_coord.z) / environment.description.cell_size);
 
         // Check if the cell is occupied
-        if (envDesc.Env[indexFrom3D(x_idx, y_idx, z_idx)] != 0)
+        if (environment.Env[indexFrom3D(x_idx, y_idx, z_idx)] != 0)
         {
             return false;
         }
@@ -599,20 +516,21 @@ bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, dou
 int sim_obj::check_pose_with_environment(double pose_x, double pose_y, double pose_z)
 {
     // 1.1 Check that pose is within the boundingbox environment
-    if (pose_x < envDesc.min_coord.x || pose_x > envDesc.max_coord.x || pose_y < envDesc.min_coord.y || pose_y > envDesc.max_coord.y ||
-        pose_z < envDesc.min_coord.z || pose_z > envDesc.max_coord.z)
+    if (pose_x < environment.description.min_coord.x || pose_x > environment.description.max_coord.x ||
+        pose_y < environment.description.min_coord.y || pose_y > environment.description.max_coord.y ||
+        pose_z < environment.description.min_coord.z || pose_z > environment.description.max_coord.z)
         return 1;
 
     // Get 3D cell of the point
-    int x_idx = (pose_x - envDesc.min_coord.x) / envDesc.cell_size;
-    int y_idx = (pose_y - envDesc.min_coord.y) / envDesc.cell_size;
-    int z_idx = (pose_z - envDesc.min_coord.z) / envDesc.cell_size;
+    int x_idx = (pose_x - environment.description.min_coord.x) / environment.description.cell_size;
+    int y_idx = (pose_y - environment.description.min_coord.y) / environment.description.cell_size;
+    int z_idx = (pose_z - environment.description.min_coord.z) / environment.description.cell_size;
 
-    if (x_idx >= envDesc.num_cells.x || y_idx >= envDesc.num_cells.y || z_idx >= envDesc.num_cells.z)
+    if (x_idx >= environment.description.num_cells.x || y_idx >= environment.description.num_cells.y || z_idx >= environment.description.num_cells.z)
         return 1;
 
     // 1.2. Return cell occupancy (0=free, 1=obstacle, 2=outlet)
-    return envDesc.Env[indexFrom3D(x_idx, y_idx, z_idx)];
+    return environment.Env[indexFrom3D(x_idx, y_idx, z_idx)];
 }
 
 // Get Wind concentration at lcoation (x,y,z)
@@ -621,11 +539,12 @@ void sim_obj::get_wind_value(float x, float y, float z, double& u, double& v, do
     if (load_wind_data)
     {
         int xx, yy, zz;
-        xx = (int)ceil((x - envDesc.min_coord.x) / envDesc.cell_size);
-        yy = (int)ceil((y - envDesc.min_coord.y) / envDesc.cell_size);
-        zz = (int)ceil((z - envDesc.min_coord.z) / envDesc.cell_size);
+        xx = (int)ceil((x - environment.description.min_coord.x) / environment.description.cell_size);
+        yy = (int)ceil((y - environment.description.min_coord.y) / environment.description.cell_size);
+        zz = (int)ceil((z - environment.description.min_coord.z) / environment.description.cell_size);
 
-        if (xx < 0 || xx > envDesc.num_cells.x || yy < 0 || yy > envDesc.num_cells.y || zz < 0 || zz > envDesc.num_cells.z)
+        if (xx < 0 || xx > environment.description.num_cells.x || yy < 0 || yy > environment.description.num_cells.y || zz < 0 ||
+            zz > environment.description.num_cells.z)
         {
             RCLCPP_ERROR(m_logger, "Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
             return;
@@ -646,18 +565,18 @@ void sim_obj::get_wind_value(float x, float y, float z, double& u, double& v, do
 void sim_obj::configure_environment()
 {
     // Resize Gas Concentration container
-    C.resize(envDesc.num_cells.x * envDesc.num_cells.y * envDesc.num_cells.z);
+    C.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
 
     // Resize Wind info container (if necessary)
     if (load_wind_data)
     {
 
-        U.resize(envDesc.num_cells.x * envDesc.num_cells.y * envDesc.num_cells.z);
-        V.resize(envDesc.num_cells.x * envDesc.num_cells.y * envDesc.num_cells.z);
-        W.resize(envDesc.num_cells.x * envDesc.num_cells.y * envDesc.num_cells.z);
+        U.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
+        V.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
+        W.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
     }
 
-    Gaden::ReadResult result = Gaden::readEnvFile(occupancyFile, envDesc);
+    Gaden::ReadResult result = Gaden::readEnvFile(occupancyFile, environment);
     if (result == Gaden::ReadResult::NO_FILE)
     {
         RCLCPP_ERROR(m_logger, "No occupancy file provided to Gaden-player node!");
@@ -672,132 +591,30 @@ void sim_obj::configure_environment()
 
 void sim_obj::get_concentration_as_markers(visualization_msgs::msg::Marker& mkr_points)
 {
-    if (!filament_log)
+    for (auto it = activeFilaments.begin(); it != activeFilaments.end(); it++)
     {
-        // For every cell, generate as much "marker points" as [ppm]
-        for (int i = 0; i < envDesc.num_cells.x; i++)
+        geometry_msgs::msg::Point p;    // Location of point
+        std_msgs::msg::ColorRGBA color; // Color of point
+
+        Filament filament = it->second;
+        for (int i = 0; i < 5; i++)
         {
-            for (int j = 0; j < envDesc.num_cells.y; j++)
-            {
-                for (int k = 0; k < envDesc.num_cells.z; k++)
-                {
-                    geometry_msgs::msg::Point p;    // Location of point
-                    std_msgs::msg::ColorRGBA color; // Color of point
+            p.x = (filament.x) + ((std::rand() % 1000) / 1000.0 - 0.5) * filament.sigma / 200;
+            p.y = (filament.y) + ((std::rand() % 1000) / 1000.0 - 0.5) * filament.sigma / 200;
+            p.z = (filament.z) + ((std::rand() % 1000) / 1000.0 - 0.5) * filament.sigma / 200;
 
-                    double gas_value = C[indexFrom3D(i, j, k)];
-
-                    for (int N = 0; N < (int)round(gas_value / 2); N++)
-                    {
-                        // Set point position (corner of the cell + random)
-                        p.x = envDesc.min_coord.x + (i + 0.5) * envDesc.cell_size + ((rand() % 100) / 100.0f) * envDesc.cell_size;
-                        p.y = envDesc.min_coord.y + (j + 0.5) * envDesc.cell_size + ((rand() % 100) / 100.0f) * envDesc.cell_size;
-                        p.z = envDesc.min_coord.z + (k + 0.5) * envDesc.cell_size + ((rand() % 100) / 100.0f) * envDesc.cell_size;
-
-                        // Set color of particle according to gas type
-                        color.a = 1.0;
-                        if (!strcmp(gas_type.c_str(), "ethanol"))
-                        {
-                            color.r = 0.2;
-                            color.g = 0.9;
-                            color.b = 0;
-                        }
-                        else if (!strcmp(gas_type.c_str(), "methane"))
-                        {
-                            color.r = 0.9;
-                            color.g = 0.1;
-                            color.b = 0.1;
-                        }
-                        else if (!strcmp(gas_type.c_str(), "hydrogen"))
-                        {
-                            color.r = 0.2;
-                            color.g = 0.1;
-                            color.b = 0.9;
-                        }
-                        else if (!strcmp(gas_type.c_str(), "propanol"))
-                        {
-                            color.r = 0.8;
-                            color.g = 0.8;
-                            color.b = 0;
-                        }
-                        else if (!strcmp(gas_type.c_str(), "chlorine"))
-                        {
-                            color.r = 0.8;
-                            color.g = 0;
-                            color.b = 0.8;
-                        }
-                        else if (!strcmp(gas_type.c_str(), "flurorine"))
-                        {
-                            color.r = 0.0;
-                            color.g = 0.8;
-                            color.b = 0.8;
-                        }
-                        else if (!strcmp(gas_type.c_str(), "acetone"))
-                        {
-                            color.r = 0.9;
-                            color.g = 0.2;
-                            color.b = 0.2;
-                        }
-                        else if (!strcmp(gas_type.c_str(), "neon"))
-                        {
-                            color.r = 0.9;
-                            color.g = 0;
-                            color.b = 0;
-                        }
-                        else if (!strcmp(gas_type.c_str(), "helium"))
-                        {
-                            color.r = 0.9;
-                            color.g = 0;
-                            color.b = 0;
-                        }
-                        else if (!strcmp(gas_type.c_str(), "hot_air"))
-                        {
-                            color.r = 0.9;
-                            color.g = 0;
-                            color.b = 0;
-                        }
-                        else
-                        {
-                            RCLCPP_INFO(m_logger, "Setting Defatul Color");
-                            color.r = 0.9;
-                            color.g = 0;
-                            color.b = 0;
-                        }
-
-                        // Add particle marker
-                        mkr_points.points.push_back(p);
-                        mkr_points.colors.push_back(color);
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        for (auto it = activeFilaments.begin(); it != activeFilaments.end(); it++)
-        {
-            geometry_msgs::msg::Point p;    // Location of point
-            std_msgs::msg::ColorRGBA color; // Color of point
-
-            Filament filament = it->second;
-            for (int i = 0; i < 5; i++)
-            {
-                p.x = (filament.x) + ((std::rand() % 1000) / 1000.0 - 0.5) * filament.sigma / 200;
-                p.y = (filament.y) + ((std::rand() % 1000) / 1000.0 - 0.5) * filament.sigma / 200;
-                p.z = (filament.z) + ((std::rand() % 1000) / 1000.0 - 0.5) * filament.sigma / 200;
-
-                color.a = 1;
-                color.r = 0;
-                color.g = 1;
-                color.b = 0;
-                // Add particle marker
-                mkr_points.points.push_back(p);
-                mkr_points.colors.push_back(color);
-            }
+            color.a = 1;
+            color.r = 0;
+            color.g = 1;
+            color.b = 0;
+            // Add particle marker
+            mkr_points.points.push_back(p);
+            mkr_points.colors.push_back(color);
         }
     }
 }
 
 int sim_obj::indexFrom3D(int x, int y, int z)
 {
-    return x + y * envDesc.num_cells.x + z * envDesc.num_cells.x * envDesc.num_cells.y;
+    return x + y * environment.description.num_cells.x + z * environment.description.num_cells.x * environment.description.num_cells.y;
 }
