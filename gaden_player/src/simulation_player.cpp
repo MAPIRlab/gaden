@@ -405,6 +405,7 @@ void sim_obj::load_logfile_version_2(std::stringstream& decompressed)
 
     load_wind_file(wind_index);
 }
+
 void sim_obj::load_wind_file(int wind_index)
 {
     if (wind_index == last_wind_idx)

@@ -4,10 +4,3 @@ running "./decompress inputFile outputFile" will store in outputFile the decompr
 UPDATE: log files are now just dumps of the binary arrays into memory (for speed reasons), 
 so for new simulations you will need to use "./toASCII inputFile outputFile" if you want to read the contents. 
 If you are human, that is. Otherwise, just enjoy the binary.
-
-
-####
-
-If for some reason you need to recompile the source code, do "g++ src/<file> -lboost_iostreams"...
-
-or else...!
