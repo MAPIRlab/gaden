@@ -13,45 +13,45 @@
 
 class Environment
 {
-    public:
-        void run();
-    
-    private:
+public:
+	void run();
 
-    //Gas Sources
-    int                                 number_of_sources;
-    std::vector<double>                 gas_source_pos_x;
-    std::vector<double>                 gas_source_pos_y;
-    std::vector<double>                 gas_source_pos_z;
-    std::vector<double>                 gas_source_scale;
-    std::vector< std::vector<double> >  gas_source_color;
+private:
 
-    //CAD models
-    int                                 number_of_CAD;
-    std::vector<std::string>            CAD_models;
-    std::vector< std::vector<double> >  CAD_color;
+	//Gas Sources
+	int                                 number_of_sources;
+	std::vector<double>                 gas_source_pos_x;
+	std::vector<double>                 gas_source_pos_y;
+	std::vector<double>                 gas_source_pos_z;
+	std::vector<double>                 gas_source_scale;
+	std::vector< std::vector<double> >  gas_source_color;
 
-    //Environment 3D
-    std::string occupancy3D_data;       //Location of the 3D Occupancy GridMap of the environment
-    std::string	fixed_frame;            //Frame where to publish the markers
-    GadenCommon::EnvironmentDescription env_desc;
+	//CAD models
+	int                                 number_of_CAD;
+	std::vector<std::string>            CAD_models;
+	std::vector< std::vector<double> >  CAD_color;
 
-    bool        verbose;
-    bool        wait_preprocessing;
-    bool        preprocessing_done;
+	//Environment 3D
+	std::string occupancy3D_data;       //Location of the 3D Occupancy GridMap of the environment
+	std::string	fixed_frame;            //Frame where to publish the markers
+	Gaden::Environment environment;
 
-    //Methods
-    void loadNodeParameters(ros::NodeHandle);
-    void loadEnvironment(visualization_msgs::MarkerArray &env_marker);
+	bool        verbose;
+	bool        wait_preprocessing;
+	bool        preprocessing_done;
 
-    bool occupancyMapServiceCB(gaden_environment::OccupancyRequest& request, gaden_environment::OccupancyResponse& response);
-    
-    int indexFrom3D(int x, int y, int z)
-    {
-       return GadenCommon::indexFrom3D(Vector3i(x,y,z), env_desc.num_cells);
-    }
+	//Methods
+	void loadNodeParameters(ros::NodeHandle);
+	void loadEnvironment(visualization_msgs::MarkerArray& env_marker);
 
-    void PreprocessingCB(const std_msgs::Bool& b);
+	bool occupancyMapServiceCB(gaden_environment::OccupancyRequest& request, gaden_environment::OccupancyResponse& response);
+
+	int indexFrom3D(int x, int y, int z)
+	{
+		return Gaden::indexFrom3D(Gaden::Vector3i(x, y, z), environment.description.num_cells);
+	}
+
+	void PreprocessingCB(const std_msgs::Bool& b);
 
 };
 

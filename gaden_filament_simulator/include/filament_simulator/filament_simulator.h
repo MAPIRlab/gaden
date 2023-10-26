@@ -81,7 +81,7 @@ public:
     //Enviroment
     std::string occupancy3D_data;       //Location of the 3D Occupancy GridMap of the environment
     std::string	fixed_frame;            //Frame where to publish the markers
-    GadenCommon::EnvironmentDescription envDesc;
+    Gaden::Environment environment;
 
     //Gas Source Location (for releasing the filaments)
     double		gas_source_pos_x;     //[m]

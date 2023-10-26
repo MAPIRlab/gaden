@@ -23,75 +23,67 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/iostreams/copy.hpp>
-
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
 #include <gaden_common/ReadEnvironment.h>
 
-struct Filament{
-    public:
-        double x, y, z, sigma;
-        Filament(double a, double b, double c, double d){
-            x=a;
-            y=b;
-            z=c;
-            sigma=d;
-        }
+struct Filament {
+public:
+	double x, y, z, sigma;
+	Filament(double a, double b, double c, double d) {
+		x = a;
+		y = b;
+		z = c;
+		sigma = d;
+	}
 };
 
 // CLASS for every simulation to run. If two gas sources are needed, just create 2 instances!
 class sim_obj
 {
 public:
-    sim_obj(std::string filepath, bool load_wind_info);
-    ~sim_obj();
+	sim_obj(std::string filepath, bool load_wind_info);
+	~sim_obj();
 
-    std::string     gas_type;
-    std::string     simulation_filename;
-    GadenCommon::EnvironmentDescription envDesc;
-    double          source_pos_x, source_pos_y, source_pos_z;
-    
-    bool            load_wind_data;
-    std::vector<double> C;  //3D Gas concentration
-    std::vector<double> U;  //3D Wind U
-    std::vector<double> V;  //3D Wind V
-    std::vector<double> W;  //3D Wind W
-    bool            first_reading;
+	std::string     gas_type;
+	std::string     simulation_filename;
+	Gaden::Environment environment;
+	double          source_pos_x, source_pos_y, source_pos_z;
 
-    bool            filament_log;
-    double total_moles_in_filament;
-    double num_moles_all_gases_in_cm3;
-    std::map<int, Filament> activeFilaments;
+	bool            load_wind_data;
+	std::vector<double> C;  //3D Gas concentration
+	std::vector<double> U;  //3D Wind U
+	std::vector<double> V;  //3D Wind V
+	std::vector<double> W;  //3D Wind W
+	bool            first_reading;
+
+	bool            filament_log;
+	double total_moles_in_filament;
+	double num_moles_all_gases_in_cm3;
+	std::map<int, Filament> activeFilaments;
 
 
-    //methods
-    void configure_environment();
-    void load_data_from_logfile(int sim_iteration);
-    void load_ascii_file(std::stringstream &decompressed);
-    void load_binary_file(std::stringstream &decompressed);
-    double get_gas_concentration(float x, float y, float z);
-    double concentration_from_filament(float x, float y, float z, Filament fil);
-    bool check_environment_for_obstacle(double start_x, double start_y, double start_z,
-													   double   end_x, double   end_y, double end_z);
-    int check_pose_with_environment(double pose_x, double pose_y, double pose_z);
+	//methods
+	void configure_environment();
+	void load_data_from_logfile(int sim_iteration);
+	void load_ascii_file(std::stringstream& decompressed);
+	void load_binary_file(std::stringstream& decompressed);
+	double get_gas_concentration(float x, float y, float z);
+	double concentration_from_filament(float x, float y, float z, Filament fil);
+	bool check_environment_for_obstacle(double start_x, double start_y, double start_z,
+		double   end_x, double   end_y, double end_z);
+	int check_pose_with_environment(double pose_x, double pose_y, double pose_z);
 
-    void get_wind_value(float x, float y, float z, double &u, double &v, double &w);
-    void get_concentration_as_markers(visualization_msgs::Marker &mkr_points);
-    
-    void read_headers(std::stringstream &inbuf, std::string &line);
-    void load_wind_file(int wind_index);
-    int last_wind_idx=-1;
-    void read_concentration_line(std::string line);
+	void get_wind_value(float x, float y, float z, double& u, double& v, double& w);
+	void get_concentration_as_markers(visualization_msgs::Marker& mkr_points);
 
-    std::vector<std::vector<double> > heatmap;
-    void updateHeatmap();
-    void writeHeatmapImage();
+	void read_headers(std::stringstream& inbuf, std::string& line);
+	void load_wind_file(int wind_index);
+	int last_wind_idx = -1;
+	void read_concentration_line(std::string line);
 
-    int indexFrom3D(int x, int y, int z);
+	int indexFrom3D(int x, int y, int z);
 
-    std::string gasTypesByCode[14] = {
-        "ethanol",
+	std::string gasTypesByCode[14] = {
+		"ethanol",
 		"methane",
 		"hydrogen",
 		"propanol",
@@ -101,11 +93,11 @@ public:
 		"neon",
 		"helium",
 		"biogas",
-        "butane",
+		"butane",
 		"carbon dioxide",
 		"carbon monoxide",
-        "smoke"
-    };
+		"smoke"
+	};
 };
 
 
