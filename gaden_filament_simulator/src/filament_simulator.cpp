@@ -881,8 +881,8 @@ void CFilamentSimulator::save_state_to_file()
 	inbuf.push(boost::iostreams::zlib_compressor());
 	inbuf.push(ist);
 
-	int h = 1;
-	ist.write((char*)&h, sizeof(int));
+	constexpr int version = GADEN_VERSION_MAJOR;
+	ist.write((char*)&version, sizeof(int));
 
 	ist.write((char*)&environment.description.min_coord.x, sizeof(double));
 	ist.write((char*)&environment.description.min_coord.y, sizeof(double));
