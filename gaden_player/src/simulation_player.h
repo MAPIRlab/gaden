@@ -91,7 +91,7 @@ public:
     std::string gas_type;
     std::string simulation_filename;
     std::string occupancyFile;
-    Gaden::EnvironmentDescription envDesc;
+    Gaden::Environment environment;
     double source_pos_x, source_pos_y, source_pos_z;
 
     bool load_wind_data;
@@ -100,8 +100,8 @@ public:
     std::vector<double> V; // 3D Wind V
     std::vector<double> W; // 3D Wind W
     bool first_reading;
+    int last_wind_idx = -1;
 
-    bool filament_log;
     double total_moles_in_filament;
     double num_moles_all_gases_in_cm3;
     std::map<int, Filament> activeFilaments;
@@ -109,8 +109,8 @@ public:
     // methods
     void configure_environment();
     void load_data_from_logfile(int sim_iteration);
-    void load_ascii_file(std::stringstream& decompressed);
-    void load_binary_file(std::stringstream& decompressed);
+    void load_logfile_version_1(std::stringstream& decompressed);
+    void load_logfile_version_2(std::stringstream& decompressed);
     double get_gas_concentration(float x, float y, float z);
     double concentration_from_filament(float x, float y, float z, Filament fil);
     bool check_environment_for_obstacle(double start_x, double start_y, double start_z, double end_x, double end_y, double end_z);
@@ -119,10 +119,7 @@ public:
     void get_wind_value(float x, float y, float z, double& u, double& v, double& w);
     void get_concentration_as_markers(visualization_msgs::msg::Marker& mkr_points);
 
-    void read_headers(std::stringstream& inbuf, std::string& line);
     void load_wind_file(int wind_index);
-    int last_wind_idx = -1;
-    void read_concentration_line(std::string line);
 
     int indexFrom3D(int x, int y, int z);
 

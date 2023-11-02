@@ -267,7 +267,7 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray& env_mark
         }
     }
 
-    Gaden::ReadResult result = Gaden::readEnvFile(occupancy3D_data, env_desc);
+    Gaden::ReadResult result = Gaden::readEnvFile(occupancy3D_data, environment);
     if (result == Gaden::ReadResult::NO_FILE)
     {
         RCLCPP_ERROR(get_logger(), "No occupancy file provided to environment node!");
@@ -278,14 +278,14 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray& env_mark
         RCLCPP_ERROR(get_logger(), "Something went wrong while parsing the file!");
     }
 
-    for (int i = 0; i < env_desc.num_cells.x; i++)
+    for (int i = 0; i < environment.description.num_cells.x; i++)
     {
-        for (int j = 0; j < env_desc.num_cells.y; j++)
+        for (int j = 0; j < environment.description.num_cells.y; j++)
         {
-            for (int k = 0; k < env_desc.num_cells.z; k++)
+            for (int k = 0; k < environment.description.num_cells.z; k++)
             {
                 // Color
-                if (!env_desc.Env[indexFrom3D(i, j, k)])
+                if (!environment.Env[indexFrom3D(i, j, k)])
                 {
                     // Add a new cube marker for this occupied cell
                     visualization_msgs::msg::Marker new_marker;
@@ -297,18 +297,18 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray& env_mark
                     new_marker.action = visualization_msgs::msg::Marker::ADD;
 
                     // Center of the cell
-                    new_marker.pose.position.x = env_desc.min_coord.x + ((i + 0.5) * env_desc.cell_size);
-                    new_marker.pose.position.y = env_desc.min_coord.y + ((j + 0.5) * env_desc.cell_size);
-                    new_marker.pose.position.z = env_desc.min_coord.z + ((k + 0.5) * env_desc.cell_size);
+                    new_marker.pose.position.x = environment.description.min_coord.x + ((i + 0.5) * environment.description.cell_size);
+                    new_marker.pose.position.y = environment.description.min_coord.y + ((j + 0.5) * environment.description.cell_size);
+                    new_marker.pose.position.z = environment.description.min_coord.z + ((k + 0.5) * environment.description.cell_size);
                     new_marker.pose.orientation.x = 0.0;
                     new_marker.pose.orientation.y = 0.0;
                     new_marker.pose.orientation.z = 0.0;
                     new_marker.pose.orientation.w = 1.0;
 
                     // Size of the cell
-                    new_marker.scale.x = env_desc.cell_size;
-                    new_marker.scale.y = env_desc.cell_size;
-                    new_marker.scale.z = env_desc.cell_size;
+                    new_marker.scale.x = environment.description.cell_size;
+                    new_marker.scale.y = environment.description.cell_size;
+                    new_marker.scale.z = environment.description.cell_size;
 
                     new_marker.color.r = 0.9f;
                     new_marker.color.g = 0.1f;
@@ -324,16 +324,16 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray& env_mark
 bool Environment::occupancyMapServiceCB(gaden_environment::srv::Occupancy_Request::SharedPtr request,
                                         gaden_environment::srv::Occupancy_Response::SharedPtr response)
 {
-    response->origin.x = env_desc.min_coord.x;
-    response->origin.y = env_desc.min_coord.y;
-    response->origin.z = env_desc.min_coord.z;
+    response->origin.x = environment.description.min_coord.x;
+    response->origin.y = environment.description.min_coord.y;
+    response->origin.z = environment.description.min_coord.z;
 
-    response->num_cells_x = env_desc.num_cells.x;
-    response->num_cells_y = env_desc.num_cells.y;
-    response->num_cells_z = env_desc.num_cells.z;
+    response->num_cells_x = environment.description.num_cells.x;
+    response->num_cells_y = environment.description.num_cells.y;
+    response->num_cells_z = environment.description.num_cells.z;
 
-    response->occupancy = env_desc.Env;
-    response->resolution = env_desc.cell_size;
+    response->occupancy = environment.Env;
+    response->resolution = environment.description.cell_size;
 
     return true;
 }

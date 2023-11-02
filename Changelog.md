@@ -1,11 +1,14 @@
 ## 2.3.0
 ### Major changes
+- Changed the internal format of simulation-result logfiles. `Gaden_player` still supports the old format, so existing simulations can still be played back, **but** it is strongly recommended to re-run any simulations you have to update them to the new format. The logfiles generated with the last few versions of Gaden had a bug which will now cause problems.
+- Removed support for the legacy ASCII logfiles. This almost certainly does not affect you, since these files have not been a thing for years now.
 - Renamed `moveCoppeliaRobot` node (under `preprocessing`) to `configureCoppeliaSim`, since it now has a more general role.
 - `configureCoppeliaSim` can now control the speed of the coppelia simulation, set with a ros parameter.
 
 ### Minor changes
 - Added `frequency` parameter to `fake_anemometer` to control how often it produces a new measurement .
 - Added `OccupancyGridToSTL` to the `utils` directory. Pretty self-explanatory.
+- Added support for wind files exported from new paraview versions, which might order the columns differently.
 
 ## 2.2.1
 
