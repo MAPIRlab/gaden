@@ -1,3 +1,11 @@
+## 2.3.1
+### Minor changes
+- Added the option to use `configureCoppeliaSim` to reset the robot position at runtime by sending a pose through a topic. By default it subscribes to the `/initial_pose` topic so it can be controlled directly through Rviz.
+
+### Bug Fixes
+- Prevented anemometer speed reading from becoming negative due to sensor noise greater than the actual reading.
+
+
 ## 2.3.0
 ### Major changes
 - Changed the internal format of simulation-result logfiles. `Gaden_player` still supports the old format, so existing simulations can still be played back, **but** it is strongly recommended to re-run any simulations you have to update them to the new format. The logfiles generated with the last few versions of Gaden had a bug which will now cause problems.

@@ -173,7 +173,7 @@ void SimulatedAnemometer::run()
                 static RandomGenerator rng(static_cast<unsigned>(time(0)));
                 static NormalDistribution gaussian_dist(0.0, noise_std);
                 wind_direction = wind_direction + gaussian_dist(rng);
-                wind_speed = wind_speed + gaussian_dist(rng);
+                wind_speed = std::max(0.0, wind_speed + gaussian_dist(rng) * 0.1f);
 
                 // Publish 2D Anemometer readings
                 //------------------------------
