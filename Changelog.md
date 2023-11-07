@@ -1,6 +1,6 @@
 ## 2.3.1
 ### Minor changes
-- Added the option to use `configureCoppeliaSim` to reset the robot position at runtime by sending a pose through a topic. By default it subscribes to the `/initial_pose` topic so it can be controlled directly through Rviz.
+- Added the option to use `configureCoppeliaSim` to set the robot pose at runtime by sending a pose through a topic. By default it subscribes to the `/initial_pose` topic so it can be controlled directly through Rviz.
 
 ### Bug Fixes
 - Prevented anemometer speed reading from becoming negative due to sensor noise greater than the actual reading.

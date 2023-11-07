@@ -6,6 +6,16 @@
 #include <rclcpp/rclcpp.hpp>
 #include <fmt/format.h>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+
+static void getEulerAngles(const geometry_msgs::msg::Quaternion& quat, double& x, double& y, double& z)
+{
+    tf2::Quaternion tfquat;
+    tf2::fromMsg(quat, tfquat);
+
+    tf2::Matrix3x3 m(tfquat);
+    m.getRPY(x, y, z);
+}
 
 int main(int argc, char** argv)
 {
@@ -42,6 +52,8 @@ int main(int argc, char** argv)
         ;
 
     int64_t robot_root_handle = sim.getObject(fmt::format("/MobileRobots/{}_root", robotName));
+    int64_t robot_handle = sim.getObjectChild(robot_root_handle, 0);
+
     sim.setObjectPosition(robot_root_handle, sim.handle_world, positionToSet);
     positionToSet[0] = POSITION_NOT_SET;
 
@@ -52,13 +64,34 @@ int main(int argc, char** argv)
         sim.saveScene(sim.getStringParam(sim.stringparam_scene_path_and_name)); // overwrite existing scene
 
     using Pose = geometry_msgs::msg::PoseWithCovarianceStamped;
-    rclcpp::Subscription<Pose>::SharedPtr setPoseSub =
-        node->create_subscription<Pose>(setPoseTopic, 1,
-                                        [&positionToSet](Pose::SharedPtr pose) {
-                                            positionToSet = {pose->pose.pose.position.x, pose->pose.pose.position.y, pose->pose.pose.position.z};
-                                        });
+    rclcpp::Subscription<Pose>::SharedPtr setPoseSub = node->create_subscription<Pose>(
+        setPoseTopic, 1,
+        [&positionToSet, &sim, robot_handle, &node](Pose::SharedPtr pose)
+        {
+            rclcpp::Time startTime = node->now();
+            for (int64_t handle : sim.getObjectsInTree(robot_handle))
+                sim.resetDynamicObject(handle);
 
-    int64_t robot_handle = sim.getObjectChild(robot_root_handle, 0);
+            // position
+            positionToSet = {pose->pose.pose.position.x, pose->pose.pose.position.y, pose->pose.pose.position.z};
+            RCLCPP_WARN(rclcpp::get_logger("coppelia"), "Setting position (%.2f, %.2f, %.2f)", positionToSet[0], positionToSet[1], positionToSet[2]);
+            positionToSet[2] = sim.getObjectPosition(robot_handle, sim.handle_world)[2];
+            sim.setObjectPosition(robot_handle, sim.handle_world, positionToSet);
+
+            // orientation
+            static std::vector<double> eulerAngles(3, 0);
+            getEulerAngles(pose->pose.pose.orientation, eulerAngles[0], eulerAngles[1], eulerAngles[2]);
+            sim.setObjectOrientation(robot_handle, sim.handle_world, eulerAngles);
+
+            while (sim.getObjectPosition(robot_handle, sim.handle_world)[0] != positionToSet[0])
+            {
+                if ((node->now() - startTime).seconds() > 2)
+                {
+                    RCLCPP_ERROR(rclcpp::get_logger("coppelia"), "Timed out while trying to set the position");
+                    return;
+                }
+            }
+        });
 
     sim.startSimulation();
     client.setStepping(true);
@@ -70,20 +103,6 @@ int main(int argc, char** argv)
         client.step();
         rate.sleep();
         rclcpp::spin_some(node);
-        if (positionToSet[0] != POSITION_NOT_SET)
-        {
-
-            for (int64_t handle : sim.getObjectsInTree(robot_handle))
-                sim.resetDynamicObject(handle);
-
-            RCLCPP_WARN(rclcpp::get_logger("coppelia"), "Setting position (%.2f, %.2f, %.2f)", positionToSet[0], positionToSet[1], positionToSet[2]);
-
-            positionToSet[2] = sim.getObjectPosition(robot_handle, sim.handle_world)[2];
-            sim.setObjectPosition(robot_handle, sim.handle_world, positionToSet);
-            while (sim.getObjectPosition(robot_handle, sim.handle_world)[0] != positionToSet[0])
-                ;
-            positionToSet[0] = POSITION_NOT_SET;
-        }
     }
 #endif
 }

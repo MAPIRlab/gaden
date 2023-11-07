@@ -27,6 +27,7 @@ find_package(ament_cmake REQUIRED)
 set(AMENT_DEPS
     rclcpp
     tf2
+	tf2_geometry_msgs
     std_msgs
     )
 
