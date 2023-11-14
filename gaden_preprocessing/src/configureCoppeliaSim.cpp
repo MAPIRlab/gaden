@@ -10,10 +10,10 @@
 
 static void getEulerAngles(const geometry_msgs::msg::Quaternion& quat, double& x, double& y, double& z)
 {
-    tf2::Quaternion tfquat;
-    tf2::fromMsg(quat, tfquat);
+    tf2::Quaternion tf_quat;
+    tf2::fromMsg(quat, tf_quat);
 
-    tf2::Matrix3x3 m(tfquat);
+    tf2::Matrix3x3 m(tf_quat);
     m.getRPY(x, y, z);
 }
 
@@ -32,40 +32,37 @@ int main(int argc, char** argv)
     std::string robotName = node->declare_parameter<std::string>("robotName", "PioneerP3DX");
     bool permanentChange = node->declare_parameter<bool>("permanentChange", false);
     float simulationSpeed = node->declare_parameter<float>("simulationSpeed", 1.0);
-    std::string setPoseTopic = node->declare_parameter<std::string>("setPoseTopic", "initialpose");
+    std::string setPoseTopic = node->declare_parameter<std::string>("setPoseTopic", "/initialpose");
 
 #define POSITION_NOT_SET DBL_MAX
     std::vector<double> positionToSet =
         node->declare_parameter<std::vector<double>>("position", {POSITION_NOT_SET, POSITION_NOT_SET, POSITION_NOT_SET});
-    if (positionToSet[0] == POSITION_NOT_SET)
-    {
-        RCLCPP_ERROR(rclcpp::get_logger("coppelia"), "Cannot run this node without setting the \"position\" parameter.");
-        return -1;
-    }
 
     // Let's go
     RemoteAPIClient client;
     RemoteAPIObject::sim sim = client.getObject().sim();
-
-    sim.stopSimulation();
-    while (sim.getSimulationState() != sim.simulation_stopped)
-        ;
+    client.setStepping(true);
 
     int64_t robot_root_handle = sim.getObject(fmt::format("/MobileRobots/{}_root", robotName));
     int64_t robot_handle = sim.getObjectChild(robot_root_handle, 0);
 
-    sim.setObjectPosition(robot_root_handle, sim.handle_world, positionToSet);
-    positionToSet[0] = POSITION_NOT_SET;
+    if (positionToSet[0] != POSITION_NOT_SET)
+    {
+        for (int64_t handle : sim.getObjectsInTree(robot_handle))
+            sim.resetDynamicObject(handle);
+        sim.setObjectPosition(robot_root_handle, sim.handle_world, positionToSet);
+        positionToSet[0] = POSITION_NOT_SET;
 
-    // probably unnecessary, but might as well
-    sim.announceSceneContentChange();
+        // probably unnecessary, but might as well
+        sim.announceSceneContentChange();
+    }
 
     if (permanentChange)
         sim.saveScene(sim.getStringParam(sim.stringparam_scene_path_and_name)); // overwrite existing scene
 
     using Pose = geometry_msgs::msg::PoseWithCovarianceStamped;
     rclcpp::Subscription<Pose>::SharedPtr setPoseSub = node->create_subscription<Pose>(
-        setPoseTopic, 1,
+        setPoseTopic, rclcpp::QoS(1).transient_local(),
         [&positionToSet, &sim, robot_handle, &node](Pose::SharedPtr pose)
         {
             rclcpp::Time startTime = node->now();
@@ -94,7 +91,6 @@ int main(int argc, char** argv)
         });
 
     sim.startSimulation();
-    client.setStepping(true);
 
     double period = sim.getFloatParam(sim.floatparam_simulation_time_step) / simulationSpeed;
     rclcpp::Rate rate(1.0 / period);
@@ -104,5 +100,6 @@ int main(int argc, char** argv)
         rate.sleep();
         rclcpp::spin_some(node);
     }
+
 #endif
 }
