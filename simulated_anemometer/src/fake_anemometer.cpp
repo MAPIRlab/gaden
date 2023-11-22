@@ -21,8 +21,7 @@ int main(int argc, char** argv)
 }
 
 SimulatedAnemometer::SimulatedAnemometer() : rclcpp::Node("Simulated_anemometer")
-{
-}
+{}
 
 void SimulatedAnemometer::run()
 {
@@ -285,7 +284,7 @@ void SimulatedAnemometer::loadNodeParameters()
     noise_std = declare_parameter<double>("noise_std", 0.1);
 
     // Frequency (Hz)
-    frequency = declare_parameter<double>("frequency", 2);
+    frequency = declare_parameter<double>("frequency", 20);
 
     // What ref system to use for publishing measurements
     use_map_ref_system = declare_parameter<bool>("use_map_ref_system", false);
