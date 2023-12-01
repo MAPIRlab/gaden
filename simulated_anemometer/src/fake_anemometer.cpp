@@ -94,7 +94,8 @@ void SimulatedAnemometer::run()
     rclcpp::Rate r(frequency);
     while (rclcpp::ok())
     {
-        // Vars
+        rclcpp::spin_some(shared_this);
+
         geometry_msgs::msg::TransformStamped anemometer_transform_map;
         bool know_sensor_pose = true;
 
@@ -103,13 +104,12 @@ void SimulatedAnemometer::run()
         {
             anemometer_transform_map = tf_buffer->lookupTransform(input_fixed_frame, input_sensor_frame, rclcpp::Time(0));
         }
-        catch (tf2::TransformException ex)
+        catch (tf2::TransformException& ex)
         {
             RCLCPP_ERROR(get_logger(), "%s", ex.what());
             know_sensor_pose = false;
 
-            using namespace std::literals::chrono_literals;
-            rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(1s));
+            rclcpp::sleep_for(std::chrono::seconds(1));
         }
 
         if (know_sensor_pose)
@@ -154,7 +154,9 @@ void SimulatedAnemometer::run()
                             downwind_map.vector.y = v;
                             downwind_map.vector.z = w;
                         }
-                        auto downwind_sensor = tf_buffer->transform(downwind_map, input_sensor_frame);
+                        geometry_msgs::msg::Vector3Stamped downwind_sensor;
+
+                        tf2::doTransform(downwind_map, downwind_sensor, anemometer_transform_map);
                         wind_direction = std::atan2(-downwind_sensor.vector.y, -downwind_sensor.vector.x); // change signs to make it upwind
                     }
                     catch (tf2::TransformException& ex)
@@ -266,7 +268,6 @@ void SimulatedAnemometer::run()
             marker_pub.publish(connector);
             */
         }
-        rclcpp::spin_some(shared_this);
         r.sleep();
     }
 }
