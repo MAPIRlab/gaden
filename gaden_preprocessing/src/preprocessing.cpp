@@ -1,5 +1,8 @@
 #include <gaden_preprocessing/Gaden_preprocessing.h>
 #include <gaden_preprocessing/TriangleBoxIntersection.h>
+
+#define GADEN_LOGGER_ID "GadenPreprocessing"
+#include <gaden_common/Logging.h>
 #include <gaden_common/Utils.h>
 
 #include <string>
@@ -7,7 +10,6 @@
 #include <stdlib.h>
 #include <sstream>
 #include <iostream>
-#include <fmt/format.h>
 #include <queue>
 #include <stack>
 #include <stdint.h>
@@ -38,7 +40,7 @@ int main(int argc, char** argv)
     node->processWind();
     node->generateOutput();
 
-    RCLCPP_INFO(node->get_logger(), "Preprocessing done");
+    GADEN_INFO_COLOR(fmt::terminal_color::blue, "Preprocessing done");
     std_msgs::msg::Bool b;
     b.data = true;
     node->jobDone_pub->publish(b);
@@ -60,7 +62,7 @@ void Gaden_preprocessing::parseMainModels()
                 break;
             i++;
         }
-        RCLCPP_INFO(get_logger(), "Number of models: %d", numModels);
+        GADEN_INFO("Number of models: {}", numModels);
     }
 
     bool generateCoppeliaScene = getParam<bool>(shared_from_this(), "generateCoppeliaScene", false);
@@ -79,9 +81,9 @@ void Gaden_preprocessing::parseMainModels()
 #else
     if (generateCoppeliaScene)
     {
-        RCLCPP_ERROR(get_logger(), "You are trying to generate a coppelia scene, but compiled gaden_preprocessing without coppelia support. Either "
-                                   "disable the request in the launch file or compile with coppelia support. \nYou can enable the generation in the "
-                                   "CMakeLists.txt file of the preprocessing package.");
+        GADEN_ERROR("You are trying to generate a coppelia scene, but compiled gaden_preprocessing without coppelia support. Either "
+                    "disable the request in the launch file or compile with coppelia support. \nYou can enable the generation in the "
+                    "CMakeLists.txt file of the preprocessing package.");
         rclcpp::shutdown();
         return;
     }
@@ -109,7 +111,7 @@ void Gaden_preprocessing::parseMainModels()
 
     for (int i = 0; i < numModels; i++)
     {
-        RCLCPP_INFO(get_logger(), "Parsing environment model: %s", CADfiles[i].c_str());
+        GADEN_INFO("Parsing environment model: {}", CADfiles[i].c_str());
         parse(CADfiles[i], cell_state::occupied);
 #ifdef GENERATE_COPPELIA_SCENE
         if (generateCoppeliaScene)
@@ -159,7 +161,7 @@ void Gaden_preprocessing::parseOutletModels()
 
     for (int i = 0; i < numOutletModels; i++)
     {
-        RCLCPP_INFO(get_logger(), "Parsing outlet model: %s", outletFiles[i].c_str());
+        GADEN_INFO("Parsing outlet model: {}", outletFiles[i].c_str());
         parse(outletFiles[i], cell_state::outlet);
     }
 }
@@ -446,7 +448,7 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
         if (i > numberOfProcessedTriangles + triangles.size() / 10)
         {
             mtx.lock();
-            RCLCPP_INFO(get_logger(), "%d%%", (int)((100 * i) / triangles.size()));
+            GADEN_INFO("{}%%", (int)((100 * i) / triangles.size()));
             numberOfProcessedTriangles = i;
             mtx.unlock();
         }
@@ -569,7 +571,7 @@ bool Gaden_preprocessing::isASCII(const std::string& filename)
     }
     else
     {
-        RCLCPP_ERROR(get_logger(), "File %s does not exist\n", filename.c_str());
+        GADEN_ERROR("File {} does not exist\n", filename.c_str());
         exit(0);
     }
     return ascii;
@@ -648,13 +650,12 @@ void Gaden_preprocessing::findDimensions(const std::string& filename)
             infile.seekg(sizeof(uint16_t), std::ios_base::cur); // skip the attribute data
         }
     }
-    std::string dimensions = fmt::format("Dimensions are:\n"
-                                         "	x : ({}, {})\n"
-                                         "	y : ({}, {})\n"
-                                         "	z : ({}, {})\n",
-                                         env_min_x, env_max_x, env_min_y, env_max_y, env_min_z, env_max_z);
 
-    RCLCPP_INFO(get_logger(), dimensions.c_str());
+    GADEN_INFO( "Dimensions are:\n"
+                "	x : ({}, {})\n"
+                "	y : ({}, {})\n"
+                "	z : ({}, {})\n",
+                env_min_x, env_max_x, env_min_y, env_max_y, env_min_z, env_max_z);
 }
 
 void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
@@ -888,7 +889,7 @@ void Gaden_preprocessing::processWind()
             std::string filename = fmt::format("{}_0.csv", windFileName);
             if (!std::filesystem::exists(filename))
             {
-                RCLCPP_WARN(get_logger(), "File %s does not exist", filename.c_str());
+                GADEN_WARN("File {} does not exist", filename.c_str());
                 return;
             }
         }

@@ -17,21 +17,18 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 
 find_package(geometry_msgs REQUIRED)
+find_package(gaden_common REQUIRED)
 find_package(gaden_player REQUIRED)
 find_package(gaden_environment REQUIRED)
 
 
 include_directories(
 	include 
-    ../gaden_common/include
-	third_party/DDA/include
 )
 
 set(SOURCES_FILES 
 	src/simulated_tdlas.cpp
 )
-
-add_subdirectory(third_party/DDA/third_party/glm)
 
 add_executable(simulated_tdlas  ${SOURCES_FILES})
 
@@ -44,13 +41,10 @@ ament_target_dependencies(simulated_tdlas
     tf2
     tf2_ros
     tf2_geometry_msgs
+    gaden_common
     gaden_player
     gaden_environment
 ) 
-
-target_link_libraries(simulated_tdlas
-	glm
-)
 
 
 install(

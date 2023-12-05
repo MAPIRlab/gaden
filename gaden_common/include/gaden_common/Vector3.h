@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../simulated_tdlas/third_party/DDA/third_party/glm/glm/vec3.hpp"
+#include <gaden_common/third_party/glm/glm/vec3.hpp>
 
 namespace Gaden
 {

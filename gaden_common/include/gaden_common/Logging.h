@@ -1,6 +1,8 @@
 #pragma once 
 
-#define GADEN_LOGGER_ID "GADEN" //default, should be redefined per node
+#ifndef GADEN_LOGGER_ID
+    #define GADEN_LOGGER_ID "GADEN" //default, should be redefined per node
+#endif
 
 #include <rclcpp/logging.hpp>
 #include <fmt/format.h>

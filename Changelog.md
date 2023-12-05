@@ -1,3 +1,8 @@
+## 2.3.2
+### Minor changes
+- A fair bit of the internal structure of gaden has been rearranged (mostly due to the gaden_common folder, which has been promoted to a package). This should not affect you as a user, other than maybe needing to update the repo's submodules, which have been moved as a consequence.
+- Slightly modified logging from all nodes (including pretty colors, if your terminal supports them!)
+
 ## 2.3.1
 ### Minor changes
 - Added the option to use `configureCoppeliaSim` to set the robot pose at runtime by sending a pose through a topic. By default it subscribes to the `/initial_pose` topic so it can be controlled directly through Rviz.

@@ -75,10 +75,9 @@ private:
 class sim_obj
 {
 public:
-    sim_obj(std::string filepath, bool load_wind_info, rclcpp::Logger logger, std::string occupancy_filepath);
+    sim_obj(std::string filepath, bool load_wind_info, std::string occupancy_filepath);
     ~sim_obj();
 
-    rclcpp::Logger m_logger;
     std::string gas_type;
     std::string simulation_filename;
     std::string occupancyFile;

@@ -16,4 +16,15 @@ install(
     DIRECTORY include/gaden_common
     DESTINATION include
 )
+
+install(
+    DIRECTORY third_party/DDA/include/DDA
+    DESTINATION include/gaden_common/third_party
+)
+
+install(
+    DIRECTORY third_party/DDA/third_party/glm/glm
+    DESTINATION include/gaden_common/third_party/glm
+)
+
 ament_package()
