@@ -4,6 +4,7 @@ source_z: 0.50
 
 wind_sim_path: "1,2,3-5,6" # _i.csv automatically appended
 
+# filament simulation params
 sim_time: 300.0                    
 time_step: 0.1                    
 num_filaments_sec: 10             
@@ -15,3 +16,20 @@ filament_growth_gamma: 10.0
 filament_noise_std: 0.02           
 gas_type: 0
 temperature: 298.0                 
+
+models: 
+  - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-walls.stl"
+
+outlets_models:
+  - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-1.stl"
+  - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-2.stl"
+  - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-3.stl"
+  - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-4.stl"
+  - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-5.stl"
+  - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-6.stl"
+
+
+# simulation playback params
+allow_looping: True
+loop_from_iteration: 100
+loop_to_iteration: 200

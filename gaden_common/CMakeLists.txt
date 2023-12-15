@@ -27,4 +27,9 @@ install(
     DESTINATION include/gaden_common/third_party/glm
 )
 
+install(
+    DIRECTORY gaden_internal_py
+    DESTINATION share/${PROJECT_NAME}
+)
+
 ament_package()

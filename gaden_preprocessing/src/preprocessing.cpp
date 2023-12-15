@@ -49,7 +49,9 @@ int main(int argc, char** argv)
 
 void Gaden_preprocessing::parseMainModels()
 {
-    int numModels = 0;
+    std::vector<std::string> stlModels = declare_parameter<std::vector<std::string>>("models", std::vector<std::string>{});
+
+    if(stlModels.empty()) //try the old style, with numbered parameters instead of a single list
     {
         int i = 0;
         while (true)
@@ -57,13 +59,15 @@ void Gaden_preprocessing::parseMainModels()
             std::string param_name = fmt::format("model_{}", i);
             std::string value = getParam<std::string>(shared_from_this(), param_name, "");
             if (value != "")
-                numModels++;
+                stlModels.push_back(value);
             else
                 break;
             i++;
         }
-        GADEN_INFO("Number of models: {}", numModels);
+        if(i>0)
+            GADEN_WARN("Specifying models through numbered parameters is deprecated. You should use a single list parameter instead (see test_env for examples)");
     }
+    GADEN_INFO("Number of models: {}", stlModels.size());
 
     bool generateCoppeliaScene = getParam<bool>(shared_from_this(), "generateCoppeliaScene", false);
 #ifdef GENERATE_COPPELIA_SCENE
@@ -89,17 +93,10 @@ void Gaden_preprocessing::parseMainModels()
     }
 #endif
 
-    std::vector<std::string> CADfiles;
-    for (int i = 0; i < numModels; i++)
-    {
-        std::string paramName = fmt::format("model_{}", i); // each of the stl models
-        std::string filename = get_parameter_or<std::string>(paramName, "");
-        CADfiles.push_back(filename.c_str());
-    }
 
-    for (int i = 0; i < CADfiles.size(); i++)
+    for (const std::string& model : stlModels)
     {
-        findDimensions(CADfiles[i]);
+        findDimensions(model);
     }
 
     // x and y are interchanged!!!!!! it goes env[y][x][z]
@@ -109,17 +106,17 @@ void Gaden_preprocessing::parseMainModels()
         std::vector<std::vector<int>>(ceil((env_max_x - env_min_x) * (roundFactor) / (cell_size * (roundFactor))),
                                       std::vector<int>(ceil((env_max_z - env_min_z) * (roundFactor) / (cell_size * (roundFactor))), 0)));
 
-    for (int i = 0; i < numModels; i++)
+    for (const std::string& model : stlModels)
     {
-        GADEN_INFO("Parsing environment model: {}", CADfiles[i].c_str());
-        parse(CADfiles[i], cell_state::occupied);
+        GADEN_INFO("Parsing environment model: {}", model);
+        parse(model, cell_state::occupied);
 #ifdef GENERATE_COPPELIA_SCENE
         if (generateCoppeliaScene)
         {
             int result = -1;
             do
             {
-                result = client.getObject().sim().importShape(0, CADfiles[i], 0, 0.0001f, 1);
+                result = client.getObject().sim().importShape(0, model, 0, 0.0001f, 1);
             } while (result == -1);
         }
 #endif
@@ -135,34 +132,31 @@ void Gaden_preprocessing::parseMainModels()
 
 void Gaden_preprocessing::parseOutletModels()
 {
+    std::vector<std::string> stlModels = declare_parameter<std::vector<std::string>>("outlets_models", std::vector<std::string>{});
 
-    int numOutletModels;
+    if(stlModels.empty()) //try the old style, with numbered parameters instead of a single list
     {
         int i = 0;
         while (true)
         {
-            std::string param_name = fmt::format("outlets_model_{}", i);
+            std::string param_name = fmt::format("outlet_model_{}", i);
             std::string value = getParam<std::string>(shared_from_this(), param_name, "");
             if (value != "")
-                numOutletModels++;
+                stlModels.push_back(value);
             else
                 break;
             i++;
         }
-    }
 
-    std::vector<std::string> outletFiles;
-    for (int i = 0; i < numOutletModels; i++)
-    {
-        std::string paramName = fmt::format("outlets_model_{}", i); // each of the stl models
-        std::string filename = get_parameter_or<std::string>(paramName, "");
-        outletFiles.push_back(filename.c_str());
+        if(i>0)
+            GADEN_WARN("Specifying models through numbered parameters is deprecated. You should use a single list parameter instead (see test_env for examples)");
     }
-
-    for (int i = 0; i < numOutletModels; i++)
+    GADEN_INFO("Number of outlet models: {}", stlModels.size());
+    
+    for (const std::string& model : stlModels)
     {
-        GADEN_INFO("Parsing outlet model: {}", outletFiles[i].c_str());
-        parse(outletFiles[i], cell_state::outlet);
+        GADEN_INFO("Parsing outlet model: {}", model);
+        parse(model, cell_state::outlet);
     }
 }
 

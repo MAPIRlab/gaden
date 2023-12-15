@@ -1,6 +1,26 @@
-## 2.3.2
+## 2.4.0
+### Major changes
+- Simulation YAML files in the `test_env` directory are now more powerful than ever! You can define any ROS argument per-simulation, so a configuration does not need to be shared between all simulations in a given scenario. However, if you want to add a new parameter to the simulation YAML, you will also need to modify the shared YAML (under the `params` directory) to tell it to use the value that was read from the simulation file -- like this: 
+```yaml 
+    parameter_name: $(var parameter_name)
+``` 
+- CAD models for `preprocessing` and `environment` can now (at last!) be specified as a single list, rather than as disconnected, numbered parameters. So this:
+```yaml
+    model_0: ".../cad_models/10x6_walls.stl"
+    model_1: ".../cad_models/10x6_maze_obj_1.stl"
+    model_2: ".../cad_models/10x6_maze_obj_2.stl"
+```
+Can be replaced by:
+```yaml
+    models: 
+      - ".../cad_models/10x6_walls.stl"
+      - ".../cad_models/10x6_maze_obj_1.stl"
+      - ".../cad_models/10x6_maze_obj_2.stl"
+```
+Which makes making modifications after the fact far more convenient. The old format is still correctly parsed, but it is considered deprecated, and will produce a warning.
+
 ### Minor changes
-- A fair bit of the internal structure of gaden has been rearranged (mostly due to the gaden_common folder, which has been promoted to a package). This should not affect you as a user, other than maybe needing to update the repo's submodules, which have been moved as a consequence.
+- A fair bit of the internal structure of gaden has been rearranged (mostly due to the gaden_common folder, which has been promoted to an ament package). This should not affect you as a user, other than maybe needing to update the repo's submodules, which have been moved as a consequence.
 - Slightly modified logging from all nodes (including pretty colors, if your terminal supports them!)
 
 ## 2.3.1
