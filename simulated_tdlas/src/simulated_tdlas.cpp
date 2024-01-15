@@ -165,7 +165,8 @@ double TDLAS::takeMeasurement()
         return glm::distance(position, projectedCenter) > m_reflectorRobot.radius;
     };
 
-    DDA::_3D::RayMarchInfo rayData = DDA::_3D::marchRay<bool>(rayOrigin, rayDirection, m_maxRayDistance, {m_map, m_mapOrigin, m_rayMarchResolution},
+    static DDA::_3D::Map<bool> DDAMap {m_map, m_mapOrigin, m_rayMarchResolution};
+    DDA::_3D::RayMarchInfo rayData = DDA::_3D::marchRay<bool>(rayOrigin, rayDirection, m_maxRayDistance, DDAMap,
                                                               identity, doesNotCollideWithReflector);
 
     // record endpoint for the rviz marker

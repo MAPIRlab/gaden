@@ -6,6 +6,9 @@
  */
 
 #include "environment/environment.h"
+#define GADEN_LOGGER_ID "Environment"
+#include <gaden_common/Logging.h>
+#include <gaden_common/Utils.h>
 
 // ===============================//
 //              MAIN              //
@@ -47,7 +50,8 @@ void Environment::run()
     //-------------------------------
     visualization_msgs::msg::MarkerArray CAD_model_markers;
 
-    for (int i = 0; i < number_of_CAD; i++)
+    int i = 0;
+    for (const CADModel& model : CAD_models)
     {
         // CAD model in Collada (.dae) format
         visualization_msgs::msg::Marker cad;
@@ -57,7 +61,7 @@ void Environment::run()
         cad.id = i;
         cad.type = visualization_msgs::msg::Marker::MESH_RESOURCE;
         cad.action = visualization_msgs::msg::Marker::ADD;
-        cad.mesh_resource = "file://" + CAD_models[i];
+        cad.mesh_resource = "file://" + model.filepath;
         cad.scale.x = 1.0;
         cad.scale.y = 1.0;
         cad.scale.z = 1.0;
@@ -70,13 +74,11 @@ void Environment::run()
         cad.pose.orientation.w = 1.0;
 
         // Color (Collada has no color)
-        cad.color.r = CAD_color[i][0];
-        cad.color.g = CAD_color[i][1];
-        cad.color.b = CAD_color[i][2];
-        cad.color.a = 1.0;
+        cad.color = model.color;
 
         // Add Marker to array
         CAD_model_markers.markers.push_back(cad);
+        i++;
     }
 
     // 2. ENVIRONMNET AS Occupancy3D file
@@ -154,19 +156,19 @@ void Environment::loadNodeParameters()
 {
     verbose = declare_parameter<bool>("verbose", false);
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[env] The data provided in the roslaunch file is:");
+        GADEN_INFO("The data provided in the roslaunch file is:");
 
     wait_preprocessing = declare_parameter<bool>("wait_preprocessing", false);
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[env] wait_preprocessing: %u", wait_preprocessing);
+        GADEN_INFO("wait_preprocessing: {}", wait_preprocessing);
 
     fixed_frame = declare_parameter<std::string>("fixed_frame", "map");
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[env] Fixed Frame: %s", fixed_frame.c_str());
+        GADEN_INFO("Fixed Frame: {}", fixed_frame.c_str());
 
     number_of_sources = declare_parameter<int>("number_of_sources", 0);
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[env] number_of_sources: %i", number_of_sources);
+        GADEN_INFO("number_of_sources: {}", number_of_sources);
     gas_source_pos_x.resize(number_of_sources);
     gas_source_pos_y.resize(number_of_sources);
     gas_source_pos_z.resize(number_of_sources);
@@ -175,11 +177,11 @@ void Environment::loadNodeParameters()
     for (int i = 0; i < number_of_sources; i++)
     {
         // Get location of soruce for instance (i)
-        std::string paramNameX = boost::str(boost::format("source_%i_position_x") % i);
-        std::string paramNameY = boost::str(boost::format("source_%i_position_y") % i);
-        std::string paramNameZ = boost::str(boost::format("source_%i_position_z") % i);
-        std::string scale = boost::str(boost::format("source_%i_scale") % i);
-        std::string color = boost::str(boost::format("source_%i_color") % i);
+        std::string paramNameX = fmt::format("source_{}_position_x", i);
+        std::string paramNameY = fmt::format("source_{}_position_y", i);
+        std::string paramNameZ = fmt::format("source_{}_position_z", i);
+        std::string scale = fmt::format("source_{}_scale", i);
+        std::string color = fmt::format("source_{}_color", i);
 
         gas_source_pos_x[i] = declare_parameter<double>(paramNameX.c_str(), 0.0);
         gas_source_pos_y[i] = declare_parameter<double>(paramNameY.c_str(), 0.0);
@@ -189,7 +191,7 @@ void Environment::loadNodeParameters()
         gas_source_color[i] = declare_parameter<std::vector<double>>(color.c_str(), {0, 0, 0});
 
         if (verbose)
-            RCLCPP_INFO(get_logger(), "[env] Gas_source(%i): pos=[%0.2f %0.2f %0.2f] scale=%.2f color=[%0.2f %0.2f %0.2f]", i, gas_source_pos_x[i],
+            GADEN_INFO("Gas_source({}): pos=[{:.2f} {:.2f} {:.2f}] scale={:.2f}color=[{:.2f} {:.2f} {:.2f}]", i, gas_source_pos_x[i],
                         gas_source_pos_y[i], gas_source_pos_z[i], gas_source_scale[i], gas_source_color[i][0], gas_source_color[i][1],
                         gas_source_color[i][2]);
     }
@@ -197,45 +199,56 @@ void Environment::loadNodeParameters()
     // CAD MODELS
     //-------------
     // CAD model files
-    number_of_CAD = 0;
-    // count them
+    auto CAD_strings = getParam<std::vector<std::string>>(shared_from_this(), "CAD_models", std::vector<std::string>{});
+
+    if(CAD_strings.empty()) //try the old style, with numbered parameters instead of a single list
     {
         int i = 0;
         while (true)
         {
-            std::string param_name = boost::str(boost::format("CAD_%i") % i);
-            std::string value = declare_parameter<std::string>(param_name, "");
-            if (value != "")
-                number_of_CAD++;
+            std::string param_name = fmt::format("CAD_{}", i);
+            std::string paramColor = fmt::format("CAD_{}_color", i);
+            std::string model = getParam<std::string>(shared_from_this(), param_name, "");
+            auto color = getParam<std::vector<double>>(shared_from_this(), paramColor.c_str(), {0, 0, 0});
+            if (model != "")
+            {
+                CAD_models.emplace_back(model, color);
+            }
             else
                 break;
             i++;
         }
+        if(i>0)
+            GADEN_WARN("Specifying models through numbered parameters is deprecated. You should use a single list parameter instead (see test_env for examples)");
+    }
+    else
+    {
+        std_msgs::msg::ColorRGBA lastColor;
+        //set default color
+        {
+            lastColor.r = 1.0;
+            lastColor.g = 1.0;
+            lastColor.b = 1.0;
+            lastColor.a = 1.0;
+        }
+    
+        for(const std::string& str : CAD_strings)
+        {
+            if(str.find("!color") != std::string::npos)
+                lastColor = parseColor(str);
+            else
+                CAD_models.emplace_back(str, lastColor);
+        }
     }
 
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[env] number_of_CAD: %i", number_of_CAD);
-
-    CAD_models.resize(number_of_CAD);
-    CAD_color.resize(number_of_CAD);
-    for (int i = 0; i < number_of_CAD; i++)
-    {
-        // Get location of CAD file for instance (i)
-        std::string paramName = boost::str(boost::format("CAD_%i") % i);
-        std::string paramColor = boost::str(boost::format("CAD_%i_color") % i);
-
-        CAD_models[i] = get_parameter_or<std::string>(paramName.c_str(), "");
-        CAD_color[i].resize(3);
-        CAD_color[i] = declare_parameter<std::vector<double>>(paramColor.c_str(), {0, 0, 0});
-        if (verbose)
-            RCLCPP_INFO(get_logger(), "[env] CAD_models(%i): %s", i, CAD_models[i].c_str());
-    }
+        GADEN_INFO("number_of_CAD: {}", CAD_models.size());
 
     // Occupancy 3D gridmap
     //---------------------
     occupancy3D_data = declare_parameter<std::string>("occupancy3D_data", "");
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[env] Occupancy3D file location: %s", occupancy3D_data.c_str());
+        GADEN_INFO("Occupancy3D file location: {}", occupancy3D_data.c_str());
 }
 
 //=========================//
@@ -263,19 +276,19 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray& env_mark
             r.sleep();
             rclcpp::spin_some(shared_this);
             if (verbose)
-                RCLCPP_INFO(get_logger(), "[environment] Waiting for node GADEN_preprocessing to end.");
+                GADEN_INFO("Waiting for node GADEN_preprocessing to end.");
         }
     }
 
     Gaden::ReadResult result = Gaden::readEnvFile(occupancy3D_data, environment);
     if (result == Gaden::ReadResult::NO_FILE)
     {
-        RCLCPP_ERROR(get_logger(), "No occupancy file provided to environment node!");
+        GADEN_ERROR("No occupancy file provided to environment node!");
         return;
     }
     else if (result == Gaden::ReadResult::READING_FAILED)
     {
-        RCLCPP_ERROR(get_logger(), "Something went wrong while parsing the file!");
+        GADEN_ERROR("Something went wrong while parsing the file!");
     }
 
     for (int i = 0; i < environment.description.num_cells.x; i++)
@@ -336,4 +349,27 @@ bool Environment::occupancyMapServiceCB(gaden_environment::srv::Occupancy_Reques
     response->resolution = environment.description.cell_size;
 
     return true;
+}
+
+
+std_msgs::msg::ColorRGBA Environment::parseColor(const std::string& str)
+{
+    std_msgs::msg::ColorRGBA color;
+    color.a = 1.0;
+    
+    std::stringstream ss(str);
+    ss >> std::skipws;
+
+    ss.ignore(256, '[');
+    ss >> color.r;
+    ss.ignore(256, ',');
+    ss >> color.g;
+    ss.ignore(256, ',');
+    ss >> color.b;
+
+    ss.ignore(256, ',');
+    if(!ss.eof())
+        ss >> color.a;
+    
+    return color;
 }

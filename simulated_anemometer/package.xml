@@ -13,6 +13,7 @@
   <depend>rclcpp</depend>
 
   
+  <build_depend>gaden_common</build_depend>
   <build_depend>tf2</build_depend>
   <build_depend>tf2_ros</build_depend>
   <build_depend>tf2_geometry_msgs</build_depend>

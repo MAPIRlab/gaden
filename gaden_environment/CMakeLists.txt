@@ -3,7 +3,7 @@ project(gaden_environment)
 
 ##################
 set(CMAKE_BUILD_TYPE "None") 
-set(CMAKE_CXX_FLAGS "-std=c++17 -g -O2 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++17 -g -O0 ${CMAKE_CXX_FLAGS}")
 
 
 find_package(ament_cmake REQUIRED)
@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(gaden_common REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -21,7 +22,6 @@ ament_export_dependencies(rosidl_default_runtime)
 
 include_directories(
     include
-    ../gaden_common/include
 )
 
 add_executable(environment src/environment.cpp)
@@ -33,6 +33,7 @@ ament_target_dependencies(environment
     std_msgs
     visualization_msgs
     geometry_msgs
+    gaden_common
 ) 
 
 # dependency for self-defined messages

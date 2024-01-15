@@ -87,7 +87,6 @@ public:
     void updateHeatmap();
     void writeHeatmapImage();
 
-    rclcpp::Logger m_logger;
     std::string gas_type;
     std::string simulation_filename;
     std::string occupancyFile;

@@ -25,9 +25,24 @@ private:
     std::vector<std::vector<double>> gas_source_color;
 
     // CAD models
-    int number_of_CAD;
-    std::vector<std::string> CAD_models;
-    std::vector<std::vector<double>> CAD_color;
+    struct CADModel
+    {
+        std::string filepath;
+        std_msgs::msg::ColorRGBA color;
+        CADModel(const std::string& path, std_msgs::msg::ColorRGBA _color) 
+            : filepath(path), color(_color)
+        {}
+
+        CADModel(const std::string& path, std::vector<double> _color):
+            filepath(path)
+        {
+            color.r = _color[0];
+            color.g = _color[1];
+            color.b = _color[2];
+            color.a = 1.0;
+        }
+    };
+    std::vector<CADModel> CAD_models;
 
     // Environment 3D
     std::string occupancy3D_data; // Location of the 3D Occupancy GridMap of the environment
@@ -49,4 +64,6 @@ private:
     bool occupancyMapServiceCB(gaden_environment::srv::Occupancy_Request::SharedPtr request,
                                gaden_environment::srv::Occupancy_Response::SharedPtr response);
     void PreprocessingCB(std_msgs::msg::Bool::SharedPtr b);
+    
+    static std_msgs::msg::ColorRGBA parseColor(const std::string& str);
 };

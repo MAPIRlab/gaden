@@ -5,16 +5,11 @@ gaden_preprocessing:
     # Cell size
     cell_size: 0.1
 
-    # CAD models of the enviroment (.stl)1
-    model_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-walls.stl"
+    # CAD models of the enviroment (.stl)
+    models: $(var models)
 
-    # CAD model of the outlets (.stl)6
-    outlets_model_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-1.stl"
-    outlets_model_1: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-2.stl"
-    outlets_model_2: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-3.stl"
-    outlets_model_3: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-4.stl"
-    outlets_model_4: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-5.stl"
-    outlets_model_5: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlet-6.stl"
+    # CAD model of the outlets (.stl)
+    outlets_models: $(var outlets_models)
     
     # 3D Location of a point in free-space
     empty_point_x: 1.7      ### (m)

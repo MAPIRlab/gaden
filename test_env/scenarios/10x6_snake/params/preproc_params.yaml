@@ -5,7 +5,7 @@ gaden_preprocessing:
     # Cell size
     cell_size: 0.1
 
-    # CAD models of the enviroment (.stl)1
+    # CAD models of the enviroment (.stl)
     model_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_walls.stl"
 
     # CAD model of the outlets (.stl)2

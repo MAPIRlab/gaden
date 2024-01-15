@@ -4,16 +4,18 @@
 # ================
 gaden_environment:
   ros__parameters:
-    verbose: false
+    verbose: true
     wait_preprocessing: false   # wait for the ok from gaden_preprocessing before running
     fixed_frame: "map"
 
-    # Plot CAD models (Collada format .dae)2
-    CAD_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-walls.dae"
-    CAD_0_color: [0.92, 0.96, 0.96]
-    CAD_1: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlets.dae"
-    CAD_1_color: [0.7, 0.7, 0.9]
-               
+    # Plot CAD models (Collada format .dae)
+    CAD_models: 
+      - "!color [0.92, 0.96, 0.96]"
+      - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-walls.dae"
+      - "!color [0.92, 0.1, 0.1]"
+      - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-walls.dae"
+
+                     
     # Plot 3D OccupancyGridmap
     occupancy3D_data: "$(var pkg_dir)/scenarios/$(var scenario)/OccupancyGrid3D.csv"
 
@@ -54,9 +56,9 @@ gaden_filament_simulator:
     wind_time_step: 1.0                ### (sec) time increment between Wind snapshots
 
     # Loop options
-    allow_looping: true
+    allow_looping: False
     loop_from_step: 0
-    loop_to_step: 24
+    loop_to_step: 10
 
     # Location of the release point!
     source_position_x: $(var source_x)            ### (m)
@@ -81,6 +83,6 @@ gaden_player:
     occupancyFile: "$(var pkg_dir)/scenarios/$(var scenario)/OccupancyGrid3D.csv"
 
     # Loop options        
-    allow_looping: false
-    loop_from_iteration: 15
-    loop_to_iteration: 24
+    allow_looping: $(var allow_looping)
+    loop_from_iteration: $(var loop_from_iteration)
+    loop_to_iteration: $(var loop_to_iteration)

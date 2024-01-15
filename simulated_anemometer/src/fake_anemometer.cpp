@@ -21,8 +21,7 @@ int main(int argc, char** argv)
 }
 
 SimulatedAnemometer::SimulatedAnemometer() : rclcpp::Node("Simulated_anemometer")
-{
-}
+{}
 
 void SimulatedAnemometer::run()
 {
@@ -95,7 +94,8 @@ void SimulatedAnemometer::run()
     rclcpp::Rate r(frequency);
     while (rclcpp::ok())
     {
-        // Vars
+        rclcpp::spin_some(shared_this);
+
         geometry_msgs::msg::TransformStamped anemometer_transform_map;
         bool know_sensor_pose = true;
 
@@ -104,13 +104,12 @@ void SimulatedAnemometer::run()
         {
             anemometer_transform_map = tf_buffer->lookupTransform(input_fixed_frame, input_sensor_frame, rclcpp::Time(0));
         }
-        catch (tf2::TransformException ex)
+        catch (tf2::TransformException& ex)
         {
             RCLCPP_ERROR(get_logger(), "%s", ex.what());
             know_sensor_pose = false;
 
-            using namespace std::literals::chrono_literals;
-            rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(1s));
+            rclcpp::sleep_for(std::chrono::seconds(1));
         }
 
         if (know_sensor_pose)
@@ -155,7 +154,9 @@ void SimulatedAnemometer::run()
                             downwind_map.vector.y = v;
                             downwind_map.vector.z = w;
                         }
-                        auto downwind_sensor = tf_buffer->transform(downwind_map, input_sensor_frame);
+                        geometry_msgs::msg::Vector3Stamped downwind_sensor;
+
+                        tf2::doTransform(downwind_map, downwind_sensor, anemometer_transform_map);
                         wind_direction = std::atan2(-downwind_sensor.vector.y, -downwind_sensor.vector.x); // change signs to make it upwind
                     }
                     catch (tf2::TransformException& ex)
@@ -173,7 +174,7 @@ void SimulatedAnemometer::run()
                 static RandomGenerator rng(static_cast<unsigned>(time(0)));
                 static NormalDistribution gaussian_dist(0.0, noise_std);
                 wind_direction = wind_direction + gaussian_dist(rng);
-                wind_speed = wind_speed + gaussian_dist(rng);
+                wind_speed = std::max(0.0, wind_speed + gaussian_dist(rng) * 0.1f);
 
                 // Publish 2D Anemometer readings
                 //------------------------------
@@ -267,7 +268,6 @@ void SimulatedAnemometer::run()
             marker_pub.publish(connector);
             */
         }
-        rclcpp::spin_some(shared_this);
         r.sleep();
     }
 }
@@ -285,7 +285,7 @@ void SimulatedAnemometer::loadNodeParameters()
     noise_std = declare_parameter<double>("noise_std", 0.1);
 
     // Frequency (Hz)
-    frequency = declare_parameter<double>("frequency", 2);
+    frequency = declare_parameter<double>("frequency", 20);
 
     // What ref system to use for publishing measurements
     use_map_ref_system = declare_parameter<bool>("use_map_ref_system", false);

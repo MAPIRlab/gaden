@@ -17,19 +17,20 @@ endif(DEBUG)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(gaden_common REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS iostreams filesystem)
 
 
-include_directories(include
-../gaden_common/include)
+include_directories(include)
 
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
 add_executable(filament_simulator ${MYFILES_CPP})
 
 ament_target_dependencies(filament_simulator 
   rclcpp
+  gaden_common
   std_msgs
   visualization_msgs
   Boost

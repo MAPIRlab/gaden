@@ -19,8 +19,8 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
-find_package(fmt REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(gaden_common REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS iostreams)
 
@@ -33,8 +33,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 ament_export_dependencies(rosidl_default_runtime)
 
-include_directories(include
-../gaden_common/include)
+include_directories(include)
 
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
 add_executable(player  ${MYFILES_CPP})
@@ -59,6 +58,7 @@ ament_target_dependencies(player
     std_msgs
     visualization_msgs
     Boost
+    gaden_common
 ) 
 target_link_libraries(player fmt ${OpenCV_LIBS})
 
