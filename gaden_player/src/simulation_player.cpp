@@ -587,6 +587,7 @@ void sim_obj::configure_environment()
 {
     // Resize Gas Concentration container
     C.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
+    heatmap.resize(environment.description.num_cells.x, std::vector<double>(environment.description.num_cells.y, 0));
 
     // Resize Wind info container (if necessary)
     if (load_wind_data)
@@ -658,19 +659,6 @@ void sim_obj::updateHeatmap()
 
 void sim_obj::writeHeatmapImage()
 {
-
-    // std::ofstream pgmFile ("/home/pepe/catkin_ws/asd");
-    // pgmFile<<"P2\n";
-    // pgmFile<<heatmap[0].size()<<" "<<heatmap.size()<<"\n";
-    // pgmFile<<"255\n";
-
-    // for(int i = 0; i<heatmap.size(); i++){
-    //     for(int j=0; j<heatmap[0].size(); j++){
-    //         pgmFile<< (int)((heatmap[i][j]/heatMapIterations) * 255) <<" ";
-    //     }
-    //     pgmFile<<"\n";
-    // }
-
     cv::Mat image(cv::Size(heatmap.size(), heatmap[0].size()), CV_32F, cv::Scalar(0));
 
 #pragma omp parallel for collapse(2)

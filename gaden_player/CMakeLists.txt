@@ -4,7 +4,7 @@ project(gaden_player)
 set(CMAKE_BUILD_TYPE "None") 
 set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS}")
 
-set(DEBUG ON)
+set(DEBUG OFF)
 
 if(DEBUG)
   add_definitions(-DDEBUG)
