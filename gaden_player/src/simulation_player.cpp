@@ -659,14 +659,21 @@ void sim_obj::updateHeatmap()
 
 void sim_obj::writeHeatmapImage()
 {
-    cv::Mat image(cv::Size(heatmap.size(), heatmap[0].size()), CV_32F, cv::Scalar(0));
+    cv::Mat image(cv::Size(heatmap.size(), heatmap[0].size()), CV_32FC3, cv::Scalar(0,0,0));
 
+    size_t z_index = (heatmapHeight-environment.description.min_coord.z) / environment.description.cell_size;
 #pragma omp parallel for collapse(2)
     for (int i = 0; i < heatmap.size(); i++)
     {
         for (int j = 0; j < heatmap[0].size(); j++)
         {
-            image.at<float>(heatmap[0].size() - 1 - j, i) = (heatmap[i][j] / heatMapIterations) * 255;
+            if(environment.Env[indexFrom3D(i, j, z_index)] == Gaden::CellState::Obstacle)
+                image.at<cv::Vec3f>(heatmap[0].size() - 1 - j, i) = cv::Vec3f(0, 0, 255);
+            else
+            {
+                float value = (heatmap[i][j] / heatMapIterations) * 255;
+                image.at<cv::Vec3f>(heatmap[0].size() - 1 - j, i) = {value, value, value};
+            }
         }
     }
 
