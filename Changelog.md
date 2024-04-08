@@ -23,6 +23,10 @@ Which makes making modifications after the fact far more convenient. The old for
 - A fair bit of the internal structure of gaden has been rearranged (mostly due to the gaden_common folder, which has been promoted to an ament package). This should not affect you as a user, other than maybe needing to update the repo's submodules, which have been moved as a consequence.
 - Slightly modified logging from all nodes (including pretty colors, if your terminal supports them!)
 
+### Bug fixes
+- Updated CMakeLists.txt for the preprocessing package to use the correct filename for `configureCoppeliaSim`.
+
+
 ## 2.3.1
 ### Minor changes
 - Added the option to use `configureCoppeliaSim` to set the robot pose at runtime by sending a pose through a topic. By default it subscribes to the `/initial_pose` topic so it can be controlled directly through Rviz.
