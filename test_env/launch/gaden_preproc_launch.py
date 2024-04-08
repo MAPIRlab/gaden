@@ -17,9 +17,9 @@ from launch_ros.parameter_descriptions import ParameterFile
 from ament_index_python.packages import get_package_share_directory
 
 # Internal gaden utilities
-import sys 
-sys.path.append( os.path.join(get_package_share_directory('test_env'),"launch") )
-from gaden_internal.utils import read_sim_yaml
+import sys
+sys.path.append(get_package_share_directory('gaden_common'))
+from gaden_internal_py.utils import read_sim_yaml
 
 
 
@@ -38,7 +38,7 @@ def launch_arguments():
         ),
         DeclareLaunchArgument(
             "generateCoppeliaScene",
-            default_value=["True"],
+            default_value=["False"],
             description="(bool) whether to generate a coppelia scene from this environment. See the tutorial for requirements",
         ),
     ]

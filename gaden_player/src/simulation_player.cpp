@@ -8,7 +8,9 @@
 #include <boost/format.hpp>
 #include "simulation_player.h"
 #include <filesystem>
-#include <fmt/format.h>
+
+#define GADEN_LOGGER_ID "GadenPlayer"
+#include <gaden_common/Logging.h>
 
 int main(int argc, char** argv)
 {
@@ -120,7 +122,7 @@ void Player::run()
         if ((now() - time_last_loaded_file).seconds() >= 1 / player_freq)
         {
             if (verbose)
-                RCLCPP_INFO(get_logger(), "Playing simulation iteration %i", iteration_counter);
+                GADEN_INFO("Playing simulation iteration {}", iteration_counter);
             // Read Gas and Wind data from log_files
             load_all_data_from_logfiles(iteration_counter);
             display_current_gas_distribution(); // Rviz visualization
@@ -133,7 +135,7 @@ void Player::run()
                 {
                     iteration_counter = loop_from_iteration;
                     if (verbose)
-                        RCLCPP_INFO(get_logger(), "Looping");
+                        GADEN_INFO("Looping");
                 }
             }
             time_last_loaded_file = now();
@@ -160,8 +162,8 @@ void Player::loadNodeParameters()
 
     if (verbose)
     {
-        RCLCPP_INFO(get_logger(), "player_freq %.2f", player_freq);
-        RCLCPP_INFO(get_logger(), "num_simulators:  %i", num_simulators);
+        GADEN_INFO("player_freq {:.2f}", player_freq);
+        GADEN_INFO("num_simulators:  {}", num_simulators);
     }
 
     // FilePath for simulated data
@@ -172,7 +174,7 @@ void Player::loadNodeParameters()
         std::string paramName = fmt::format("simulation_data_{}", i);
         simulation_data[i] = declare_parameter<std::string>(paramName.c_str(), "");
         if (verbose)
-            RCLCPP_INFO(get_logger(), "simulation_data_%i:  %s", i, simulation_data[i].c_str());
+            GADEN_INFO("simulation_data_{}:  {}", i, simulation_data[i].c_str());
     }
 
     // Initial iteration
@@ -188,16 +190,16 @@ void Player::loadNodeParameters()
 // Init
 void Player::init_all_simulation_instances()
 {
-    RCLCPP_INFO(get_logger(), "Initializing %i instances", num_simulators);
+    GADEN_INFO("Initializing {} instances", num_simulators);
 
     // At least one instance is needed which loads the wind field data!
-    sim_obj so(simulation_data[0], true, get_logger(), occupancyFile);
+    sim_obj so(simulation_data[0], true, occupancyFile);
     player_instances.push_back(so);
 
     // Create other instances, but do not save wind information! It is the same for all instances
     for (int i = 1; i < num_simulators; i++)
     {
-        sim_obj so(simulation_data[i], false, get_logger(), occupancyFile);
+        sim_obj so(simulation_data[i], false, occupancyFile);
         player_instances.push_back(so);
     }
 
@@ -211,7 +213,7 @@ void Player::load_all_data_from_logfiles(int sim_iteration)
     for (int i = 0; i < num_simulators; i++)
     {
         if (verbose)
-            RCLCPP_INFO(get_logger(), "Loading new data to instance %i (iteration %i)", i, sim_iteration);
+            GADEN_INFO("Loading new data to instance {} (iteration {})", i, sim_iteration);
         player_instances[i].load_data_from_logfile(sim_iteration);
     }
 }
@@ -233,8 +235,8 @@ void Player::display_current_gas_distribution()
 //==================================== SIM_OBJ ==============================//
 
 // Constructor
-sim_obj::sim_obj(std::string filepath, bool load_wind_info, rclcpp::Logger logger, std::string occupancy_filePath)
-    : m_logger(logger), occupancyFile(occupancy_filePath)
+sim_obj::sim_obj(std::string filepath, bool load_wind_info, std::string occupancy_filePath)
+    : occupancyFile(occupancy_filePath)
 {
     gas_type = "unknown";
     simulation_filename = filepath;
@@ -244,7 +246,7 @@ sim_obj::sim_obj(std::string filepath, bool load_wind_info, rclcpp::Logger logge
 
     if (!std::filesystem::exists(simulation_filename))
     {
-        RCLCPP_ERROR(logger, "Simulation folder does not exist: %s", simulation_filename.c_str());
+        GADEN_ERROR("Simulation folder does not exist: {}", simulation_filename.c_str());
         exit(-1);
     }
 }
@@ -260,7 +262,7 @@ void sim_obj::load_data_from_logfile(int sim_iteration)
     FILE* fileCheck;
     if ((fileCheck = fopen(filename.c_str(), "rb")) == NULL)
     {
-        RCLCPP_ERROR(m_logger, "File %s does not exist\n", filename.c_str());
+        GADEN_ERROR("File {} does not exist\n", filename.c_str());
         return;
     }
     fclose(fileCheck);
@@ -293,8 +295,7 @@ void sim_obj::load_logfile_version_1(std::stringstream& decompressed)
 {
     if (first_reading)
     {
-        RCLCPP_WARN(
-            m_logger,
+        GADEN_WARN(
             "You are reading a log file that was generated with an old version of gaden. While it should work correctly, if you experience any bugs, "
             "this is likely the cause. You can just re-run the filament simulator node to generate an updated version of the simulation");
         // coordinates were initially written as doubles, but we want to read them as floats now, so we need a buffer
@@ -431,8 +432,8 @@ double sim_obj::get_gas_concentration(float x, float y, float z)
     if (xx < 0 || xx > environment.description.num_cells.x || yy < 0 || yy > environment.description.num_cells.y || zz < 0 ||
         zz > environment.description.num_cells.z)
     {
-        RCLCPP_ERROR(m_logger,
-                     "Requested gas concentration at a point outside the environment (%f, %f, %f). Are you using the correct coordinates?\n", x, y,
+        GADEN_ERROR(
+                     "Requested gas concentration at a point outside the environment ({}, {}, {}). Are you using the correct coordinates?\n", x, y,
                      z);
         return 0;
     }
@@ -547,7 +548,7 @@ void sim_obj::get_wind_value(float x, float y, float z, double& u, double& v, do
         if (xx < 0 || xx > environment.description.num_cells.x || yy < 0 || yy > environment.description.num_cells.y || zz < 0 ||
             zz > environment.description.num_cells.z)
         {
-            RCLCPP_ERROR(m_logger, "Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
+            GADEN_ERROR("Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
             return;
         }
 
@@ -558,7 +559,7 @@ void sim_obj::get_wind_value(float x, float y, float z, double& u, double& v, do
     }
     else
     {
-        RCLCPP_WARN(m_logger, "Request to provide Wind information when No Wind data is available!!");
+        GADEN_WARN("Request to provide Wind information when No Wind data is available!!");
     }
 }
 
@@ -580,12 +581,12 @@ void sim_obj::configure_environment()
     Gaden::ReadResult result = Gaden::readEnvFile(occupancyFile, environment);
     if (result == Gaden::ReadResult::NO_FILE)
     {
-        RCLCPP_ERROR(m_logger, "No occupancy file provided to Gaden-player node!");
+        GADEN_ERROR("No occupancy file provided to Gaden-player node!");
         exit(-1);
     }
     else if (result == Gaden::ReadResult::READING_FAILED)
     {
-        RCLCPP_ERROR(m_logger, "Something went wrong while parsing the file!");
+        GADEN_ERROR("Something went wrong while parsing the file!");
         exit(-1);
     }
 }

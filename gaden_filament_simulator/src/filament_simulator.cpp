@@ -28,6 +28,8 @@
  ---------------------------------------------------------------------------------------*/
 
 #include "filament_simulator/filament_simulator.h"
+#define GADEN_LOGGER_ID "FilamentSimulator"
+#include <gaden_common/Logging.h>
 
 //==========================//
 //      Constructor         //
@@ -50,11 +52,11 @@ CFilamentSimulator::CFilamentSimulator() : rclcpp::Node("Gaden_filament_simulato
     // Create directory to save results (if needed)
     if (save_results && !boost::filesystem::exists(results_location))
         if (!boost::filesystem::create_directories(results_location))
-            RCLCPP_ERROR(get_logger(), "[filament] Could not create result directory: %s", results_location.c_str());
+            GADEN_WARN("Could not create result directory: {}", results_location.c_str());
 
     if (save_results && !boost::filesystem::exists(results_location + "/wind"))
         if (!boost::filesystem::create_directories(results_location + "/wind"))
-            RCLCPP_ERROR(get_logger(), "[filament] Could not create result directory: %s/wind", results_location.c_str());
+            GADEN_WARN("Could not create result directory: {}/wind", results_location.c_str());
 
     // Set Publishers and Subscribers
     //-------------------------------
@@ -72,7 +74,7 @@ CFilamentSimulator::CFilamentSimulator() : rclcpp::Node("Gaden_filament_simulato
             rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(0.5s));
             rclcpp::spin_some(shared_from_this());
             if (verbose)
-                RCLCPP_INFO(get_logger(), "[filament] Waiting for node GADEN_preprocessing to end.");
+                GADEN_INFO("Waiting for node GADEN_preprocessing to end.");
         }
     }
 
@@ -103,15 +105,15 @@ CFilamentSimulator::CFilamentSimulator() : rclcpp::Node("Gaden_filament_simulato
         filament_moles_cm3_center * (sqrt(8 * pow(3.14159, 3)) * pow(filament_initial_std, 3)); // total number of moles in a filament
 
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[filament] filament_initial_vol [cm3]: %f", filament_initial_vol);
+        GADEN_INFO("filament_initial_vol [cm3]: {}", filament_initial_vol);
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[filament] env_cell_vol [cm3]: %f", env_cell_vol);
+        GADEN_INFO("env_cell_vol [cm3]: {}", env_cell_vol);
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[filament] filament_numMoles [mol]: %E", filament_numMoles);
+        GADEN_INFO("filament_numMoles [mol]: {}", filament_numMoles);
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[filament] env_cell_numMoles [mol]: %E", env_cell_numMoles);
+        GADEN_INFO("env_cell_numMoles [mol]: {}", env_cell_numMoles);
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[filament] filament_numMoles_of_gas [mol]: %E", filament_numMoles_of_gas);
+        GADEN_INFO("filament_numMoles_of_gas [mol]: {}", filament_numMoles_of_gas);
 
     // Init visualization
     //-------------------
@@ -221,7 +223,7 @@ void CFilamentSimulator::loadNodeParameters()
     if (save_results && !boost::filesystem::exists(results_location))
     {
         if (!boost::filesystem::create_directories(results_location))
-            RCLCPP_ERROR(get_logger(), "[filament] Could not create result directory: %s", results_location.c_str());
+            GADEN_WARN("Could not create result directory: {}", results_location.c_str());
     }
     // create a sub-folder for this specific simulation
     results_min_time = declare_parameter<double>("results_min_time", 0.0);
@@ -229,20 +231,20 @@ void CFilamentSimulator::loadNodeParameters()
 
     if (verbose)
     {
-        RCLCPP_INFO(get_logger(), "[filament] The data provided in the roslaunch file is:");
-        RCLCPP_INFO(get_logger(), "[filament] Simulation Time        %f(s)", sim_time);
-        RCLCPP_INFO(get_logger(), "[filament] Gas Time Step:         %f(s)", time_step);
-        RCLCPP_INFO(get_logger(), "[filament] Num_steps:             %d", numSteps);
-        RCLCPP_INFO(get_logger(), "[filament] Number of filaments:   %d", numFilaments_sec);
-        RCLCPP_INFO(get_logger(), "[filament] PPM filament center    %f", filament_ppm_center);
-        RCLCPP_INFO(get_logger(), "[filament] Gas type:              %d", gasType);
-        RCLCPP_INFO(get_logger(), "[filament] Concentration unit:    %d", gasConc_unit);
-        RCLCPP_INFO(get_logger(), "[filament] Wind_time_step:        %f(s)", windTime_step);
-        RCLCPP_INFO(get_logger(), "[filament] Fixed frame:           %s", fixed_frame.c_str());
-        RCLCPP_INFO(get_logger(), "[filament] Source position:       (%f,%f,%f)", gas_source_pos.x, gas_source_pos.y, gas_source_pos.z);
+        GADEN_INFO("The data provided in the roslaunch file is:");
+        GADEN_INFO("Simulation Time        {}(s)", sim_time);
+        GADEN_INFO("Gas Time Step:         {}(s)", time_step);
+        GADEN_INFO("Num_steps:             {}", numSteps);
+        GADEN_INFO("Number of filaments:   {}", numFilaments_sec);
+        GADEN_INFO("PPM filament center    {}", filament_ppm_center);
+        GADEN_INFO("Gas type:              {}", gasType);
+        GADEN_INFO("Concentration unit:    {}", gasConc_unit);
+        GADEN_INFO("Wind_time_step:        {}(s)", windTime_step);
+        GADEN_INFO("Fixed frame:           {}", fixed_frame.c_str());
+        GADEN_INFO("Source position:       ({},{},{})", gas_source_pos.x, gas_source_pos.y, gas_source_pos.z);
 
         if (save_results)
-            RCLCPP_INFO(get_logger(), "[filament] Saving results to %s", results_location.c_str());
+            GADEN_INFO("Saving results to {}", results_location.c_str());
     }
 }
 
@@ -252,7 +254,7 @@ void CFilamentSimulator::loadNodeParameters()
 void CFilamentSimulator::initSimulator()
 {
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[filament] Initializing Simulator... Please Wait!");
+        GADEN_INFO("Initializing Simulator... Please Wait!");
 
     // 1. Load Environment and Configure Matrices
     if (FILE* file = fopen(occupancy3D_data.c_str(), "r"))
@@ -260,25 +262,25 @@ void CFilamentSimulator::initSimulator()
         // Files exist!, keep going!
         fclose(file);
         if (verbose)
-            RCLCPP_INFO(get_logger(), "[filament] Loading 3D Occupancy GridMap");
+            GADEN_INFO("Loading 3D Occupancy GridMap");
 
         Gaden::ReadResult result = Gaden::readEnvFile(occupancy3D_data, environment);
         if (result == Gaden::ReadResult::NO_FILE)
         {
-            RCLCPP_ERROR(get_logger(), "No occupancy file provided to filament-simulator node!");
+            GADEN_WARN("No occupancy file provided to filament-simulator node!");
             return;
         }
         else if (result == Gaden::ReadResult::READING_FAILED)
         {
-            RCLCPP_ERROR(get_logger(), "Something went wrong while parsing the file!");
+            GADEN_WARN("Something went wrong while parsing the file!");
         }
 
         if (verbose)
-            RCLCPP_INFO(get_logger(), "[filament] Env dimensions (%.2f,%.2f,%.2f) to (%.2f,%.2f,%.2f)", environment.description.min_coord.x,
+            GADEN_INFO("Env dimensions ({:.2f},{:.2f},{:.2f}) to ({:.2f},{:.2f},{:.2f})", environment.description.min_coord.x,
                         environment.description.min_coord.y, environment.description.min_coord.z, environment.description.max_coord.x,
                         environment.description.max_coord.y, environment.description.max_coord.z);
         if (verbose)
-            RCLCPP_INFO(get_logger(), "[filament] Env size in cells	 (%d,%d,%d) - with cell size %f [m]", environment.description.num_cells.x,
+            GADEN_INFO("Env size in cells	 ({},{},{}) - with cell size {} [m]", environment.description.num_cells.x,
                         environment.description.num_cells.y, environment.description.num_cells.z, environment.description.cell_size);
 
         // Reserve memory for the 3D matrices: U,V,W,C and Env, according to provided num_cells of the environment.
@@ -291,7 +293,7 @@ void CFilamentSimulator::initSimulator()
     }
     else
     {
-        RCLCPP_ERROR(get_logger(), "[filament] File %s Does Not Exists!", occupancy3D_data.c_str());
+        GADEN_WARN("File {} Does Not Exists!", occupancy3D_data.c_str());
     }
 
     // 2. Load the first Wind snapshot from file (all 3 components U,V,W)
@@ -299,7 +301,7 @@ void CFilamentSimulator::initSimulator()
 
     // 3. Initialize the filaments vector to its max value (to avoid increasing the size at runtime)
     if (verbose)
-        RCLCPP_INFO(get_logger(), "[filament] Initializing Filaments");
+        GADEN_INFO("Initializing Filaments");
     filaments.resize(total_number_filaments, CFilament(0.0, 0.0, 0.0, filament_initial_std));
 }
 
@@ -328,21 +330,21 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
     // but that is clunky, and inconsistent with all the other gaden nodes, which append the underscore automatically
     // so now, for backwards compatibility, we need to check whether the underscore is already there or not
     std::string separator = (wind_files_location.back() == '_') ? "" : "_";
-    std::string U_filename = boost::str(boost::format("%s%s%i.csv_U") % wind_files_location % separator % idx);
-    std::string V_filename = boost::str(boost::format("%s%s%i.csv_V") % wind_files_location % separator % idx);
-    std::string W_filename = boost::str(boost::format("%s%s%i.csv_W") % wind_files_location % separator % idx);
+    std::string U_filename = fmt::format("{}{}{}.csv_U", wind_files_location, separator, idx);
+    std::string V_filename = fmt::format("{}{}{}.csv_V", wind_files_location, separator, idx);
+    std::string W_filename = fmt::format("{}{}{}.csv_W", wind_files_location, separator, idx);
 
     // read data to 3D matrices
     if (FILE* file = fopen(U_filename.c_str(), "r"))
     {
         if (verbose)
-            RCLCPP_INFO(get_logger(), "Reading Wind Snapshot %s", U_filename.c_str());
+            GADEN_INFO("Reading Wind Snapshot {}", U_filename.c_str());
         // Files exist!, keep going!
         fclose(file);
 
         last_wind_idx = idx;
         if (verbose)
-            RCLCPP_INFO(get_logger(), "[filament] Loading Wind Snapshot %i", idx);
+            GADEN_INFO("Loading Wind Snapshot {}", idx);
 
         // binary format files start with the code "999"
         constexpr int IS_BINARY_FILE = 999;
@@ -358,11 +360,11 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
         if (!wind_finished)
         {
             // dump the binary wind data to file
-            std::string out_filename = boost::str(boost::format("%s/wind/wind_iteration_%i") % results_location % idx);
+            std::string out_filename = fmt::format("{}/wind/wind_iteration_{}", results_location, idx);
             FILE* file = fopen(out_filename.c_str(), "wb");
             if (file == NULL)
             {
-                RCLCPP_ERROR(get_logger(), "CANNOT OPEN WIND LOG FILE\n");
+                GADEN_WARN("CANNOT OPEN WIND LOG FILE\n");
                 exit(1);
             }
             fclose(file);
@@ -378,8 +380,8 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
         // No more wind data. Keep current info.
         if (!wind_notified)
         {
-            RCLCPP_WARN(get_logger(), "[filament] File %s Does Not Exists!", U_filename.c_str());
-            RCLCPP_WARN(get_logger(), "[filament] No more wind data available. Using last Wind snapshopt as SteadyState.");
+            GADEN_WARN("File {} Does Not Exists!", U_filename.c_str());
+            GADEN_WARN("No more wind data available. Using last Wind snapshopt as SteadyState.");
             wind_notified = true;
             wind_finished = true;
         }
@@ -416,7 +418,7 @@ void CFilamentSimulator::read_3D_file(std::string filename, std::vector<double>&
             std::stringstream ss(line);
             if (z_idx >= environment.description.num_cells.z)
             {
-                RCLCPP_ERROR(get_logger(), "Trying to read:[%s]", line.c_str());
+                GADEN_WARN("Trying to read:[{}]", line.c_str());
             }
 
             if (line == ";")
@@ -446,7 +448,7 @@ void CFilamentSimulator::read_3D_file(std::string filename, std::vector<double>&
         }
         // End of file.
         if (verbose)
-            RCLCPP_INFO(get_logger(), "End of File");
+            GADEN_INFO("End of File");
         infile.close();
     }
 }
@@ -692,7 +694,6 @@ void CFilamentSimulator::update_filament_location(int i)
     double accel = g * (specific_gravity_air - SpecificGravity[gasType]) / SpecificGravity[gasType];
     double newpos_x, newpos_y, newpos_z;
     // Update the location of all active filaments
-    // RCLCPP_INFO(get_logger(), "[filament] Updating %i filaments of %lu",current_number_filaments, filaments.size());
 
     try
     {
@@ -773,7 +774,7 @@ void CFilamentSimulator::update_filament_location(int i)
     }
     catch (...)
     {
-        RCLCPP_ERROR(get_logger(), "Exception Updating Filaments!");
+        GADEN_WARN("Exception Updating Filaments!");
         return;
     }
 }
@@ -870,12 +871,12 @@ void CFilamentSimulator::save_state_to_file()
     last_saved_step++;
     last_saved_timestamp = sim_time;
     // Configure file name for saving the current snapshot
-    std::string out_filename = boost::str(boost::format("%s/iteration_%i") % results_location % last_saved_step);
+    std::string out_filename = fmt::format("{}/iteration_{}", results_location, last_saved_step);
 
     FILE* file = fopen(out_filename.c_str(), "wb");
     if (file == NULL)
     {
-        RCLCPP_ERROR(get_logger(), "CANNOT OPEN LOG FILE\n");
+        GADEN_WARN("CANNOT OPEN LOG FILE\n");
         exit(1);
     }
     fclose(file);
@@ -945,7 +946,7 @@ int main(int argc, char** argv)
     //--------------
     while (rclcpp::ok() && (sim->current_simulation_step < sim->numSteps))
     {
-        // RCLCPP_INFO(sim->get_logger(), "[filament] Simulating step %i (sim_time = %.2f)", sim->current_simulation_step, sim->sim_time);
+        GADEN_TRACE("Simulating step {} (sim_time = {:.2f})", sim->current_simulation_step, sim->sim_time);
 
         // 0. Load wind snapshot (if necessary and availabe)
         if (sim->sim_time - sim->sim_time_last_wind >= sim->windTime_step)
@@ -993,4 +994,9 @@ int main(int argc, char** argv)
 
         rclcpp::spin_some(sim);
     }
+
+	if(rclcpp::ok())
+	{
+		GADEN_INFO_COLOR(fmt::terminal_color::blue, "Filament simulator finished correctly!");
+	}
 }

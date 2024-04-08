@@ -6,13 +6,15 @@ gaden_preprocessing:
     cell_size: 0.1
 
     # CAD models of the enviroment (.stl)3
-    model_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/MAPIRlab_tables.stl"
-    model_1: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/MAPIRlab_walls.stl"
-    model_2: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/MAPIRlab_wardrobes.stl"
+    models: 
+      - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/MAPIRlab_tables.stl"
+      - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/MAPIRlab_walls.stl"
+      - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/MAPIRlab_wardrobes.stl"
 
     # CAD model of the outlets (.stl)2
-    outlets_model_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/MAPIRlab_doors.stl"
-    outlets_model_1: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/MAPIRlab_windows.stl"
+    outlets_models: 
+      - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/MAPIRlab_doors.stl"
+      - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/MAPIRlab_windows.stl"
 
     # 3D Location of a point in free-space
     empty_point_x: 1.0      ### (m)

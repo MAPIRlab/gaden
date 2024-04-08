@@ -8,13 +8,13 @@ gaden_environment:
     wait_preprocessing: false   # wait for the ok from gaden_preprocessing before running
     fixed_frame: "map"
 
-    # Plot CAD models (Collada format .dae)3
-    CAD_0: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_walls.dae"
-    CAD_0_color: [0.92, 0.96, 0.96]
-    CAD_1: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_door_left.dae"
-    CAD_1_color: [0.96, 0.17, 0.3]
-    CAD_2: "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_door_right.dae"
-    CAD_2_color: [0.96, 0.17, 0.3]
+    # Plot CAD models (Collada format .dae)
+    CAD_models:
+      - "!color [0.92, 0.96, 0.96]"
+      - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_walls.dae"
+      - "!color [0.96, 0.17, 0.3]"
+      - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_door_left.dae"
+      - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/10x6_door_right.dae"
 
     # Plot 3D OccupancyGridmap
     occupancy3D_data: "$(var pkg_dir)/scenarios/$(var scenario)/OccupancyGrid3D.csv"

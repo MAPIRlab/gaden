@@ -27,7 +27,9 @@ find_package(ament_cmake REQUIRED)
 set(AMENT_DEPS
     rclcpp
     tf2
+	tf2_geometry_msgs
     std_msgs
+    gaden_common
     )
 
 if(GENERATE_COPPELIA_SCENE)
@@ -45,18 +47,15 @@ find_package(fmt)
 
 include_directories(
   include
-  ../gaden_common/include
 )
 
 # Main Target
 add_executable(preprocessing src/preprocessing.cpp)
 ament_target_dependencies(preprocessing	${AMENT_DEPS})
-target_link_libraries(preprocessing fmt)
 
 # Coppelia utils
-add_executable(moveCoppeliaRobot src/moveCoppeliaRobot.cpp)
-ament_target_dependencies(moveCoppeliaRobot ${AMENT_DEPS})
-target_link_libraries(moveCoppeliaRobot fmt)
+add_executable(configureCoppeliaSim src/configureCoppeliaSim.cpp)
+ament_target_dependencies(configureCoppeliaSim ${AMENT_DEPS})
 
 
 

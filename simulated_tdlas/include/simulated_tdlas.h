@@ -11,7 +11,7 @@
 #include <gaden_player/srv/gas_position.hpp>
 #include <olfaction_msgs/msg/tdlas.hpp>
 
-#include <DDA/DDA.h>
+#include <gaden_common/third_party/DDA/DDA.h>
 #include <vector>
 
 #include <gaden_common/Vector_conversions.h>

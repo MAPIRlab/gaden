@@ -1,5 +1,8 @@
 #include <gaden_preprocessing/Gaden_preprocessing.h>
 #include <gaden_preprocessing/TriangleBoxIntersection.h>
+
+#define GADEN_LOGGER_ID "GadenPreprocessing"
+#include <gaden_common/Logging.h>
 #include <gaden_common/Utils.h>
 
 #include <string>
@@ -7,7 +10,6 @@
 #include <stdlib.h>
 #include <sstream>
 #include <iostream>
-#include <fmt/format.h>
 #include <queue>
 #include <stack>
 #include <stdint.h>
@@ -38,7 +40,7 @@ int main(int argc, char** argv)
     node->processWind();
     node->generateOutput();
 
-    RCLCPP_INFO(node->get_logger(), "Preprocessing done");
+    GADEN_INFO_COLOR(fmt::terminal_color::blue, "Preprocessing done");
     std_msgs::msg::Bool b;
     b.data = true;
     node->jobDone_pub->publish(b);
@@ -47,7 +49,9 @@ int main(int argc, char** argv)
 
 void Gaden_preprocessing::parseMainModels()
 {
-    int numModels = 0;
+    std::vector<std::string> stlModels = declare_parameter<std::vector<std::string>>("models", std::vector<std::string>{});
+
+    if(stlModels.empty()) //try the old style, with numbered parameters instead of a single list
     {
         int i = 0;
         while (true)
@@ -55,13 +59,15 @@ void Gaden_preprocessing::parseMainModels()
             std::string param_name = fmt::format("model_{}", i);
             std::string value = getParam<std::string>(shared_from_this(), param_name, "");
             if (value != "")
-                numModels++;
+                stlModels.push_back(value);
             else
                 break;
             i++;
         }
-        RCLCPP_INFO(get_logger(), "Number of models: %d", numModels);
+        if(i>0)
+            GADEN_WARN("Specifying models through numbered parameters is deprecated. You should use a single list parameter instead (see test_env for examples)");
     }
+    GADEN_INFO("Number of models: {}", stlModels.size());
 
     bool generateCoppeliaScene = getParam<bool>(shared_from_this(), "generateCoppeliaScene", false);
 #ifdef GENERATE_COPPELIA_SCENE
@@ -79,25 +85,18 @@ void Gaden_preprocessing::parseMainModels()
 #else
     if (generateCoppeliaScene)
     {
-        RCLCPP_ERROR(get_logger(), "You are trying to generate a coppelia scene, but compiled gaden_preprocessing without coppelia support. Either "
-                                   "disable the request in the launch file or compile with coppelia support. \nYou can enable the generation in the "
-                                   "CMakeLists.txt file of the preprocessing package.");
+        GADEN_ERROR("You are trying to generate a coppelia scene, but compiled gaden_preprocessing without coppelia support. Either "
+                    "disable the request in the launch file or compile with coppelia support. \nYou can enable the generation in the "
+                    "CMakeLists.txt file of the preprocessing package.");
         rclcpp::shutdown();
         return;
     }
 #endif
 
-    std::vector<std::string> CADfiles;
-    for (int i = 0; i < numModels; i++)
-    {
-        std::string paramName = fmt::format("model_{}", i); // each of the stl models
-        std::string filename = get_parameter_or<std::string>(paramName, "");
-        CADfiles.push_back(filename.c_str());
-    }
 
-    for (int i = 0; i < CADfiles.size(); i++)
+    for (const std::string& model : stlModels)
     {
-        findDimensions(CADfiles[i]);
+        findDimensions(model);
     }
 
     // x and y are interchanged!!!!!! it goes env[y][x][z]
@@ -107,17 +106,17 @@ void Gaden_preprocessing::parseMainModels()
         std::vector<std::vector<int>>(ceil((env_max_x - env_min_x) * (roundFactor) / (cell_size * (roundFactor))),
                                       std::vector<int>(ceil((env_max_z - env_min_z) * (roundFactor) / (cell_size * (roundFactor))), 0)));
 
-    for (int i = 0; i < numModels; i++)
+    for (const std::string& model : stlModels)
     {
-        RCLCPP_INFO(get_logger(), "Parsing environment model: %s", CADfiles[i].c_str());
-        parse(CADfiles[i], cell_state::occupied);
+        GADEN_INFO("Parsing environment model: {}", model);
+        parse(model, cell_state::occupied);
 #ifdef GENERATE_COPPELIA_SCENE
         if (generateCoppeliaScene)
         {
             int result = -1;
             do
             {
-                result = client.getObject().sim().importShape(0, CADfiles[i], 0, 0.0001f, 1);
+                result = client.getObject().sim().importShape(0, model, 0, 0.0001f, 1);
             } while (result == -1);
         }
 #endif
@@ -133,34 +132,31 @@ void Gaden_preprocessing::parseMainModels()
 
 void Gaden_preprocessing::parseOutletModels()
 {
+    std::vector<std::string> stlModels = declare_parameter<std::vector<std::string>>("outlets_models", std::vector<std::string>{});
 
-    int numOutletModels;
+    if(stlModels.empty()) //try the old style, with numbered parameters instead of a single list
     {
         int i = 0;
         while (true)
         {
-            std::string param_name = fmt::format("outlets_model_{}", i);
+            std::string param_name = fmt::format("outlet_model_{}", i);
             std::string value = getParam<std::string>(shared_from_this(), param_name, "");
             if (value != "")
-                numOutletModels++;
+                stlModels.push_back(value);
             else
                 break;
             i++;
         }
-    }
 
-    std::vector<std::string> outletFiles;
-    for (int i = 0; i < numOutletModels; i++)
-    {
-        std::string paramName = fmt::format("outlets_model_{}", i); // each of the stl models
-        std::string filename = get_parameter_or<std::string>(paramName, "");
-        outletFiles.push_back(filename.c_str());
+        if(i>0)
+            GADEN_WARN("Specifying models through numbered parameters is deprecated. You should use a single list parameter instead (see test_env for examples)");
     }
-
-    for (int i = 0; i < numOutletModels; i++)
+    GADEN_INFO("Number of outlet models: {}", stlModels.size());
+    
+    for (const std::string& model : stlModels)
     {
-        RCLCPP_INFO(get_logger(), "Parsing outlet model: %s", outletFiles[i].c_str());
-        parse(outletFiles[i], cell_state::outlet);
+        GADEN_INFO("Parsing outlet model: {}", model);
+        parse(model, cell_state::outlet);
     }
 }
 
@@ -446,7 +442,7 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
         if (i > numberOfProcessedTriangles + triangles.size() / 10)
         {
             mtx.lock();
-            RCLCPP_INFO(get_logger(), "%d%%", (int)((100 * i) / triangles.size()));
+            GADEN_INFO("{}%%", (int)((100 * i) / triangles.size()));
             numberOfProcessedTriangles = i;
             mtx.unlock();
         }
@@ -569,7 +565,7 @@ bool Gaden_preprocessing::isASCII(const std::string& filename)
     }
     else
     {
-        RCLCPP_ERROR(get_logger(), "File %s does not exist\n", filename.c_str());
+        GADEN_ERROR("File {} does not exist\n", filename.c_str());
         exit(0);
     }
     return ascii;
@@ -648,13 +644,12 @@ void Gaden_preprocessing::findDimensions(const std::string& filename)
             infile.seekg(sizeof(uint16_t), std::ios_base::cur); // skip the attribute data
         }
     }
-    std::string dimensions = fmt::format("Dimensions are:\n"
-                                         "	x : ({}, {})\n"
-                                         "	y : ({}, {})\n"
-                                         "	z : ({}, {})\n",
-                                         env_min_x, env_max_x, env_min_y, env_max_y, env_min_z, env_max_z);
 
-    RCLCPP_INFO(get_logger(), dimensions.c_str());
+    GADEN_INFO( "Dimensions are:\n"
+                "	x : ({}, {})\n"
+                "	y : ({}, {})\n"
+                "	z : ({}, {})\n",
+                env_min_x, env_max_x, env_min_y, env_max_y, env_min_z, env_max_z);
 }
 
 void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
@@ -888,7 +883,7 @@ void Gaden_preprocessing::processWind()
             std::string filename = fmt::format("{}_0.csv", windFileName);
             if (!std::filesystem::exists(filename))
             {
-                RCLCPP_WARN(get_logger(), "File %s does not exist", filename.c_str());
+                GADEN_WARN("File {} does not exist", filename.c_str());
                 return;
             }
         }
