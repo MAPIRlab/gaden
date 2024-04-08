@@ -16,8 +16,8 @@
 #include <filesystem>
 
 #ifdef GENERATE_COPPELIA_SCENE
-    #define SIM_REMOTEAPICLIENT_OBJECTS
-    #include <RemoteAPIClient.h>
+#define SIM_REMOTEAPICLIENT_OBJECTS
+#include <RemoteAPIClient.h>
 #endif
 
 int main(int argc, char** argv)
@@ -659,32 +659,32 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
     std::ifstream infile(filename.c_str());
     std::string line;
     struct ParsedLine
-	{
-		double point[3];
-		double windVector[3];
-	};
-	ParsedLine parsedLine;
+    {
+        double point[3];
+        double windVector[3];
+    };
+    ParsedLine parsedLine;
 
-	//Depending on the verion of Paraview used to export the file, lines might be (Point, vector) OR (vector, Point)
-	//so we need to check the header before we know where to put what
-	double* firstPartOfLine;
-	double* secondPartOfLine;
-	{
-    	std::getline(infile, line);
-		size_t pos = line.find(",");
-		std::string firstElement = line.substr(0, pos);
+    // Depending on the verion of Paraview used to export the file, lines might be (Point, vector) OR (vector, Point)
+    // so we need to check the header before we know where to put what
+    double* firstPartOfLine;
+    double* secondPartOfLine;
+    {
+        std::getline(infile, line);
+        size_t pos = line.find(",");
+        std::string firstElement = line.substr(0, pos);
 
-		if(firstElement.find("Points") != std::string::npos)
-		{
-			firstPartOfLine = parsedLine.point;
-			secondPartOfLine = parsedLine.windVector;
-		}
-		else
-		{
-			firstPartOfLine = parsedLine.windVector;
-			secondPartOfLine = parsedLine.point;
-		}
-	}
+        if (firstElement.find("Points") != std::string::npos)
+        {
+            firstPartOfLine = parsedLine.point;
+            secondPartOfLine = parsedLine.windVector;
+        }
+        else
+        {
+            firstPartOfLine = parsedLine.windVector;
+            secondPartOfLine = parsedLine.point;
+        }
+    }
 
     std::vector<double> U(env[0].size() * env.size() * env[0][0].size());
     std::vector<double> V(env[0].size() * env.size() * env[0][0].size());
@@ -704,7 +704,7 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
                 line.erase(0, pos + 1);
             }
 
-			for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 3; i++)
             {
                 size_t pos = line.find(",");
                 secondPartOfLine[i] = atof(line.substr(0, pos).c_str());

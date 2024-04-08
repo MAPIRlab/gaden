@@ -6,7 +6,7 @@ set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp ${CMAKE_CXX_FLAGS}")
 
 # OPTIONS!
 #==============================================
-set(GENERATE_COPPELIA_SCENE ON)
+set(GENERATE_COPPELIA_SCENE OFF)
 set(DEBUG OFF)
 #==============================================
 
@@ -61,7 +61,7 @@ ament_target_dependencies(configureCoppeliaSim ${AMENT_DEPS})
 
 # Install
 install(
-  TARGETS preprocessing configureCoppeliaSim
+  TARGETS preprocessing moveCoppeliaRobot
   DESTINATION lib/${PROJECT_NAME}
 )
 ament_package()
