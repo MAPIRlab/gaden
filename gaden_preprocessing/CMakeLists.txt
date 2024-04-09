@@ -61,7 +61,7 @@ ament_target_dependencies(configureCoppeliaSim ${AMENT_DEPS})
 
 # Install
 install(
-  TARGETS preprocessing moveCoppeliaRobot
+  TARGETS preprocessing configureCoppeliaSim
   DESTINATION lib/${PROJECT_NAME}
 )
 ament_package()
