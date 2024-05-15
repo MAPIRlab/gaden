@@ -7,18 +7,18 @@ set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp ${CMAKE_CXX_FLAGS}")
 # OPTIONS!
 #==============================================
 set(GENERATE_COPPELIA_SCENE OFF)
-set(DEBUG OFF)
 #==============================================
 
 
 
 
-if(DEBUG)
-  add_definitions(-DDEBUG)
-  set(CMAKE_CXX_FLAGS "-g -O0 ${CMAKE_CXX_FLAGS}")
-else()
-  set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
-endif()
+set(CMAKE_BUILD_TYPE "Release") 
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${CMAKE_CXX_FLAGS}")
+
+
+set(CMAKE_CXX_STANDARD 17)
+
 
 
 
