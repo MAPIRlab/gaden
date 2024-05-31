@@ -13,7 +13,7 @@ gaden_environment:
       - "!color [0.92, 0.96, 0.96]"
       - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-walls.dae"
       - "!color [0.92, 0.1, 0.1]"
-      - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-walls.dae"
+      - "$(var pkg_dir)/scenarios/$(var scenario)/cad_models/ROOMS-outlets.dae"
 
                      
     # Plot 3D OccupancyGridmap

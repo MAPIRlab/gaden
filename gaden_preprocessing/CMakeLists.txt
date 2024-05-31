@@ -30,6 +30,7 @@ set(AMENT_DEPS
 	tf2_geometry_msgs
     std_msgs
     gaden_common
+    yaml_cpp_vendor
     )
 
 if(GENERATE_COPPELIA_SCENE)

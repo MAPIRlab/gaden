@@ -5,6 +5,8 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Environment_CAD1
+        - /Map1
+        - /Map1/Topic1
         - /RobotModel1/Description Topic1
       Splitter Ratio: 0.6309859156608582
     Tree Height: 429
@@ -55,7 +57,7 @@ Visualization Manager:
       Enabled: true
       Name: GasDistribution
       Namespaces:
-        Gas_Dispersion: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -171,7 +173,7 @@ Visualization Manager:
       Name: Map
       Topic:
         Depth: 5
-        Durability Policy: Volatile
+        Durability Policy: Transient Local
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable

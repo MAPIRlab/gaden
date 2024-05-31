@@ -1,4 +1,8 @@
-## 2.4.1
+## 2.5.0
+### Major changes
+- Added support for [BasicSim](https://github.com/PepeOjeda/BasicSim). The preprocessing node now automatically generates a valid BasicSim scene yaml, and the main_simbot launchfile has an argument to let you select BasicSim as the robotic simulator.
+
+### Minor changes
 - Improved CMakelists build mode configuration and changed some of the fatal errors in `gaden_player` to raise `SIGTRAP` instead of calling `exit()` for easier debugging
 
 ## 2.4.0
