@@ -15,7 +15,7 @@ def launch_arguments():
         DeclareLaunchArgument("scenario", default_value="Exp_C"),
         DeclareLaunchArgument("simulation", default_value="sim1"),
         DeclareLaunchArgument("namespace", default_value="PioneerP3DX"),
-        DeclareLaunchArgument("robot_simulator", default_value="BasicSim"),
+        DeclareLaunchArgument("robot_simulator", default_value="BasicSim"), # supported [BasicSim, Coppelia]
     ]
 #==========================
 
