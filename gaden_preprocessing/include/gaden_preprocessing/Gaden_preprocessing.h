@@ -79,12 +79,13 @@ private:
     bool isASCII(const std::string& filename);
 
     bool compare_cell(int x, int y, int z, cell_state value);
-    void changeWorldFile(const std::string& filename);
-    void printMap(std::string filename, int scale, bool block_outlets);
-    void printEnv(std::string filename, int scale);
-    void printWind(const std::vector<double>& U, const std::vector<double>& V, const std::vector<double>& W, std::string filename);
+    void changeStageWorldFile(const std::string& filename);
+    void printOccupancyMap(std::string filename, int scale, bool block_outlets);
+    void printOccupancyYaml(std::string outputFolder);
+    void printBasicSimYaml(std::string outputFolder);
+    void printGadenEnvFile(std::string filename, int scale);
+    void printWindFiles(const std::vector<double>& U, const std::vector<double>& V, const std::vector<double>& W, std::string filename);
 
-    void printYaml(std::string output);
     std::array<tf2::Vector3, 9> cubePoints(const tf2::Vector3& query_point);
     bool pointInTriangle(const tf2::Vector3& query_point, const tf2::Vector3& triangle_vertex_0, const tf2::Vector3& triangle_vertex_1,
                          const tf2::Vector3& triangle_vertex_2);
@@ -103,34 +104,12 @@ private:
 
 namespace Utils
 {
-    float min_val(float x, float y, float z)
-    {
-
-        float min = x;
-        if (y < min)
-            min = y;
-        if (z < min)
-            min = z;
-
-        return min;
-    }
-    float max_val(float x, float y, float z)
-    {
-
-        float max = x;
-        if (y > max)
-            max = y;
-        if (z > max)
-            max = z;
-
-        return max;
-    }
-    bool eq(float x, float y)
+    inline bool eq(float x, float y)
     {
         return std::abs(x - y) < 0.01;
     }
 
-    bool isParallel(const tf2::Vector3& vec)
+    inline bool isParallel(const tf2::Vector3& vec)
     {
         return (eq(vec.y(), 0) && eq(vec.z(), 0)) || (eq(vec.x(), 0) && eq(vec.z(), 0)) || (eq(vec.x(), 0) && eq(vec.y(), 0));
     }

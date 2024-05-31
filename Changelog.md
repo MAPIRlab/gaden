@@ -1,3 +1,10 @@
+## 2.5.0
+### Major changes
+- Added support for [BasicSim](https://github.com/PepeOjeda/BasicSim). The preprocessing node now automatically generates a valid BasicSim scene yaml, and the main_simbot launchfile has an argument to let you select BasicSim as the robotic simulator.
+
+### Minor changes
+- Improved CMakelists build mode configuration and changed some of the fatal errors in `gaden_player` to raise `SIGTRAP` instead of calling `exit()` for easier debugging
+
 ## 2.4.0
 ### Major changes
 - Simulation YAML files in the `test_env` directory are now more powerful than ever! You can define any ROS argument per-simulation, so a configuration does not need to be shared between all simulations in a given scenario. However, if you want to add a new parameter to the simulation YAML, you will also need to modify the shared YAML (under the `params` directory) to tell it to use the value that was read from the simulation file -- like this: 

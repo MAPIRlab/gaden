@@ -5,20 +5,24 @@
 #include <gaden_common/Logging.h>
 #include <gaden_common/Utils.h>
 
-#include <string>
+#include <filesystem>
 #include <fstream>
-#include <stdlib.h>
-#include <sstream>
 #include <iostream>
 #include <queue>
+#include <sstream>
 #include <stack>
 #include <stdint.h>
-#include <filesystem>
+#include <stdlib.h>
+#include <string>
+#include <yaml-cpp/yaml.h>
 
 #ifdef GENERATE_COPPELIA_SCENE
 #define SIM_REMOTEAPICLIENT_OBJECTS
+#include "Gaden_preprocessing.h"
 #include <RemoteAPIClient.h>
 #endif
+
+static constexpr float MAP_SCALE = 10;
 
 int main(int argc, char** argv)
 {
@@ -51,7 +55,7 @@ void Gaden_preprocessing::parseMainModels()
 {
     std::vector<std::string> stlModels = declare_parameter<std::vector<std::string>>("models", std::vector<std::string>{});
 
-    if(stlModels.empty()) //try the old style, with numbered parameters instead of a single list
+    if (stlModels.empty()) // try the old style, with numbered parameters instead of a single list
     {
         int i = 0;
         while (true)
@@ -64,8 +68,9 @@ void Gaden_preprocessing::parseMainModels()
                 break;
             i++;
         }
-        if(i>0)
-            GADEN_WARN("Specifying models through numbered parameters is deprecated. You should use a single list parameter instead (see test_env for examples)");
+        if (i > 0)
+            GADEN_WARN("Specifying models through numbered parameters is deprecated. You should use a single list parameter instead (see test_env "
+                       "for examples)");
     }
     GADEN_INFO("Number of models: {}", stlModels.size());
 
@@ -76,8 +81,7 @@ void Gaden_preprocessing::parseMainModels()
     {
         RemoteAPIObject::sim sim = client.getObject().sim();
         sim.stopSimulation();
-        while (sim.getSimulationState() != sim.simulation_stopped)
-            ;
+        while (sim.getSimulationState() != sim.simulation_stopped);
         float floor_height = getParam<float>(shared_from_this(), "floor_height", 0.0);
         sim.setObjectPosition(sim.getObject("/ResizableFloorLarge"), sim.handle_world, {0, 0, floor_height});
         sim.announceSceneContentChange();
@@ -92,7 +96,6 @@ void Gaden_preprocessing::parseMainModels()
         return;
     }
 #endif
-
 
     for (const std::string& model : stlModels)
     {
@@ -134,7 +137,7 @@ void Gaden_preprocessing::parseOutletModels()
 {
     std::vector<std::string> stlModels = declare_parameter<std::vector<std::string>>("outlets_models", std::vector<std::string>{});
 
-    if(stlModels.empty()) //try the old style, with numbered parameters instead of a single list
+    if (stlModels.empty()) // try the old style, with numbered parameters instead of a single list
     {
         int i = 0;
         while (true)
@@ -148,11 +151,12 @@ void Gaden_preprocessing::parseOutletModels()
             i++;
         }
 
-        if(i>0)
-            GADEN_WARN("Specifying models through numbered parameters is deprecated. You should use a single list parameter instead (see test_env for examples)");
+        if (i > 0)
+            GADEN_WARN("Specifying models through numbered parameters is deprecated. You should use a single list parameter instead (see test_env "
+                       "for examples)");
     }
     GADEN_INFO("Number of outlet models: {}", stlModels.size());
-    
+
     for (const std::string& model : stlModels)
     {
         GADEN_INFO("Parsing outlet model: {}", model);
@@ -172,7 +176,7 @@ bool Gaden_preprocessing::compare_cell(int x, int y, int z, cell_state value)
     }
 }
 
-void Gaden_preprocessing::changeWorldFile(const std::string& filename)
+void Gaden_preprocessing::changeStageWorldFile(const std::string& filename)
 {
     std::ifstream input(filename);
     std::stringstream ss;
@@ -208,7 +212,7 @@ void Gaden_preprocessing::changeWorldFile(const std::string& filename)
     out.close();
 }
 
-void Gaden_preprocessing::printMap(std::string filename, int scale, bool block_outlets)
+void Gaden_preprocessing::printOccupancyMap(std::string filename, int scale, bool block_outlets)
 {
     std::ofstream outfile(filename.c_str());
     outfile << "P2\n"
@@ -238,7 +242,74 @@ void Gaden_preprocessing::printMap(std::string filename, int scale, bool block_o
     outfile.close();
 }
 
-void Gaden_preprocessing::printEnv(std::string filename, int scale)
+void Gaden_preprocessing::printOccupancyYaml(std::string outputFolder)
+{
+    std::ofstream file(fmt::format("{}/occupancy.yaml", outputFolder));
+    YAML::Emitter yaml;
+    yaml.SetDoublePrecision(3);
+    yaml << YAML::BeginMap;
+    yaml << YAML::Key << "image" << YAML::Value << "occupancy.pgm";
+    yaml << YAML::Key << "resolution" << YAML::Value << cell_size / MAP_SCALE;
+
+    float floor_height = getParam<float>(shared_from_this(), "floor_height", 0.0);
+    yaml << YAML::Key << "origin" << YAML::Value << YAML::Flow << std::vector<float>{env_min_x, env_min_y, floor_height};
+    yaml << YAML::Key << "occupied_thresh" << YAML::Value << 0.9;
+    yaml << YAML::Key << "free_thresh" << YAML::Value << 0.1;
+    yaml << YAML::Key << "negate" << YAML::Value << 0;
+
+    yaml << YAML::EndMap;
+    file << yaml.c_str();
+    file.close();
+}
+
+void Gaden_preprocessing::printBasicSimYaml(std::string outputFolder)
+{
+    std::ofstream file(fmt::format("{}/BasicSimScene.yaml", outputFolder));
+    YAML::Emitter yaml;
+    yaml.SetDoublePrecision(2);
+    yaml << YAML::BeginMap;
+    yaml << YAML::Key << "map" << YAML::Value << "occupancy.yaml";
+    yaml << YAML::Key << "robots" << YAML::BeginSeq;
+
+    // robot entry
+    {
+        yaml << YAML::BeginMap;
+        yaml << YAML::Key << "name" << YAML::Value << "PioneerP3DX";
+        yaml << YAML::Key << "radius" << YAML::Value << 0.25;
+
+        float floor_height = getParam<float>(shared_from_this(), "floor_height", 0.0);
+        std::vector<float> startingPoint{getParam<float>(shared_from_this(), "empty_point_x", 0),
+                                         getParam<float>(shared_from_this(), "empty_point_y", 0),
+                                         floor_height};
+        yaml << YAML::Key << "position" << YAML::Value << YAML::Flow << startingPoint;
+        yaml << YAML::Key << "angle" << YAML::Value << 0.0 << YAML::Comment("in radians");
+        yaml << YAML::Key << "sensors" << YAML::BeginSeq;
+
+        // sensor entry
+        {
+            yaml << YAML::BeginMap;
+            yaml << YAML::Key << "type" << YAML::Value << "laser";
+            yaml << YAML::Key << "name" << YAML::Value << "laser_scanner";
+            yaml << YAML::Key << "minAngleRad" << YAML::Value << -2.2;
+            yaml << YAML::Key << "maxAngleRad" << YAML::Value << 2.2;
+            yaml << YAML::Key << "angleResolutionRad" << YAML::Value << 0.07;
+            yaml << YAML::Key << "minDistance" << YAML::Value << 0.1;
+            yaml << YAML::Key << "maxDistance" << YAML::Value << 4.0;
+            yaml << YAML::EndMap;
+        }
+        yaml << YAML::EndSeq;
+
+        yaml << YAML::EndMap;
+    }
+    yaml << YAML::EndSeq;
+
+    yaml << YAML::EndMap;
+
+    file << yaml.c_str();
+    file.close();
+}
+
+void Gaden_preprocessing::printGadenEnvFile(std::string filename, int scale)
 {
     std::ofstream outfile(filename.c_str());
 
@@ -268,9 +339,9 @@ void Gaden_preprocessing::printEnv(std::string filename, int scale)
     outfile.close();
 }
 
-void Gaden_preprocessing::printWind(const std::vector<double>& U, const std::vector<double>& V, const std::vector<double>& W, std::string filename)
+void Gaden_preprocessing::printWindFiles(const std::vector<double>& U, const std::vector<double>& V, const std::vector<double>& W,
+                                         std::string filename)
 {
-
     std::ofstream fileU(fmt::format("{}_U", filename));
     std::ofstream fileV(fmt::format("{}_V", filename));
     std::ofstream fileW(fmt::format("{}_W", filename));
@@ -289,17 +360,6 @@ void Gaden_preprocessing::printWind(const std::vector<double>& U, const std::vec
     fileU.close();
     fileV.close();
     fileW.close();
-}
-
-void Gaden_preprocessing::printYaml(std::string output)
-{
-    std::ofstream yaml(fmt::format("{}/occupancy.yaml", output));
-    yaml << "image: occupancy.pgm\n"
-         << "resolution: " << cell_size / 10 << "\norigin: [" << env_min_x << ", " << env_min_y << ", " << 0 << "]\n"
-         << "occupied_thresh: 0.9\n"
-         << "free_thresh: 0.1\n"
-         << "negate: 0";
-    yaml.close();
 }
 
 std::array<tf2::Vector3, 9> Gaden_preprocessing::cubePoints(const tf2::Vector3& query_point)
@@ -353,7 +413,6 @@ bool Gaden_preprocessing::pointInTriangle(const tf2::Vector3& query_point, const
 
 void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::vector<tf2::Vector3>& normals, cell_state value_to_write)
 {
-
     int numberOfProcessedTriangles = 0; // for logging, doesn't actually do anything
     std::mutex mtx;
 // Let's occupy the enviroment!
@@ -371,26 +430,26 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
         int y3 = roundf((triangles[i].p3.y() - env_min_y) * (roundFactor)) / (cell_size * (roundFactor));
         int z3 = roundf((triangles[i].p3.z() - env_min_z) * (roundFactor)) / (cell_size * (roundFactor));
 
-        int min_x = Utils::min_val(x1, x2, x3);
-        int min_y = Utils::min_val(y1, y2, y3);
-        int min_z = Utils::min_val(z1, z2, z3);
+        int min_x = std::min({x1, x2, x3});
+        int min_y = std::min({y1, y2, y3});
+        int min_z = std::min({z1, z2, z3});
 
-        int max_x = Utils::max_val(x1, x2, x3);
-        int max_y = Utils::max_val(y1, y2, y3);
-        int max_z = Utils::max_val(z1, z2, z3);
+        int max_x = std::max({x1, x2, x3});
+        int max_y = std::max({y1, y2, y3});
+        int max_z = std::max({z1, z2, z3});
 
         // is the triangle right at the boundary between two cells (in any axis)?
         bool xLimit =
-            Utils::eq(std::fmod(Utils::max_val(triangles[i][0].x(), triangles[i][1].x(), triangles[i][2].x()) - env_min_x, cell_size), 0) ||
-            Utils::eq(std::fmod(Utils::max_val(triangles[i][0].x(), triangles[i][1].x(), triangles[i][2].x()) - env_min_x, cell_size), cell_size);
+            Utils::eq(std::fmod(std::max({triangles[i][0].x(), triangles[i][1].x(), triangles[i][2].x()}) - env_min_x, cell_size), 0) ||
+            Utils::eq(std::fmod(std::max({triangles[i][0].x(), triangles[i][1].x(), triangles[i][2].x()}) - env_min_x, cell_size), cell_size);
 
         bool yLimit =
-            Utils::eq(std::fmod(Utils::max_val(triangles[i][0].y(), triangles[i][1].y(), triangles[i][2].y()) - env_min_y, cell_size), 0) ||
-            Utils::eq(std::fmod(Utils::max_val(triangles[i][0].y(), triangles[i][1].y(), triangles[i][2].y()) - env_min_y, cell_size), cell_size);
+            Utils::eq(std::fmod(std::max({triangles[i][0].y(), triangles[i][1].y(), triangles[i][2].y()}) - env_min_y, cell_size), 0) ||
+            Utils::eq(std::fmod(std::max({triangles[i][0].y(), triangles[i][1].y(), triangles[i][2].y()}) - env_min_y, cell_size), cell_size);
 
         bool zLimit =
-            Utils::eq(std::fmod(Utils::max_val(triangles[i][0].z(), triangles[i][1].z(), triangles[i][2].z()) - env_min_z, cell_size), 0) ||
-            Utils::eq(std::fmod(Utils::max_val(triangles[i][0].z(), triangles[i][1].z(), triangles[i][2].z()) - env_min_z, cell_size), cell_size);
+            Utils::eq(std::fmod(std::max({triangles[i][0].z(), triangles[i][1].z(), triangles[i][2].z()}) - env_min_z, cell_size), 0) ||
+            Utils::eq(std::fmod(std::max({triangles[i][0].z(), triangles[i][1].z(), triangles[i][2].z()}) - env_min_z, cell_size), cell_size);
 
         bool isParallel = Utils::isParallel(normals[i]);
         for (int row = min_x; row <= max_x && row < env[0].size(); row++)
@@ -451,7 +510,6 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
 
 void Gaden_preprocessing::parse(const std::string& filename, cell_state value_to_write)
 {
-
     bool ascii = isASCII(filename);
 
     std::vector<Triangle> triangles;
@@ -515,8 +573,7 @@ void Gaden_preprocessing::parse(const std::string& filename, cell_state value_to
             // skipping lines here makes checking for the end of the file more convenient
             std::getline(infile, line);
             std::getline(infile, line);
-            while (std::getline(infile, line) && line.length() == 0)
-                ;
+            while (std::getline(infile, line) && line.length() == 0);
         }
         infile.close();
     }
@@ -573,7 +630,6 @@ bool Gaden_preprocessing::isASCII(const std::string& filename)
 
 void Gaden_preprocessing::findDimensions(const std::string& filename)
 {
-
     bool ascii = isASCII(filename);
 
     if (ascii)
@@ -585,8 +641,7 @@ void Gaden_preprocessing::findDimensions(const std::string& filename)
         int i = 0;
         while (line.find("endsolid") == std::string::npos)
         {
-            while (std::getline(infile, line) && line.find("outer loop") == std::string::npos)
-                ;
+            while (std::getline(infile, line) && line.find("outer loop") == std::string::npos);
 
             for (int j = 0; j < 3; j++)
             {
@@ -613,8 +668,7 @@ void Gaden_preprocessing::findDimensions(const std::string& filename)
             // skipping three lines here makes checking for the end of the file more convenient
             std::getline(infile, line);
             std::getline(infile, line);
-            while (std::getline(infile, line) && line.length() == 0)
-                ;
+            while (std::getline(infile, line) && line.length() == 0);
         }
         infile.close();
     }
@@ -645,16 +699,15 @@ void Gaden_preprocessing::findDimensions(const std::string& filename)
         }
     }
 
-    GADEN_INFO( "Dimensions are:\n"
-                "	x : ({}, {})\n"
-                "	y : ({}, {})\n"
-                "	z : ({}, {})\n",
-                env_min_x, env_max_x, env_min_y, env_max_y, env_min_z, env_max_z);
+    GADEN_INFO("Dimensions are:\n"
+               "	x : ({}, {})\n"
+               "	y : ({}, {})\n"
+               "	z : ({}, {})\n",
+               env_min_x, env_max_x, env_min_y, env_max_y, env_min_z, env_max_z);
 }
 
 void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
 {
-
     // let's parse the file
     std::ifstream infile(filename.c_str());
     std::string line;
@@ -721,7 +774,7 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
         }
     }
     infile.close();
-    printWind(U, V, W, filename);
+    printWindFiles(U, V, W, filename);
 }
 
 void Gaden_preprocessing::fill()
@@ -790,10 +843,8 @@ void Gaden_preprocessing::clean()
         {
             for (int height = 0; height < env[0][0].size(); height++)
             {
-
                 if (env[col][row][height] == cell_state::edge)
                 {
-
                     if (compare_cell(col + 1, row, height, cell_state::empty) || compare_cell(col, row + 1, height, cell_state::empty) ||
                         compare_cell(col, row, height + 1, cell_state::empty) ||
                         (compare_cell(col + 1, row + 1, height, cell_state::empty) && env[col][row + 1][height] == cell_state::edge &&
@@ -814,17 +865,17 @@ void Gaden_preprocessing::clean()
 void Gaden_preprocessing::generateOutput()
 {
     std::string outputFolder = get_parameter_or<std::string>("output_path", "");
-    printMap(fmt::format("{}/occupancy.pgm", outputFolder),
-             10, // scale
-             getParam<bool>(shared_from_this(), "block_outlets", false));
+    printOccupancyMap(fmt::format("{}/occupancy.pgm", outputFolder), MAP_SCALE, getParam<bool>(shared_from_this(), "block_outlets", false));
+    printOccupancyYaml(outputFolder);
 
     std::string worldFile;
     if ((worldFile = getParam<std::string>(shared_from_this(), "worldFile", "")) != "")
-        changeWorldFile(worldFile);
+        changeStageWorldFile(worldFile);
+
+    printBasicSimYaml(outputFolder);
 
     // output - path, occupancy vector, scale
-    printEnv(fmt::format("{}/OccupancyGrid3D.csv", outputFolder), 1);
-    printYaml(outputFolder);
+    printGadenEnvFile(fmt::format("{}/OccupancyGrid3D.csv", outputFolder), 1);
 }
 
 void Gaden_preprocessing::processWind()
@@ -837,7 +888,6 @@ void Gaden_preprocessing::processWind()
 
     if (uniformWind)
     {
-
         // let's parse the file
         std::ifstream infile(windFileName);
         std::string line;
@@ -863,7 +913,6 @@ void Gaden_preprocessing::processWind()
                     {
                         if (env[j][i][k] == cell_state::empty)
                         {
-
                             U[indexFrom3D(i, j, k)] = v[0];
                             V[indexFrom3D(i, j, k)] = v[1];
                             W[indexFrom3D(i, j, k)] = v[2];
@@ -872,7 +921,7 @@ void Gaden_preprocessing::processWind()
                 }
             }
             infile.close();
-            printWind(U, V, W, fmt::format("{}_{}.csv", windFileName, idx));
+            printWindFiles(U, V, W, fmt::format("{}_{}.csv", windFileName, idx));
             idx++;
         }
     }

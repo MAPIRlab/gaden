@@ -15,16 +15,17 @@ def launch_arguments():
         DeclareLaunchArgument("scenario", default_value="Exp_C"),
         DeclareLaunchArgument("simulation", default_value="sim1"),
         DeclareLaunchArgument("namespace", default_value="PioneerP3DX"),
+        DeclareLaunchArgument("robot_simulator", default_value="BasicSim"),
     ]
 #==========================
 
 def launch_setup(context, *args, **kwargs):
-    my_dir = get_package_share_directory("test_env")
+    share_dir = get_package_share_directory("test_env")
     namespace = LaunchConfiguration("namespace").perform(context)
 
     # robot description for state_publisher
     robot_desc = xacro.process_file(
-        os.path.join(my_dir, "navigation_config", "resources", "giraff.xacro"),
+        os.path.join(share_dir, "navigation_config", "resources", "giraff.xacro"),
         mappings={"frame_ns": namespace},
     )
     robot_desc = robot_desc.toprettyxml(indent="  ")
@@ -36,29 +37,45 @@ def launch_setup(context, *args, **kwargs):
             parameters=[{"use_sim_time": True, "robot_description": robot_desc}],
         ),
     ]
-
-    coppelia_launch = [
-        IncludeLaunchDescription(
-            FrontendLaunchDescriptionSource(
-                os.path.join(
-                    get_package_share_directory("coppelia_ros2_pkg"),
-                    "launch/coppeliaSim.launch",
-                )
-            ),
-            launch_arguments={
-                "coppelia_scene_path": PathJoinSubstitution(
-                    [
-                        get_package_share_directory("test_env"),
-                        "scenarios",
-                        LaunchConfiguration("scenario").perform(context),
-                        "coppeliaScene.ttt",
-                    ]
+    
+    robot_simulator = []
+    simulator_mode = str(LaunchConfiguration("robot_simulator").perform(context))
+    if  simulator_mode == "Coppelia":
+        robot_simulator = [
+            IncludeLaunchDescription(
+                FrontendLaunchDescriptionSource(
+                    os.path.join(
+                        get_package_share_directory("coppelia_ros2_pkg"),
+                        "launch/coppeliaSim.launch",
+                    )
                 ),
-                "coppelia_headless": "True",
-                "autoplay": "True",
-            }.items(),
-        )
-    ]
+                launch_arguments={
+                    "coppelia_scene_path": PathJoinSubstitution(
+                        [
+                            get_package_share_directory("test_env"),
+                            "scenarios",
+                            LaunchConfiguration("scenario").perform(context),
+                            "coppeliaScene.ttt",
+                        ]
+                    ),
+                    "coppelia_headless": "True",
+                    "autoplay": "True",
+                }.items(),
+            )
+        ]
+    elif simulator_mode == "BasicSim":
+        robot_simulator = [
+            Node(
+                package="basic_sim",
+                executable="basic_sim",
+                prefix = "xterm -hold -e",
+                parameters=[
+                    {"deltaTime": 0.1},
+                    {"speed": 1.0},
+                    {"worldFile": os.path.join(share_dir, "scenarios", LaunchConfiguration("scenario").perform(context), "BasicSimScene.yaml")}
+                    ],
+            )
+        ]
 
     gaden_player = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -142,7 +159,7 @@ def launch_setup(context, *args, **kwargs):
     namespaced_actions.extend(visualization_nodes)
     
     other_actions = [gaden_player]
-    other_actions.extend(coppelia_launch)
+    other_actions.extend(robot_simulator)
     other_actions.extend(anemometer)
     other_actions.extend(PID)
     other_actions.append(nav2_nodes)
