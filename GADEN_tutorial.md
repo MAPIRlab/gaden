@@ -108,20 +108,70 @@ Snapshot of the wind flow in the simulated environment
 
 Once the CFD simulation is finished, download the result data (in OpenFoam format) to your computer. Then open it with the OpenFOAM viewer, called ParaView. With this application, you can ensure that the wind flow results are correct (at least that they seem to be representative of the boundary conditions you established). It must be noticed that for most simulations neither all the cells are perfect cubes, nor they are equally sized. To solve this problem (in GADEN we need a perfect 3D grid with uniform cell sizes), we can apply in ParaView the “cell centers” filter, and then export the data to a CSV file. This file will be a list of points (x,y,z) with their corresponding wind conditions (u,v,w). This way we simplify the problem of non-uniform cell dimensions. As a tip, when applying the “centerCells” filter, ensure that you have selected the option “Vertex Cells” to be able to display the center of the cells as points in the Paraview visualization frame. Snapshot of the wind flows in our new environment after applying the cell_centers filter in ParaView.
 
-## 4. PreProcessing of GADEN Data
+## 4. Pre-processing of GADEN Data
 At this step, we have all the data we need to start the gas dispersal simulation, but we still need to get it to the right format for GADEN. That is, we need to turn the CAD models describing the environment (walls, furniture, etc) and the point cloud of wind flow vectors into 3D cubic grids of occupancy and wind, respectively. GADEN includes a node (the *gaden_preprocessing* node) that does this work for us. We will only need to provide this node with: 
 - The CAD models describing the environment (**part_1**) in .stl format. As described above, for the environment we can set up multiple CAD parts, making even more dynamic the simulations. Paths to the CAD models are specified as parameters “model_0” to “model_n” in the configuration file.
-- A separate CAD model (.stl) containing the shape and dimensions of the outlets considered in the environment. It is important to notice that GADEN requires this “outlet” CAD model to be able to “remove” the gases released in the environment. However, this is not mandatory, you may set up an environment where the gases just get trapped inside the environment.
+- A separate CAD model (.stl) containing the shape and dimensions of the outlets considered in the environment. These outlets are necessary for Gaden to be able to remove gas from the environment. However, this is not mandatory. You can set up an environment with no outlets, where the gases just get trapped inside the environment.
 - The coordinates of a 3D-point in the environment that we know falls in free-space (not inside of an obstacle). This is used to  differentiate free space (where gases will be dispersed) from the interior of obstacles.
-- The desired resolution of the gas simulation, that is, the cell size.
-- The path to the wind flow data that we got from ParaView. If you have different wind information for each time instant, the node expects you to name them [path]_i.csv, where [path] is the value of the “wind_files” parameter, and i is the instant. To execute this preprocessing phase, edit and run the launch file provided on every test environment called GADEN_preprocessing.launch. The expected results are:
+- The desired resolution of the gas simulation -- that is, the cell size.
+- The path to the wind flow data that we got from ParaView. If you have different wind information for each time instant, the node expects you to name them [path]_i.csv, where [path] is the value of the “wind_files” parameter, and i is the instant.
+
+ To execute this preprocessing phase, edit and run the launch file provided on every test environment called GADEN_preprocessing.launch. The expected results are:
 - A 3D occupancy grid file (OccupancyGrid3D.csv) where each cell can take the values (0=free, 1=occupied or 2=outlet). This 3D occupancy matrix is necessary for a proper simulation of the gas dispersion on later stages.
 - The wind vector (u,v,w) at each cell of the 3D grid, in the form of three files, for each time instant: *.csv_U, *.csv_V, *.csv_W.
 - A 2D occupancy map of the environment in the form of an image representing a 2D view of the environment (plane XY), useful for navigation purposes where a “map” of the environment is required (e.g. when using the map_server ROS pkg).
 
+Aditionally, the preprocessing node can generate some files to set up a robotic movement simulator so that it is easy to integrate with Gaden. By default, a yaml file describing a [BasicSim](https://github.com/PepeOjeda/BasicSim) scene will be generated alongside the occupancy map files. Optionally, you can choose to also generate a [Coppelia](https://github.com/MAPIRlab/utils/tree/ros2/Coppelia) scene compatible with Coppelia 4.5 by setting the `generateCoppeliaScene` parameter on the preprocessing node.
+
 <br>
 
 ## 5. GADEN
-Once we have the CAD models of the environment, the CFD wind flow simulations, and the Occupancy 3D map, we can start working with GADEN to obtain the desired gas dispersal simulations. For a description of the different packages and implemented functionalities, we refer the reader to the official article where GADEN was presented (link here).
+Once we have the CAD models of the environment, the CFD wind flow simulations, and the Occupancy 3D map, we can start working with GADEN to obtain the desired gas dispersal simulations. For a description of the different packages and implemented functionalities, we refer the reader to the official [article where GADEN was presented](https://www.mdpi.com/1424-8220/17/7/1479).
 
-Also, we have included in the GitHub repository a package called “test_env” with multiple test environments. For each one, we include the CAD models, wind flow simulations and the necessary GADEN launch files where all the parameters are described in detail.
+
+## 6. test_env
+Along with GADEN we also include in this repo a set of scenarios to help researchers to test and validate GADEN as well as their own algorithms (Gas Distribution Mapping, Gas Source Localization, etc.) in an easy way. To that end, the folder **test_env** contains multiple scenarios with pre-configured CAD models, wind-flow simulations and ROS-launch files that enable the user to easily start testing GADEN as well as their robotics solutions.
+
+Each scenario contains the following directories:
+
+* **cad_models**:
+This folder contains all the cad models that define the environment. For convenience, we include not only walls and objects, but also the "inner" volume, that is, the free space region where gas is released (useful for CFD).
+
+* **wind_simulations**:
+All the scenarios include at least the results of one CFD simulation to allow the user to directly start testing the scenario without having to worry about CFD. Notice that the repository only includes the "wind_at_cell_centers.csv" files, that is, the results of CFD after exporting the wind vectors to a CSV file. It is then necessary to run `gaden_preproc_launch.py` to re-format this raw data to the format required by GADEN.
+
+* **simulations**:
+YAML files that describe a specific gas dispersion simulation. They specify a source location, which of the available wind simulations to use, as well as other environmental and control parameters (temperature, pressure, length of the simulation, *etc.*). These files allow you to easily switch between different simulations by using a human-readable name, rather than constantly having to modify the launch file to specify the source position and other parameters.  
+
+* **params**:
+Paramaters for the launch files that are common to all simulations in that scenario, specified using ROS-style YAML. If you are using the scenarios included here, you will probably not need to modify these at all.
+ 
+Other than the scenarios, you will encounter the following directories:
+* **launch**:
+This folder includes the launch files for testing GADEN. Concretely, the files included are:
+
+    1. `gaden_preproc_launch.py`: A launch file in charge of loading the CAD models (.stl) and CFD wind data to generate the Occupancy3D grid map and format the wind flows to the cubic-grid format used in GADEN. This must be the first launch file to run as it is a pre-processing stage necessary for the simulation.
+
+    2. `gaden_sim_launch.py`: This launch file is the one responsible for running the gas dispersal simulation, saving the results to the designated folder (see params). This script represents the core of GADEN.
+
+    3. `gaden_player_launch.py`: This launch file is in charge of "playing back" a simulation by just reading the results from the previous phase and also providing different simulated gas/wind sensors. Its main utility is to visualize (RViz) the gas dispersal as a point cloud and to make the gas and wind data available in the ROS architecture to other packages.
+
+    4. `main_simbot_launch.py`: To illustrate the integration with ROS and *nav2*, this launch file set up the scenario, plays back the gas dispersal and introduces a mobile robot (equipped with different sensors) able to autonomous navigate the environment. This script can be used as a starting point for testing advanced MRO algorithms.
+
+You can pass any scenario/simulation pair you want to these files, like this:
+
+```
+ros2 launch test_env gaden_sim_launch.py scenario:=Exp_C simulation:=sim1
+```
+
+The idea is to make it so that you never need to duplicate the launch files only to modify some data, as the launch only specifies which nodes to run, and the data is contained in separate, simpler YAML files.
+
+* **navigation_config**:
+Contains all the nav2 configuration files used by `main_simbot_launch.py`, alongside some additional resources, like a robot URDF.
+
+### Robot simulation and navigation
+Gaden itself does not simulate robotic agents or their movement. For that, you must use a different tool, such as [BasicSim](https://github.com/PepeOjeda/BasicSim), [Stage](https://github.com/rtv/Stage), or [Coppelia](https://github.com/MAPIRlab/utils/tree/ros2/Coppelia) (or, indeed, any other simulator you happen to like). 
+
+However, as mentioned in the [preprocessing section](#4-pre-processing-of-gaden-data), some of these tools have support from the gaden nodes, making the setup a bit easier for you. If what you require is basic 2D movement, `BasicSim` is the recommended simulator.
+
+In order to use one of these simulators with the test environments you should set the `robotic_simulator` parameter in the `main_simbot_launch.py` launchfile to a valid key. See the file itself for the currently supported values.
