@@ -1,4 +1,4 @@
-# [GADEN]()
+# GADEN
 
 ## A 3D Gas Dispersion Simulator for ROS
 
