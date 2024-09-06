@@ -246,8 +246,7 @@ sim_obj::sim_obj(std::string filepath, bool load_wind_info, std::string occupanc
 
     if (!std::filesystem::exists(simulation_filename))
     {
-        GADEN_ERROR("Simulation folder does not exist: {}", simulation_filename.c_str());
-        raise(SIGTRAP);
+        GADEN_FATAL("Simulation folder does not exist: {}", simulation_filename.c_str());
     }
 }
 
@@ -581,13 +580,11 @@ void sim_obj::configure_environment()
     Gaden::ReadResult result = Gaden::readEnvFile(occupancyFile, environment);
     if (result == Gaden::ReadResult::NO_FILE)
     {
-        GADEN_ERROR("No occupancy file provided to Gaden-player node!");
-        raise(SIGTRAP);
+        GADEN_FATAL("No occupancy file provided to Gaden-player node!");
     }
     else if (result == Gaden::ReadResult::READING_FAILED)
     {
-        GADEN_ERROR("Something went wrong while parsing the file!");
-        raise(SIGTRAP);
+        GADEN_FATAL("Something went wrong while parsing the file!");
     }
 }
 

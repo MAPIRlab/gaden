@@ -16,6 +16,9 @@
 
 #define GADEN_ERROR(...) RCLCPP_ERROR(rclcpp::get_logger(GADEN_LOGGER_ID), fmt::format(__VA_ARGS__).c_str())
 
+#define GADEN_FATAL(...) RCLCPP_ERROR(rclcpp::get_logger(GADEN_LOGGER_ID), fmt::format(__VA_ARGS__).c_str()); \
+                         raise(SIGTRAP)
+
 #if GADEN_TRACING
 #define GADEN_TRACE(...) RCLCPP_INFO(rclcpp::get_logger(GADEN_LOGGER_ID"-Trace"), fmt::format(fmt::fg(fmt::terminal_color::green), __VA_ARGS__).c_str())
 #else
