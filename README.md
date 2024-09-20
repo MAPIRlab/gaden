@@ -29,7 +29,7 @@ Gaden 2 (this branch) supports only Humble, for now. You will likely run into co
 ## Installation
 Move to your colcon workspace and run
 
-`git clone --recursive git@github.com:MAPIRlab/gaden.git src/gaden`
+`git clone --recurse-submodules git@github.com:MAPIRlab/gaden.git src/gaden`
 
 It is important that you include the --recursive option, as the gaden repository includes submodules. if you already cloned in a non-recursive manner you can fix the problem by running 
 
