@@ -31,7 +31,7 @@ Move to your colcon workspace and run
 
 `git clone --recurse-submodules git@github.com:MAPIRlab/gaden.git src/gaden`
 
-It is important that you include the --recursive option, as the gaden repository includes submodules. if you already cloned in a non-recursive manner you can fix the problem by running 
+It is important that you include the `--recurse-submodules` option, as the gaden repository includes submodules. if you already cloned in a non-recursive manner you can fix the problem by running 
 
 `git submodule update --init --recursive`
 
