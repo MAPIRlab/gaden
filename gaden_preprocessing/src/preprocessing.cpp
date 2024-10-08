@@ -620,15 +620,17 @@ bool Gaden_preprocessing::isASCII(const std::string& filename)
     {
         // File exists!, keep going!
         char buffer[6];
-        fgets(buffer, 6, file);
+        if (fgets(buffer, 6, file) == nullptr)
+            GADEN_FATAL("Error when reading the STL file! '{}'", filename);
+
         if (std::string(buffer).find("solid") != std::string::npos)
             ascii = true;
         fclose(file);
     }
     else
     {
-        GADEN_ERROR("File {} does not exist\n", filename.c_str());
-        exit(0);
+        GADEN_ERROR("File '{}' does not exist\n", filename.c_str());
+        raise(SIGTRAP);
     }
     return ascii;
 }
@@ -877,7 +879,7 @@ void Gaden_preprocessing::generateOutput()
         GADEN_ERROR("Output folder '{}' does not exist!", outputFolder);
         return;
     }
-    
+
     GADEN_INFO_COLOR(fmt::terminal_color::blue, "Writing output to folder '{}'", outputFolder);
     printOccupancyMap(fmt::format("{}/occupancy.pgm", outputFolder), MAP_SCALE, getParam<bool>(shared_from_this(), "block_outlets", false));
     printOccupancyYaml(outputFolder);
