@@ -20,6 +20,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 
 find_package(geometry_msgs REQUIRED)
 find_package(gaden_player REQUIRED)
+find_package(gaden_msgs REQUIRED)
 find_package(gaden_common REQUIRED)
 
 
@@ -40,6 +41,7 @@ ament_target_dependencies(simulated_gas_sensor
     tf2_geometry_msgs
     gaden_player
     gaden_common
+    gaden_msgs
 ) 
 
 

@@ -3,9 +3,9 @@
 #include <std_msgs/msg/float32.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 
-#include <gaden_player/srv/gas_position.hpp>
-#include <gaden_player/srv/wind_position.hpp>
-#include <gaden_player/msg/gas_in_cell.hpp>
+#include <gaden_msgs/srv/gas_position.hpp>
+#include <gaden_msgs/srv/wind_position.hpp>
+#include <gaden_msgs/msg/gas_in_cell.hpp>
 
 #include <cstdlib>
 #include <math.h>
@@ -63,9 +63,9 @@ private:
     void load_all_data_from_logfiles(int sim_iteration);
     void display_current_gas_distribution();
 
-    gaden_player::msg::GasInCell get_all_gases_single_cell(float x, float y, float z, const std::vector<std::string>& gas_types);
-    bool get_gas_value_srv(gaden_player::srv::GasPosition::Request::SharedPtr req, gaden_player::srv::GasPosition::Response::SharedPtr res);
-    bool get_wind_value_srv(gaden_player::srv::WindPosition::Request::SharedPtr req, gaden_player::srv::WindPosition::Response::SharedPtr res);
+    gaden_msgs::msg::GasInCell get_all_gases_single_cell(float x, float y, float z, const std::vector<std::string>& gas_types);
+    bool get_gas_value_srv(gaden_msgs::srv::GasPosition::Request::SharedPtr req, gaden_msgs::srv::GasPosition::Response::SharedPtr res);
+    bool get_wind_value_srv(gaden_msgs::srv::WindPosition::Request::SharedPtr req, gaden_msgs::srv::WindPosition::Response::SharedPtr res);
 };
 
 // CLASS for every simulation to run. If two gas sources are needed, just create 2 instances!

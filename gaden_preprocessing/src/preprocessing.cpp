@@ -1,3 +1,4 @@
+#include <fmt/color.h>
 #include <gaden_preprocessing/Gaden_preprocessing.h>
 #include <gaden_preprocessing/TriangleBoxIntersection.h>
 
@@ -16,9 +17,9 @@
 #include <yaml-cpp/yaml.h>
 
 #ifdef GENERATE_COPPELIA_SCENE
-#define SIM_REMOTEAPICLIENT_OBJECTS
-#include "Gaden_preprocessing.h"
-#include <RemoteAPIClient.h>
+    #define SIM_REMOTEAPICLIENT_OBJECTS
+    #include "Gaden_preprocessing.h"
+    #include <RemoteAPIClient.h>
 #endif
 
 static constexpr float MAP_SCALE = 10;
@@ -80,7 +81,8 @@ void Gaden_preprocessing::parseMainModels()
     {
         RemoteAPIObject::sim sim = client.getObject().sim();
         sim.stopSimulation();
-        while (sim.getSimulationState() != sim.simulation_stopped);
+        while (sim.getSimulationState() != sim.simulation_stopped)
+            ;
         float floor_height = getParam<float>(shared_from_this(), "floor_height", 0.0);
         sim.setObjectPosition(sim.getObject("/ResizableFloorLarge"), sim.handle_world, {0, 0, floor_height});
         sim.announceSceneContentChange();
@@ -221,7 +223,11 @@ void Gaden_preprocessing::printOccupancyMap(std::string filename, int scale, boo
 
     float floor_height = getParam<float>(shared_from_this(), "floor_height", 0);
     int height = (floor_height - env_min_z) / cell_size; // a xy slice of the 3D environment is used as a geometric map for navigation
-
+    if (height >= env[0][0].size())
+    {
+        GADEN_ERROR("Cannot print the occupancy map at height {} -- the environment only gets to height {}", floor_height, env_max_z);
+        return;
+    }
     for (int row = env.size() - 1; row >= 0; row--)
     {
         for (int j = 0; j < scale; j++)
@@ -278,8 +284,7 @@ void Gaden_preprocessing::printBasicSimYaml(std::string outputFolder)
 
         float floor_height = getParam<float>(shared_from_this(), "floor_height", 0.0);
         std::vector<float> startingPoint{getParam<float>(shared_from_this(), "empty_point_x", 0),
-                                         getParam<float>(shared_from_this(), "empty_point_y", 0),
-                                         floor_height};
+                                         getParam<float>(shared_from_this(), "empty_point_y", 0), floor_height};
         yaml << YAML::Key << "position" << YAML::Value << YAML::Flow << startingPoint;
         yaml << YAML::Key << "angle" << YAML::Value << 0.0 << YAML::Comment("in radians");
         yaml << YAML::Key << "sensors" << YAML::BeginSeq;
@@ -572,7 +577,8 @@ void Gaden_preprocessing::parse(const std::string& filename, cell_state value_to
             // skipping lines here makes checking for the end of the file more convenient
             std::getline(infile, line);
             std::getline(infile, line);
-            while (std::getline(infile, line) && line.length() == 0);
+            while (std::getline(infile, line) && line.length() == 0)
+                ;
         }
         infile.close();
     }
@@ -640,7 +646,8 @@ void Gaden_preprocessing::findDimensions(const std::string& filename)
         int i = 0;
         while (line.find("endsolid") == std::string::npos)
         {
-            while (std::getline(infile, line) && line.find("outer loop") == std::string::npos);
+            while (std::getline(infile, line) && line.find("outer loop") == std::string::npos)
+                ;
 
             for (int j = 0; j < 3; j++)
             {
@@ -667,7 +674,8 @@ void Gaden_preprocessing::findDimensions(const std::string& filename)
             // skipping three lines here makes checking for the end of the file more convenient
             std::getline(infile, line);
             std::getline(infile, line);
-            while (std::getline(infile, line) && line.length() == 0);
+            while (std::getline(infile, line) && line.length() == 0)
+                ;
         }
         infile.close();
     }
@@ -864,6 +872,11 @@ void Gaden_preprocessing::clean()
 void Gaden_preprocessing::generateOutput()
 {
     std::string outputFolder = get_parameter_or<std::string>("output_path", "");
+    if (!std::filesystem::exists(outputFolder))
+    {
+        GADEN_ERROR("Output folder '{}' does not exist!", outputFolder);
+    }
+    GADEN_INFO_COLOR(fmt::terminal_color::blue, "Writing output to folder '{}'", outputFolder);
     printOccupancyMap(fmt::format("{}/occupancy.pgm", outputFolder), MAP_SCALE, getParam<bool>(shared_from_this(), "block_outlets", false));
     printOccupancyYaml(outputFolder);
 

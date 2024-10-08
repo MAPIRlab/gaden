@@ -29,7 +29,7 @@ Player::Player() : rclcpp::Node("gaden_player")
 
 //--------------- SERVICES CALLBACKS----------------------//
 
-gaden_player::msg::GasInCell Player::get_all_gases_single_cell(float x, float y, float z, const std::vector<std::string>& gas_types)
+gaden_msgs::msg::GasInCell Player::get_all_gases_single_cell(float x, float y, float z, const std::vector<std::string>& gas_types)
 {
     std::vector<double> srv_response_gas_concs(num_simulators);
     std::map<std::string, double> concentrationByGasType;
@@ -41,7 +41,7 @@ gaden_player::msg::GasInCell Player::get_all_gases_single_cell(float x, float y,
         concentrationByGasType[player_instances[i].gas_type] += player_instances[i].get_gas_concentration(x, y, z);
 
     // Configure Response
-    gaden_player::msg::GasInCell response;
+    gaden_msgs::msg::GasInCell response;
     for (int i = 0; i < gas_types.size(); i++)
     {
         response.concentration.push_back(concentrationByGasType[gas_types[i]]);
@@ -49,7 +49,7 @@ gaden_player::msg::GasInCell Player::get_all_gases_single_cell(float x, float y,
     return response;
 }
 
-bool Player::get_gas_value_srv(gaden_player::srv::GasPosition::Request::SharedPtr req, gaden_player::srv::GasPosition::Response::SharedPtr res)
+bool Player::get_gas_value_srv(gaden_msgs::srv::GasPosition::Request::SharedPtr req, gaden_msgs::srv::GasPosition::Response::SharedPtr res)
 {
     std::set<std::string> gas_types;
 
@@ -65,7 +65,7 @@ bool Player::get_gas_value_srv(gaden_player::srv::GasPosition::Request::SharedPt
     return true;
 }
 
-bool Player::get_wind_value_srv(gaden_player::srv::WindPosition::Request::SharedPtr req, gaden_player::srv::WindPosition::Response::SharedPtr res)
+bool Player::get_wind_value_srv(gaden_msgs::srv::WindPosition::Request::SharedPtr req, gaden_msgs::srv::WindPosition::Response::SharedPtr res)
 {
     // Since the wind fields are identical among different instances, return just the information from instance[0]
     for (int i = 0; i < req->x.size(); i++)
@@ -105,9 +105,9 @@ void Player::run()
     mkr_gas_points.pose.orientation.w = 1.0;
 
     // Services offered
-    auto serviceGas = create_service<gaden_player::srv::GasPosition>(
+    auto serviceGas = create_service<gaden_msgs::srv::GasPosition>(
         "odor_value", std::bind(&Player::get_gas_value_srv, this, std::placeholders::_1, std::placeholders::_2));
-    auto serviceWind = create_service<gaden_player::srv::WindPosition>(
+    auto serviceWind = create_service<gaden_msgs::srv::WindPosition>(
         "wind_value", std::bind(&Player::get_wind_value_srv, this, std::placeholders::_1, std::placeholders::_2));
 
     // Publishers

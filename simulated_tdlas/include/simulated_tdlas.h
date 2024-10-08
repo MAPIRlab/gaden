@@ -7,8 +7,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 
-#include <gaden_environment/srv/occupancy.hpp>
-#include <gaden_player/srv/gas_position.hpp>
+#include <gaden_msgs/srv/occupancy.hpp>
+#include <gaden_msgs/srv/gas_position.hpp>
 #include <olfaction_msgs/msg/tdlas.hpp>
 
 #include <gaden_common/third_party/DDA/DDA.h>
@@ -30,8 +30,8 @@ private:
 
     rclcpp::Publisher<olfaction_msgs::msg::TDLAS>::SharedPtr m_readingsPub{nullptr};
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr m_markerPub{nullptr};
-    rclcpp::Client<gaden_player::srv::GasPosition>::SharedPtr m_playerClient{nullptr};
-    rclcpp::Subscription<gaden_environment::srv::Occupancy>::SharedPtr m_mapSubscriber{nullptr};
+    rclcpp::Client<gaden_msgs::srv::GasPosition>::SharedPtr m_playerClient{nullptr};
+    rclcpp::Subscription<gaden_msgs::srv::Occupancy>::SharedPtr m_mapSubscriber{nullptr};
 
     bool m_verbose;
     std::string m_fixedFrame;

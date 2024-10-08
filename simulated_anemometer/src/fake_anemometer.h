@@ -9,7 +9,7 @@
 
 #include <visualization_msgs/msg/marker.hpp>
 #include <olfaction_msgs/msg/anemometer.hpp>
-#include <gaden_player/srv/wind_position.hpp>
+#include <gaden_msgs/srv/wind_position.hpp>
 
 #include <cstdlib>
 #include <math.h>

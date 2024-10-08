@@ -36,7 +36,7 @@ void SimulatedAnemometer::run()
     auto marker_pub = create_publisher<visualization_msgs::msg::Marker>(fmt::format("{}/{}", get_fully_qualified_name(), "WindSensor_display"), 100);
 
     // Service to request wind values to simulator
-    auto playerClient = create_client<gaden_player::srv::WindPosition>("/wind_value");
+    auto playerClient = create_client<gaden_msgs::srv::WindPosition>("/wind_value");
 
     // Init Visualization data (marker)
     //----------------------------------------------------------------
@@ -116,7 +116,7 @@ void SimulatedAnemometer::run()
         {
             // Get Wind vectors (u,v,w) at current position
             // Service request to the simulator
-            auto request = std::make_shared<gaden_player::srv::WindPosition::Request>();
+            auto request = std::make_shared<gaden_msgs::srv::WindPosition::Request>();
             request->x.push_back(anemometer_transform_map.transform.translation.x);
             request->y.push_back(anemometer_transform_map.transform.translation.y);
             request->z.push_back(anemometer_transform_map.transform.translation.z);

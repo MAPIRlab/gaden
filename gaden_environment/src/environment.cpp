@@ -40,7 +40,7 @@ void Environment::run()
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr environmnet_cad_pub =
         create_publisher<visualization_msgs::msg::MarkerArray>("environment_cad_visualization", 100);
 
-    auto occupancyMapService = create_service<gaden_environment::srv::Occupancy>("gaden_environment/occupancyMap3D",
+    auto occupancyMapService = create_service<gaden_msgs::srv::Occupancy>("gaden_environment/occupancyMap3D",
                                                                                  std::bind(&Environment::occupancyMapServiceCB, this, _1, _2));
     // Subscribers
     preprocessing_done = false;

@@ -29,7 +29,7 @@ TDLAS::TDLAS() : rclcpp::Node("Simulated_tdlas")
 
     m_readingsPub = create_publisher<olfaction_msgs::msg::TDLAS>("tdlas/reading", 100);
     m_markerPub = create_publisher<visualization_msgs::msg::Marker>("tdlas/arrow", 100);
-    m_playerClient = create_client<gaden_player::srv::GasPosition>("/odor_value");
+    m_playerClient = create_client<gaden_msgs::srv::GasPosition>("/odor_value");
 
     std::string reflectorLocTopic = declare_parameter<std::string>("reflectorLocTopic", "/reflector/amcl_pose");
     m_reflectorLocSub = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
@@ -63,13 +63,13 @@ void TDLAS::run()
 void TDLAS::getEnvironment()
 {
 
-    gaden_environment::srv::Occupancy::Response::SharedPtr response{nullptr};
+    gaden_msgs::srv::Occupancy::Response::SharedPtr response{nullptr};
     {
-        auto client = create_client<gaden_environment::srv::Occupancy>("/gaden_environment/occupancyMap3D");
+        auto client = create_client<gaden_msgs::srv::Occupancy>("/gaden_environment/occupancyMap3D");
         while (rclcpp::ok() && !client->wait_for_service(5s))
             RCLCPP_INFO(get_logger(), "WAITING FOR GADEN_ENVIRONMENT/OCCUPANCY SERVICE");
 
-        auto request = std::make_shared<gaden_environment::srv::Occupancy::Request>();
+        auto request = std::make_shared<gaden_msgs::srv::Occupancy::Request>();
         rclcpp::Rate wait_rate(1);
         bool done = false;
         while (!done)
@@ -176,7 +176,7 @@ double TDLAS::takeMeasurement()
         m_endPointLastMeasurement = rayOrigin;
 
     // Actually get the measurement
-    auto request = std::make_shared<gaden_player::srv::GasPosition::Request>();
+    auto request = std::make_shared<gaden_msgs::srv::GasPosition::Request>();
     for (const auto& pair : rayData.lengthInCell)
     {
         Gaden::Vector3 coords = Gaden::Vector3(pair.first) * m_rayMarchResolution + m_mapOrigin;
