@@ -875,7 +875,9 @@ void Gaden_preprocessing::generateOutput()
     if (!std::filesystem::exists(outputFolder))
     {
         GADEN_ERROR("Output folder '{}' does not exist!", outputFolder);
+        return;
     }
+    
     GADEN_INFO_COLOR(fmt::terminal_color::blue, "Writing output to folder '{}'", outputFolder);
     printOccupancyMap(fmt::format("{}/occupancy.pgm", outputFolder), MAP_SCALE, getParam<bool>(shared_from_this(), "block_outlets", false));
     printOccupancyYaml(outputFolder);
