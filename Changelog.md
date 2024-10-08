@@ -1,3 +1,7 @@
+## 2.6.0
+### Major changes
+- Moved message definitions to a separate package for better IDE support (it's a better way to organize things anyways). If you used any of the gaden services in your own node, you now need to use the `gaden_msgs` package.
+
 ## 2.5.0
 ### Major changes
 - Added support for [BasicSim](https://github.com/PepeOjeda/BasicSim). The preprocessing node now automatically generates a valid BasicSim scene yaml, and the main_simbot launchfile has an argument to let you select BasicSim as the robotic simulator.

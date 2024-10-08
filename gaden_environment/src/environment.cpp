@@ -334,8 +334,8 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray& env_mark
     }
 }
 
-bool Environment::occupancyMapServiceCB(gaden_environment::srv::Occupancy_Request::SharedPtr request,
-                                        gaden_environment::srv::Occupancy_Response::SharedPtr response)
+bool Environment::occupancyMapServiceCB(gaden_msgs::srv::Occupancy_Request::SharedPtr request,
+                                        gaden_msgs::srv::Occupancy_Response::SharedPtr response)
 {
     response->origin.x = environment.description.min_coord.x;
     response->origin.y = environment.description.min_coord.y;

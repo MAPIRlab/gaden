@@ -10,7 +10,6 @@
 #include <iostream>
 #include <queue>
 #include <sstream>
-#include <stack>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string>

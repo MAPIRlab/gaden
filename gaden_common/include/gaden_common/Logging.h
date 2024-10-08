@@ -9,18 +9,18 @@
 #include <fmt/color.h>
 
 
-#define GADEN_INFO(...) RCLCPP_INFO(rclcpp::get_logger(GADEN_LOGGER_ID), fmt::format(__VA_ARGS__).c_str())
-#define GADEN_INFO_COLOR(color,...) RCLCPP_INFO(rclcpp::get_logger(GADEN_LOGGER_ID), fmt::format(fmt::fg(color),__VA_ARGS__).c_str())
+#define GADEN_INFO(...) RCLCPP_INFO(rclcpp::get_logger(GADEN_LOGGER_ID), "%s", fmt::format(__VA_ARGS__).c_str())
+#define GADEN_INFO_COLOR(color,...) RCLCPP_INFO(rclcpp::get_logger(GADEN_LOGGER_ID), "%s", fmt::format(fmt::fg(color),__VA_ARGS__).c_str())
 
-#define GADEN_WARN(...) RCLCPP_WARN(rclcpp::get_logger(GADEN_LOGGER_ID), fmt::format(__VA_ARGS__).c_str())
+#define GADEN_WARN(...) RCLCPP_WARN(rclcpp::get_logger(GADEN_LOGGER_ID), "%s", fmt::format(__VA_ARGS__).c_str())
 
-#define GADEN_ERROR(...) RCLCPP_ERROR(rclcpp::get_logger(GADEN_LOGGER_ID), fmt::format(__VA_ARGS__).c_str())
+#define GADEN_ERROR(...) RCLCPP_ERROR(rclcpp::get_logger(GADEN_LOGGER_ID), "%s", fmt::format(__VA_ARGS__).c_str())
 
-#define GADEN_FATAL(...) RCLCPP_ERROR(rclcpp::get_logger(GADEN_LOGGER_ID), fmt::format(__VA_ARGS__).c_str()); \
+#define GADEN_FATAL(...) RCLCPP_ERROR(rclcpp::get_logger(GADEN_LOGGER_ID), "%s", fmt::format(__VA_ARGS__).c_str()); \
                          raise(SIGTRAP)
 
 #if GADEN_TRACING
-#define GADEN_TRACE(...) RCLCPP_INFO(rclcpp::get_logger(GADEN_LOGGER_ID"-Trace"), fmt::format(fmt::fg(fmt::terminal_color::green), __VA_ARGS__).c_str())
+#define GADEN_TRACE(...) RCLCPP_INFO(rclcpp::get_logger(GADEN_LOGGER_ID"-Trace"),"%s", fmt::format(fmt::fg(fmt::terminal_color::green), __VA_ARGS__).c_str())
 #else
 #define GADEN_TRACE(...)
 #endif

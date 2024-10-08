@@ -11,39 +11,16 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(gaden_common REQUIRED)
+find_package(gaden_msgs REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS iostreams)
-
-find_package(rosidl_default_generators REQUIRED)
-rosidl_generate_interfaces(${PROJECT_NAME}
-    msg/GasInCell.msg
-    srv/GasPosition.srv
-    srv/WindPosition.srv
-    DEPENDENCIES std_msgs
-)
-ament_export_dependencies(rosidl_default_runtime)
 
 include_directories(include)
 
 FILE(GLOB_RECURSE MYFILES_CPP "src/*.cpp")
 add_executable(player  ${MYFILES_CPP})
-
-
-
-
-
-# dependency for self-defined messages
-if("${ROS_DISTRO}" STREQUAL "foxy")
-  rosidl_target_interfaces(player
-    ${PROJECT_NAME} "rosidl_typesupport_cpp")
-else()
-  rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
-  target_link_libraries(player "${cpp_typesupport_target}") 
-endif()
-
 
 
 ament_target_dependencies(player
@@ -52,6 +29,7 @@ ament_target_dependencies(player
     visualization_msgs
     Boost
     gaden_common
+    gaden_msgs
 ) 
 target_link_libraries(player fmt)
 

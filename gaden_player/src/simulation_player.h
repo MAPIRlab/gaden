@@ -9,11 +9,8 @@
 
 #include <cstdlib>
 #include <math.h>
-#include <stdio.h>
 #include <vector>
-#include <fstream>
 #include <string>
-#include <time.h>
 #include <map>
 
 #include <boost/iostreams/filter/zlib.hpp>
