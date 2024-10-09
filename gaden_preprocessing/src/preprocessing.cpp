@@ -257,7 +257,7 @@ void Gaden_preprocessing::printOccupancyYaml(std::string outputFolder)
     yaml << YAML::Key << "resolution" << YAML::Value << cell_size / MAP_SCALE;
 
     float floor_height = getParam<float>(shared_from_this(), "floor_height", 0.0);
-    yaml << YAML::Key << "origin" << YAML::Value << YAML::Flow << std::vector<float>{env_min_x, env_min_y, floor_height};
+    yaml << YAML::Key << "origin" << YAML::Value << YAML::Flow << std::vector<float>{env_min_x, env_min_y, 0.0}; //the third component is yaw, not Z!
     yaml << YAML::Key << "occupied_thresh" << YAML::Value << 0.9;
     yaml << YAML::Key << "free_thresh" << YAML::Value << 0.1;
     yaml << YAML::Key << "negate" << YAML::Value << 0;
@@ -620,8 +620,7 @@ bool Gaden_preprocessing::isASCII(const std::string& filename)
     {
         // File exists!, keep going!
         char buffer[6];
-        if (fgets(buffer, 6, file) == nullptr)
-            GADEN_FATAL("Error when reading the STL file! '{}'", filename);
+        char* result = fgets(buffer, 6, file);
 
         if (std::string(buffer).find("solid") != std::string::npos)
             ascii = true;
