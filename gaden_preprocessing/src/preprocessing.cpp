@@ -18,7 +18,7 @@
 
 #ifdef GENERATE_COPPELIA_SCENE
     #define SIM_REMOTEAPICLIENT_OBJECTS
-    #include "Gaden_preprocessing.h"
+    #include "gaden_preprocessing/Gaden_preprocessing.h"
     #include <RemoteAPIClient.h>
 #endif
 
