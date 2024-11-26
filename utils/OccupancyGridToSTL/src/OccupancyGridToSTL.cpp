@@ -1,7 +1,7 @@
-#include <gaden_common/ReadEnvironment.h>
-#include <spdlog/spdlog.h>
 #include <fmt/format.h>
 #include <fstream>
+#include <gaden_common/ReadEnvironment.h>
+#include <spdlog/spdlog.h>
 
 struct Triangle
 {
@@ -12,8 +12,11 @@ struct Triangle
 int main(int argc, char** argv)
 {
     if (argc < 3 || argc > 5)
+    {
         spdlog::error("Wrong number of arguments. Correct format is:\n"
                       "OccupancyGridToSTL <input path> <output path> [(bool) innerVolume = true] [(bool) ascii = false]");
+        return -1;
+    }
 
     Gaden::Environment environment;
     Gaden::ReadResult result = Gaden::readEnvFile(argv[1], environment);
