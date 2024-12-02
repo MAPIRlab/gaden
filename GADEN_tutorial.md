@@ -109,16 +109,48 @@ Snapshot of the wind flow in the simulated environment
 Once the CFD simulation is finished, download the result data (in OpenFoam format) to your computer. Then open it with the OpenFOAM viewer, called ParaView. With this application, you can ensure that the wind flow results are correct (at least that they seem to be representative of the boundary conditions you established). It must be noticed that for most simulations neither all the cells are perfect cubes, nor they are equally sized. To solve this problem (in GADEN we need a perfect 3D grid with uniform cell sizes), we can apply in ParaView the “cell centers” filter, and then export the data to a CSV file. This file will be a list of points (x,y,z) with their corresponding wind conditions (u,v,w). This way we simplify the problem of non-uniform cell dimensions. As a tip, when applying the “centerCells” filter, ensure that you have selected the option “Vertex Cells” to be able to display the center of the cells as points in the Paraview visualization frame. Snapshot of the wind flows in our new environment after applying the cell_centers filter in ParaView.
 
 ## 4. Pre-processing of GADEN Data
-At this step, we have all the data we need to start the gas dispersal simulation, but we still need to get it to the right format for GADEN. That is, we need to turn the CAD models describing the environment (walls, furniture, etc) and the point cloud of wind flow vectors into 3D cubic grids of occupancy and wind, respectively. GADEN includes a node (the *gaden_preprocessing* node) that does this work for us. We will only need to provide this node with: 
-- The CAD models describing the environment (**part_1**) in .stl format. As described above, for the environment we can set up multiple CAD parts, making even more dynamic the simulations. Paths to the CAD models are specified as parameters “model_0” to “model_n” in the configuration file.
+At this step, we have all the data we need to start the gas dispersal simulation, but we still need to get it to the right format for GADEN. That is, we need to turn the CAD models describing the environment (walls, furniture, etc) and the point cloud of wind flow vectors into 3D cubic grids of occupancy and wind, respectively. GADEN includes a node (the *gaden_preprocessing* node) that does this work for us. 
+
+You can find examples of how to configure this node in the [test_env](test_env) folder. In each scenario sub-folder, you will find a [preproc_params.yaml](test_env/scenarios/10x6_central_obstacle/params/preproc_params.yaml), which is used to specify the information the preprocessing node requires: 
+
+- The CAD models describing the environment (**part_1**) in .stl format. Paths to the CAD models are specified through parameter “models”in the configuration file:
+
+```yaml
+models: 
+    - ".../cad_models/10x6_walls.stl"
+    - ".../cad_models/10x6_maze_obj_1.stl"
+    - ".../cad_models/10x6_maze_obj_2.stl"
+```
+
 - A separate CAD model (.stl) containing the shape and dimensions of the outlets considered in the environment. These outlets are necessary for Gaden to be able to remove gas from the environment. However, this is not mandatory. You can set up an environment with no outlets, where the gases just get trapped inside the environment.
+```yaml
+outlets_models: 
+    - ".../cad_models/outlet1.stl"
+    - ".../cad_models/outlet2.stl"
+```
 - The coordinates of a 3D-point in the environment that we know falls in free-space (not inside of an obstacle). This is used to  differentiate free space (where gases will be dispersed) from the interior of obstacles.
+
+```yaml
+# 3D Location of a point in free-space
+empty_point_x: 1.0      ### (m)
+empty_point_y: 1.0      ### (m)
+empty_point_z: 0.5      ### (m)
+```
 - The desired resolution of the gas simulation -- that is, the cell size.
+```yaml
+cell_size: 0.1
+```
 - The path to the wind flow data that we got from ParaView. If you have different wind information for each time instant, the node expects you to name them [path]_i.csv, where [path] is the value of the “wind_files” parameter, and i is the instant.
 
- To execute this preprocessing phase, edit and run the launch file provided on every test environment called GADEN_preprocessing.launch. The expected results are:
-- A 3D occupancy grid file (OccupancyGrid3D.csv) where each cell can take the values (0=free, 1=occupied or 2=outlet). This 3D occupancy matrix is necessary for a proper simulation of the gas dispersion on later stages.
-- The wind vector (u,v,w) at each cell of the 3D grid, in the form of three files, for each time instant: *.csv_U, *.csv_V, *.csv_W.
+```yaml
+wind_files: "$(var pkg_dir)/scenarios/$(var scenario)/wind_simulations/$(var wind_sim_path)"
+```
+
+As you can see in this last example, the values for these parameters support [ROS2 substitutions](https://docs.ros.org/en/humble/Tutorials/Intermediate/Launch/Using-Substitutions.html), to avoid having to hard-code or repeat things like the path where the package is installed. These substitution variables will be provided by the launch file.
+
+To execute this preprocessing phase, run the launch file provided on every test environment called `gaden_preproc_launch.py`. The expected results are:
+- A 3D occupancy grid file (OccupancyGrid3D.csv) where each cell can take the values (`0=free`, `1=occupied` or `2=outlet`). This 3D occupancy matrix is necessary for a proper simulation of the gas dispersion on later stages.
+- The wind vector `(u,v,w)` at each cell of the 3D grid, in the form of three files, for each time instant: `*_U`, `*_V`, `*_W`.
 - A 2D occupancy map of the environment in the form of an image representing a 2D view of the environment (plane XY), useful for navigation purposes where a “map” of the environment is required (e.g. when using the map_server ROS pkg).
 
 Aditionally, the preprocessing node can generate some files to set up a robotic movement simulator so that it is easy to integrate with Gaden. By default, a yaml file describing a [BasicSim](https://github.com/PepeOjeda/BasicSim) scene will be generated alongside the occupancy map files. Optionally, you can choose to also generate a [Coppelia](https://github.com/MAPIRlab/utils/tree/ros2/Coppelia) scene compatible with Coppelia 4.5 by setting the `generateCoppeliaScene` parameter on the preprocessing node.
