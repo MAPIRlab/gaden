@@ -1,10 +1,10 @@
 
 #include "fake_anemometer.h"
 
+#include <fmt/format.h>
+#include <random>
 #include <stdlib.h> /* srand, rand */
 #include <time.h>
-#include <random>
-#include <fmt/format.h>
 
 typedef std::normal_distribution<double> NormalDistribution;
 typedef std::mt19937 RandomGenerator;
@@ -125,7 +125,7 @@ void SimulatedAnemometer::run()
             olfaction_msgs::msg::Anemometer anemo_msg;
 
             auto result = playerClient->async_send_request(request);
-            if (rclcpp::spin_until_future_complete(shared_this, result) == rclcpp::FutureReturnCode::SUCCESS)
+            if (rclcpp::spin_until_future_complete(shared_this, result, std::chrono::seconds(1)) == rclcpp::FutureReturnCode::SUCCESS)
             {
                 auto response = result.get();
 
@@ -237,16 +237,10 @@ void SimulatedAnemometer::run()
                 wind_point_inv.color.b = 0.0;
                 wind_point_inv.color.a = 1.0;
                 marker_pub->publish(wind_point_inv);
-
-                notified = false;
             }
             else
             {
-                if (!notified)
-                {
-                    RCLCPP_WARN(get_logger(), "[fake_anemometer] Cannot read Wind Vector from simulated data.");
-                    notified = true;
-                }
+                RCLCPP_WARN(get_logger(), "[fake_anemometer] Cannot read Wind Vector from simulated data.");
             }
 
             // Publish RVIZ sensor pose (a sphere)

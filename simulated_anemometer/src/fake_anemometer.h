@@ -13,9 +13,6 @@
 
 #include <cstdlib>
 #include <math.h>
-#include <vector>
-#include <fstream>
-#include <iostream>
 
 class SimulatedAnemometer : public rclcpp::Node
 {
@@ -33,7 +30,6 @@ private:
 
     // Vars
     bool first_reading = true;
-    bool notified = false;
 
     // functions:
     void loadNodeParameters();
