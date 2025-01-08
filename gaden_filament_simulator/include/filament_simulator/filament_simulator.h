@@ -8,9 +8,6 @@
 
 #include <omp.h>
 #include <stdlib.h> /* srand, rand */
-#include <iostream>
-#include <fstream>
-#include <random>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/thread/mutex.hpp>
@@ -27,8 +24,6 @@ public:
     ~CFilamentSimulator();
     void add_new_filaments(double radius_arround_source);
     void read_wind_snapshot(int idx);
-    void update_gas_concentration_from_filaments();
-    void update_gas_concentration_from_filament(int fil_i);
     void update_filaments_location();
     void update_filament_location(int i);
     void publish_markers();
@@ -99,8 +94,8 @@ private:
     void configure3DMatrix(std::vector<uint8_t>& A);
 
     void read_3D_file(std::string filename, std::vector<double>& A, bool binary);
-    int check_pose_with_environment(double pose_x, double pose_y, double pose_z);
-    bool check_environment_for_obstacle(double start_x, double start_y, double start_z, double end_x, double end_y, double end_z);
+    Gaden::CellState check_pose_with_environment(double pose_x, double pose_y, double pose_z);
+    Gaden::CellState moveFilament(CFilament& filament, double end_x, double end_y, double end_z);
     double random_number(double min_val, double max_val);
     void preprocessingCB(const std_msgs::msg::Bool::SharedPtr b);
 

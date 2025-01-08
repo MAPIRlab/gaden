@@ -1,11 +1,11 @@
 #pragma once
-#include <vector>
-#include <string>
-#include <stdint.h>
+#include "GadenVersion.h"
+#include "Vector3.h"
 #include <fstream>
 #include <sstream>
-#include "Vector3.h"
-#include "GadenVersion.h"
+#include <stdint.h>
+#include <string>
+#include <vector>
 
 namespace Gaden
 {
@@ -14,24 +14,26 @@ namespace Gaden
         return index.x + index.y * num_cells_env.x + index.z * num_cells_env.x * num_cells_env.y;
     }
 
-    enum CellState : uint8_t
+    enum class CellState : uint8_t
     {
-        Free = 0,
-        Obstacle = 1,
-        Outlet = 2
+        Free = 0,       // cell is empty, gas can be here
+        Obstacle = 1,   // cell is occupied by an obstacle, no filaments can go through it
+        Outlet = 2,     // if a filament enters this cell it is removed from the simulation
+        OutOfBounds = 3 // invalid cell, position is out of the map bounds
     };
 
     struct Environment
     {
-		int versionMajor = GADEN_VERSION_MAJOR, versionMinor = GADEN_VERSION_MINOR; //version of gaden used to generate a log file. Used to figure out how to parse the binary format
-		struct Description
-		{
-			Vector3i num_cells;
-			Vector3 min_coord; //[m]
-			Vector3 max_coord; //[m]
-			float cell_size;   //[m]
-		};
-		Description description;
+        int versionMajor = GADEN_VERSION_MAJOR,
+            versionMinor = GADEN_VERSION_MINOR; // version of gaden used to generate a log file. Used to figure out how to parse the binary format
+        struct Description
+        {
+            Vector3i num_cells;
+            Vector3 min_coord; //[m]
+            Vector3 max_coord; //[m]
+            float cell_size;   //[m]
+        };
+        Description description;
 
         std::vector<uint8_t> Env;
 

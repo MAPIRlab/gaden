@@ -14,9 +14,9 @@
 CFilament::CFilament()
 {
     // Create a new filament!
-    pose_x = 0.0; //[m] Filament center pose
-    pose_y = 0.0; //[m] Filament center pose
-    pose_z = 0.0; //[m] Filament center pose
+    pose.x = 0.0; //[m] Filament center pose
+    pose.y = 0.0; //[m] Filament center pose
+    pose.z = 0.0; //[m] Filament center pose
     sigma = 0.01; //[cm] The sigma of a 3D gaussian (controlls the shape of the filament)
     birth_time = 0.0;
     valid = false;
@@ -26,9 +26,9 @@ CFilament::CFilament()
 CFilament::CFilament(double x, double y, double z, double sigma_filament)
 {
     // Create a new filament!
-    pose_x = x;             //[m] Filament center pose
-    pose_y = y;             //[m] Filament center pose
-    pose_z = z;             //[m] Filament center pose
+    pose.x = x;             //[m] Filament center pose
+    pose.y = y;             //[m] Filament center pose
+    pose.z = z;             //[m] Filament center pose
     sigma = sigma_filament; //[cm] The sigma of a 3D gaussian (controlls the shape of the filament)
     birth_time = 0.0;
     valid = false;
@@ -41,9 +41,9 @@ CFilament::~CFilament()
 void CFilament::activate_filament(double x, double y, double z, double birth)
 {
     // Active the filament at given location
-    pose_x = x;
-    pose_y = y;
-    pose_z = z;
+    pose.x = x;
+    pose.y = y;
+    pose.z = z;
     birth_time = birth;
     valid = true;
 }

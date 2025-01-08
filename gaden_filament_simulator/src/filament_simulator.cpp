@@ -28,8 +28,13 @@
  ---------------------------------------------------------------------------------------*/
 
 #include "filament_simulator/filament_simulator.h"
+#include "filament_simulator/filament.h"
+#include "gaden_common/ReadEnvironment.h"
+#include "gaden_common/Vector3.h"
+#include <random>
 #define GADEN_LOGGER_ID "FilamentSimulator"
 #include <gaden_common/Logging.h>
+#include <gaden_common/Time.hpp>
 
 //==========================//
 //      Constructor         //
@@ -126,8 +131,7 @@ CFilamentSimulator::CFilamentSimulator() : rclcpp::Node("Gaden_filament_simulato
 }
 
 CFilamentSimulator::~CFilamentSimulator()
-{
-}
+{}
 
 //==============================//
 //      GADEN_preprocessing CB  //
@@ -142,7 +146,6 @@ void CFilamentSimulator::preprocessingCB(const std_msgs::msg::Bool::SharedPtr b)
 //==========================//
 void CFilamentSimulator::loadNodeParameters()
 {
-
     // Verbose
     verbose = declare_parameter<bool>("verbose", false);
 
@@ -277,11 +280,11 @@ void CFilamentSimulator::initSimulator()
 
         if (verbose)
             GADEN_INFO("Env dimensions ({:.2f},{:.2f},{:.2f}) to ({:.2f},{:.2f},{:.2f})", environment.description.min_coord.x,
-                        environment.description.min_coord.y, environment.description.min_coord.z, environment.description.max_coord.x,
-                        environment.description.max_coord.y, environment.description.max_coord.z);
+                       environment.description.min_coord.y, environment.description.min_coord.z, environment.description.max_coord.x,
+                       environment.description.max_coord.y, environment.description.max_coord.z);
         if (verbose)
             GADEN_INFO("Env size in cells	 ({},{},{}) - with cell size {} [m]", environment.description.num_cells.x,
-                        environment.description.num_cells.y, environment.description.num_cells.z, environment.description.cell_size);
+                       environment.description.num_cells.y, environment.description.num_cells.z, environment.description.cell_size);
 
         // Reserve memory for the 3D matrices: U,V,W,C and Env, according to provided num_cells of the environment.
         // It also init them to 0.0 values
@@ -484,7 +487,7 @@ void CFilamentSimulator::add_new_filaments(double radius_arround_source)
             x = gas_source_pos.x + random_number(-1, 1) * radius_arround_source;
             y = gas_source_pos.y + random_number(-1, 1) * radius_arround_source;
             z = gas_source_pos.z + random_number(-1, 1) * radius_arround_source;
-        } while (check_pose_with_environment(x, y, z) != 0);
+        } while (check_pose_with_environment(x, y, z) != Gaden::CellState::Free);
 
         /*Instead of adding new filaments to the filaments vector on each iteration (push_back)
           we had initially resized the filaments vector to the max number of filaments (numSteps*numFilaments_step)
@@ -493,191 +496,63 @@ void CFilamentSimulator::add_new_filaments(double radius_arround_source)
     }
 }
 
-// Here we estimate the gas concentration on each cell of the 3D env
-// based on the active filaments and their 3DGaussian shapes
-// For that we employ Farrell's Concentration Eq
-void CFilamentSimulator::update_gas_concentration_from_filament(int fil_i)
-{
-    // We run over all the active filaments, and update the gas concentration of the cells that are close to them.
-    // Ideally a filament spreads over the entire environment, but in practice since filaments are modeled as 3Dgaussians
-    // We can stablish a cutt_off raduis of 3*sigma.
-    // To avoid resolution problems, we evaluate each filament according to the minimum between:
-    // the env_cell_size and filament_sigma. This way we ensure a filament is always well evaluated (not only one point).
-
-    double grid_size_m = std::min((double)environment.description.cell_size, (filaments[fil_i].sigma / 100)); //[m] grid size to evaluate the filament
-    // Compute at which increments the Filament has to be evaluated.
-    // If the sigma of the Filament is very big (i.e. the Filament is very flat), the use the world's cell_size.
-    // If the Filament is very small (i.e in only spans one or few world cells), then use increments equal to sigma
-    //  in order to have several evaluations fall in the same cell.
-
-    int num_evaluations = ceil(6 * (filaments[fil_i].sigma / 100) / grid_size_m);
-    // How many times the Filament has to be evaluated depends on the final grid_size_m.
-    // The filament's grid size is multiplied by 6 because we evaluate it over +-3 sigma
-    // If the filament is very small (i.e. grid_size_m = sigma), then the filament is evaluated only 6 times
-    // If the filament is very big and spans several cells, then it has to be evaluated for each cell (which will be more than 6)
-
-    // EVALUATE IN ALL THREE AXIS
-    for (int i = 0; i <= num_evaluations; i++)
-    {
-        for (int j = 0; j <= num_evaluations; j++)
-        {
-            for (int k = 0; k <= num_evaluations; k++)
-            {
-                // get point to evaluate [m]
-                double x = (filaments[fil_i].pose_x - 3 * (filaments[fil_i].sigma / 100)) + i * grid_size_m;
-                double y = (filaments[fil_i].pose_y - 3 * (filaments[fil_i].sigma / 100)) + j * grid_size_m;
-                double z = (filaments[fil_i].pose_z - 3 * (filaments[fil_i].sigma / 100)) + k * grid_size_m;
-
-                // Disntance from evaluated_point to filament_center (in [cm])
-                double distance_cm =
-                    100 * sqrt(pow(x - filaments[fil_i].pose_x, 2) + pow(y - filaments[fil_i].pose_y, 2) + pow(z - filaments[fil_i].pose_z, 2));
-
-                // FARRELLS Eq.
-                // Evaluate the concentration of filament fil_i at given point (moles/cm³)
-                double num_moles_cm3 = (filament_numMoles_of_gas / (sqrt(8 * pow(3.14159, 3)) * pow(filaments[fil_i].sigma, 3))) *
-                                       exp(-pow(distance_cm, 2) / (2 * pow(filaments[fil_i].sigma, 2)));
-
-                // Multiply for the volumen of the grid cell
-                double num_moles = num_moles_cm3 * pow(grid_size_m * 100, 3); //[moles]
-
-                // Valid point? If either OUT of the environment, or through a wall, treat it as invalid
-                bool path_is_obstructed =
-                    check_environment_for_obstacle(filaments[fil_i].pose_x, filaments[fil_i].pose_y, filaments[fil_i].pose_z, x, y, z);
-
-                if (!path_is_obstructed)
-                {
-                    // Get 3D cell of the evaluated point
-                    int x_idx = floor((x - environment.description.min_coord.x) / environment.description.cell_size);
-                    int y_idx = floor((y - environment.description.min_coord.y) / environment.description.cell_size);
-                    int z_idx = floor((z - environment.description.min_coord.z) / environment.description.cell_size);
-
-                    // Accumulate concentration in corresponding env_cell
-                    if (gasConc_unit == 0)
-                    {
-                        mtx.lock();
-                        C[indexFrom3D(x_idx, y_idx, z_idx)] += num_moles; // moles
-                        mtx.unlock();
-                    }
-                    else
-                    {
-                        mtx.lock();
-                        double num_ppm = (num_moles / env_cell_numMoles) * pow(10, 6); //[ppm]
-
-                        C[indexFrom3D(x_idx, y_idx, z_idx)] += num_ppm; // ppm
-                        mtx.unlock();
-                    }
-                }
-            }
-        }
-    }
-
-    // Update Gasconcentration markers
-}
-
 //==========================//
 //                          //
 //==========================//
-void CFilamentSimulator::update_gas_concentration_from_filaments()
-{
-// First, set all cells to 0.0 gas concentration (clear previous state)
-#pragma omp parallel for collapse(3)
-    for (size_t i = 0; i < environment.description.num_cells.x; i++)
-    {
-        for (size_t j = 0; j < environment.description.num_cells.y; j++)
-        {
-            for (size_t k = 0; k < environment.description.num_cells.z; k++)
-            {
-                C[indexFrom3D(i, j, k)] = 0.0;
-            }
-        }
-    }
-
-#pragma omp parallel for
-    for (int i = 0; i < current_number_filaments; i++)
-    {
-        if (filaments[i].valid)
-        {
-            update_gas_concentration_from_filament(i);
-        }
-    }
-}
 
 // Check if a given 3D pose falls in:
 //  0 = free space
 //  1 = obstacle, wall, or outside the environment
 //  2 = outlet (usefull to disable filaments)
-int CFilamentSimulator::check_pose_with_environment(double pose_x, double pose_y, double pose_z)
+Gaden::CellState CFilamentSimulator::check_pose_with_environment(double pose_x, double pose_y, double pose_z)
 {
-    // 1.1 Check that pose is within the boundingbox environment
-    if (pose_x < environment.description.min_coord.x || pose_x > environment.description.max_coord.x ||
-        pose_y < environment.description.min_coord.y || pose_y > environment.description.max_coord.y ||
-        pose_z < environment.description.min_coord.z || pose_z > environment.description.max_coord.z)
-        return 1;
-
     // Get 3D cell of the point
     int x_idx = (pose_x - environment.description.min_coord.x) / environment.description.cell_size;
     int y_idx = (pose_y - environment.description.min_coord.y) / environment.description.cell_size;
     int z_idx = (pose_z - environment.description.min_coord.z) / environment.description.cell_size;
 
     if (x_idx >= environment.description.num_cells.x || y_idx >= environment.description.num_cells.y || z_idx >= environment.description.num_cells.z)
-        return 1;
+        return Gaden::CellState::OutOfBounds;
 
     // 1.2. Return cell occupancy (0=free, 1=obstacle, 2=outlet)
-    return environment.Env[indexFrom3D(x_idx, y_idx, z_idx)];
+    return environment.at(x_idx, y_idx, z_idx);
 }
 
 //==========================//
 //                          //
 //==========================//
-bool CFilamentSimulator::check_environment_for_obstacle(double start_x, double start_y, double start_z, double end_x, double end_y, double end_z)
+Gaden::CellState CFilamentSimulator::moveFilament(CFilament& filament, double end_x, double end_y, double end_z)
 {
     const bool PATH_OBSTRUCTED = true;
     const bool PATH_UNOBSTRUCTED = false;
 
-    // Check whether one of the points is outside the valid environment or is not free
-    if (check_pose_with_environment(start_x, start_y, start_z) != 0)
-    {
-        return PATH_OBSTRUCTED;
-    }
-    if (check_pose_with_environment(end_x, end_y, end_z) != 0)
-    {
-        return PATH_OBSTRUCTED;
-    }
-
-    // Calculate normal displacement vector
-    double vector_x = end_x - start_x;
-    double vector_y = end_y - start_y;
-    double vector_z = end_z - start_z;
-    double distance = sqrt(vector_x * vector_x + vector_y * vector_y + vector_z * vector_z);
-    vector_x = vector_x / distance;
-    vector_y = vector_y / distance;
-    vector_z = vector_z / distance;
+    // Calculate displacement vector
+    Gaden::Vector3 end(end_x, end_y, end_z);
+    Gaden::Vector3 movementDir = end - filament.pose;
+    float distance = Gaden::length(movementDir);
+    movementDir = Gaden::normalized(movementDir);
 
     // Traverse path
     int steps = ceil(distance / environment.description.cell_size); // Make sure no two iteration steps are separated more than 1 cell
-    double increment = distance / steps;
+    float increment = distance / steps;
 
-    for (int i = 1; i < steps - 1; i++)
+    for (int i = 0; i < steps; i++)
     {
         // Determine point in space to evaluate
-        double pose_x = start_x + vector_x * increment * i;
-        double pose_y = start_y + vector_y * increment * i;
-        double pose_z = start_z + vector_z * increment * i;
-
-        // Determine cell to evaluate (some cells might get evaluated twice due to the current code
-        int x_idx = floor((pose_x - environment.description.min_coord.x) / environment.description.cell_size);
-        int y_idx = floor((pose_y - environment.description.min_coord.y) / environment.description.cell_size);
-        int z_idx = floor((pose_z - environment.description.min_coord.z) / environment.description.cell_size);
+        Gaden::Vector3 previous = filament.pose;
+        filament.pose += movementDir * increment;
 
         // Check if the cell is occupied
-        if (environment.Env[indexFrom3D(x_idx, y_idx, z_idx)] != 0)
+        Gaden::CellState cellState = check_pose_with_environment(filament.pose.x, filament.pose.y, filament.pose.z);
+        if (cellState != Gaden::CellState::Free)
         {
-            return PATH_OBSTRUCTED;
+            filament.pose = previous;
+            return cellState;
         }
     }
 
     // Direct line of sight confirmed!
-    return PATH_UNOBSTRUCTED;
+    return Gaden::CellState::Free;
 }
 
 // Update the filaments location in the 3D environment
@@ -689,44 +564,23 @@ bool CFilamentSimulator::check_environment_for_obstacle(double start_x, double s
 void CFilamentSimulator::update_filament_location(int i)
 {
     // Estimte filament acceleration due to gravity & Bouyant force (for the given gas_type):
-    double g = 9.8;
-    double specific_gravity_air = 1; //[dimensionless]
+    constexpr double g = 9.8;
+    constexpr double specific_gravity_air = 1; //[dimensionless]
     double accel = g * (specific_gravity_air - SpecificGravity[gasType]) / SpecificGravity[gasType];
-    double newpos_x, newpos_y, newpos_z;
-    // Update the location of all active filaments
 
     try
     {
         // Get 3D cell of the filament center
-        int x_idx = floor((filaments[i].pose_x - environment.description.min_coord.x) / environment.description.cell_size);
-        int y_idx = floor((filaments[i].pose_y - environment.description.min_coord.y) / environment.description.cell_size);
-        int z_idx = floor((filaments[i].pose_z - environment.description.min_coord.z) / environment.description.cell_size);
+        int x_idx = floor((filaments[i].pose.x - environment.description.min_coord.x) / environment.description.cell_size);
+        int y_idx = floor((filaments[i].pose.y - environment.description.min_coord.y) / environment.description.cell_size);
+        int z_idx = floor((filaments[i].pose.z - environment.description.min_coord.z) / environment.description.cell_size);
 
         // 1. Simulate Advection (Va)
         //    Large scale wind-eddies -> Movement of a filament as a whole by wind
         //------------------------------------------------------------------------
-        newpos_x = filaments[i].pose_x + U[indexFrom3D(x_idx, y_idx, z_idx)] * time_step;
-        newpos_y = filaments[i].pose_y + V[indexFrom3D(x_idx, y_idx, z_idx)] * time_step;
-        newpos_z = filaments[i].pose_z + W[indexFrom3D(x_idx, y_idx, z_idx)] * time_step;
-
-        // Check filament location
-        int valid_location = check_pose_with_environment(newpos_x, newpos_y, newpos_z);
-        switch (valid_location)
-        {
-        case 0:
-            // Free and valid location... update filament position
-            filaments[i].pose_x = newpos_x;
-            filaments[i].pose_y = newpos_y;
-            filaments[i].pose_z = newpos_z;
-            break;
-        case 2:
-            // The location corresponds to an outlet! Delete filament!
-            filaments[i].valid = false;
-            break;
-        default:
-            // The location falls in an obstacle -> Illegal movement (Do not apply advection)
-            break;
-        }
+        double newpos_x = filaments[i].pose.x + U[indexFrom3D(x_idx, y_idx, z_idx)] * time_step;
+        double newpos_y = filaments[i].pose.y + V[indexFrom3D(x_idx, y_idx, z_idx)] * time_step;
+        double newpos_z = filaments[i].pose.z + W[indexFrom3D(x_idx, y_idx, z_idx)] * time_step;
 
         // 2. Simulate Gravity & Bouyant Force
         //------------------------------------
@@ -734,47 +588,40 @@ void CFilamentSimulator::update_filament_location(int i)
         // newpos_z = filaments[i].pose_z + 0.5*accel*pow(time_step,2);
 
         // Approximation from "Terminal Velocity of a Bubble Rise in a Liquid Column", World Academy of Science, Engineering and Technology 28 2007
-        double ro_air = 1.205;        //[kg/m³] density of air
-        double mu = 19 * pow(10, -6); //[kg/s·m] dynamic viscosity of air
+        constexpr double ro_air = 1.205; //[kg/m³] density of air
+        constexpr double mu = 19 * 1e-6; //[kg/s·m] dynamic viscosity of air
         double terminal_buoyancy_velocity = (g * (1 - SpecificGravity[gasType]) * ro_air * filament_ppm_center * pow(10, -6)) / (18 * mu);
-        // newpos_z = filaments[i].pose_z + terminal_buoyancy_velocity*time_step;
-
-        // Check filament location
-        if (check_pose_with_environment(filaments[i].pose_x, filaments[i].pose_y, newpos_z) == 0)
-        {
-            filaments[i].pose_z = newpos_z;
-        }
-        else if (check_pose_with_environment(filaments[i].pose_x, filaments[i].pose_y, newpos_z) == 2)
-        {
-            filaments[i].valid = false;
-        }
+        // newpos_z += terminal_buoyancy_velocity*time_step;
 
         // 3. Add some variability (stochastic process)
+        //------------------------------------
 
         static thread_local std::mt19937 engine;
         static thread_local std::normal_distribution<> dist{0, filament_noise_std};
 
-        newpos_x = filaments[i].pose_x + dist(engine);
-        newpos_y = filaments[i].pose_y + dist(engine);
-        newpos_z = filaments[i].pose_z + dist(engine);
+        newpos_x += dist(engine);
+        newpos_y += dist(engine);
+        newpos_z += dist(engine);
 
-        // Check filament location
-        if (check_pose_with_environment(newpos_x, newpos_y, newpos_z) == 0)
+        // 4. Check filament location
+        //------------------------------------
+        Gaden::CellState destinationState = moveFilament(filaments[i], newpos_x, newpos_y, newpos_z);
+        if (destinationState == Gaden::CellState::Outlet)
         {
-            filaments[i].pose_x = newpos_x;
-            filaments[i].pose_y = newpos_y;
-            filaments[i].pose_z = newpos_z;
+            // The location corresponds to an outlet! Delete filament!
+            filaments[i].valid = false;
         }
 
         // 4. Filament growth with time (this affects the posterior estimation of gas concentration at each cell)
         //    Vd (small scale wind eddies) -> Difussion or change of the filament shape (growth with time)
         //    R = sigma of a 3D gaussian -> Increasing sigma with time
         //------------------------------------------------------------------------
-        filaments[i].sigma = sqrt(pow(filament_initial_std, 2) + filament_growth_gamma * (sim_time - filaments[i].birth_time));
+        filaments[i].sigma = sqrt(filament_initial_std * filament_initial_std //
+                                  + filament_growth_gamma * (sim_time - filaments[i].birth_time));
     }
-    catch (...)
+    catch (std::exception& e)
     {
-        GADEN_WARN("Exception Updating Filaments!");
+        GADEN_WARN("Exception Updating Filaments: {}", e.what());
         return;
     }
 }
@@ -819,9 +666,9 @@ void CFilamentSimulator::publish_markers()
         std_msgs::msg::ColorRGBA color;
 
         // Set filament pose
-        point.x = filaments[i].pose_x;
-        point.y = filaments[i].pose_y;
-        point.z = filaments[i].pose_z;
+        point.x = filaments[i].pose.x;
+        point.y = filaments[i].pose.y;
+        point.z = filaments[i].pose.z;
 
         // Set filament color
         color.a = 1;
@@ -910,9 +757,13 @@ void CFilamentSimulator::save_state_to_file()
         if (filaments[i].valid)
         {
             ist.write((char*)&i, sizeof(int));
-            ist.write((char*)&filaments[i].pose_x, sizeof(double));
-            ist.write((char*)&filaments[i].pose_y, sizeof(double));
-            ist.write((char*)&filaments[i].pose_z, sizeof(double));
+            double aux;
+            aux = filaments[i].pose.x;
+            ist.write((char*)&aux, sizeof(double));
+            aux = filaments[i].pose.y;
+            ist.write((char*)&aux, sizeof(double));
+            aux = filaments[i].pose.z;
+            ist.write((char*)&aux, sizeof(double));
             ist.write((char*)&filaments[i].sigma, sizeof(double));
         }
     }
@@ -934,6 +785,8 @@ int main(int argc, char** argv)
 {
     // Init ROS-NODE
     rclcpp::init(argc, argv);
+
+    Gaden::Utils::Time::Stopwatch stopwatch;
 
     // Create simulator obj and initialize it
     std::shared_ptr<CFilamentSimulator> sim = std::make_shared<CFilamentSimulator>();
@@ -995,8 +848,8 @@ int main(int argc, char** argv)
         rclcpp::spin_some(sim);
     }
 
-	if(rclcpp::ok())
-	{
-		GADEN_INFO_COLOR(fmt::terminal_color::blue, "Filament simulator finished correctly!");
-	}
+    if (rclcpp::ok())
+    {
+        GADEN_INFO_COLOR(fmt::terminal_color::blue, "Filament simulator finished correctly! Ran for {:.2f}s", stopwatch.ellapsed());
+    }
 }
