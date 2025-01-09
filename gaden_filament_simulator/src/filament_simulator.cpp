@@ -31,6 +31,7 @@
 #include "filament_simulator/filament.h"
 #include "gaden_common/ReadEnvironment.h"
 #include "gaden_common/Vector3.h"
+#include <filesystem>
 #include <random>
 #define GADEN_LOGGER_ID "FilamentSimulator"
 #include <gaden_common/Logging.h>
@@ -39,7 +40,8 @@
 //==========================//
 //      Constructor         //
 //==========================//
-CFilamentSimulator::CFilamentSimulator() : rclcpp::Node("Gaden_filament_simulator")
+CFilamentSimulator::CFilamentSimulator()
+    : rclcpp::Node("Gaden_filament_simulator")
 {
     // Init variables
     //-----------------
@@ -96,16 +98,16 @@ CFilamentSimulator::CFilamentSimulator() : rclcpp::Node("Gaden_filament_simulato
      * R is the ideal, or universal, gas constant, equal to the product of the Boltzmann constant and the Avogadro constant. (82.057338
      * cm^3·atm/mol·k) T is the temperature of the gas (kelvin)
      */
-    double R = 82.057338;                                           //[cm³·atm/mol·K] Gas Constant
-    filament_initial_vol = pow(6 * filament_initial_std, 3);        //[cm³] -> We approximate the infinite volumen of the 3DGaussian as 6 sigmas.
-    env_cell_vol = pow(environment.description.cell_size * 100, 3); //[cm³] Volumen of a cell
+    float R = 82.057338;                                                             //[cm³·atm/mol·K] Gas Constant
+    filament_initial_vol = pow(6 * filament_initial_std, 3);                         //[cm³] -> We approximate the infinite volumen of the 3DGaussian as 6 sigmas.
+    env_cell_vol = pow(environment.description.cell_size * 100, 3);                  //[cm³] Volumen of a cell
     filament_numMoles = (envPressure * filament_initial_vol) / (R * envTemperature); //[mol] Num of moles of Air in that volume
     env_cell_numMoles = (envPressure * env_cell_vol) / (R * envTemperature);         //[mol] Num of moles of Air in that volume
 
     // The moles of target_gas in a Filament are distributted following a 3D Gaussian
     // Given the ppm value at the center of the filament, we approximate the total number of gas moles in that filament.
-    double numMoles_in_cm3 = envPressure / (R * envTemperature);                           //[mol of all gases/cm³]
-    double filament_moles_cm3_center = filament_ppm_center / pow(10, 6) * numMoles_in_cm3; //[moles of target gas / cm³]
+    float numMoles_in_cm3 = envPressure / (R * envTemperature);                           //[mol of all gases/cm³]
+    float filament_moles_cm3_center = filament_ppm_center / pow(10, 6) * numMoles_in_cm3; //[moles of target gas / cm³]
     filament_numMoles_of_gas =
         filament_moles_cm3_center * (sqrt(8 * pow(3.14159, 3)) * pow(filament_initial_std, 3)); // total number of moles in a filament
 
@@ -153,10 +155,10 @@ void CFilamentSimulator::loadNodeParameters()
     wait_preprocessing = declare_parameter<bool>("wait_preprocessing", false);
 
     // Simulation Time (sec)
-    max_sim_time = declare_parameter<double>("sim_time", 20.0);
+    max_sim_time = declare_parameter<float>("sim_time", 20.0);
 
     // Time increment between Gas snapshots (sec)
-    time_step = declare_parameter<double>("time_step", 1.0);
+    time_step = declare_parameter<float>("time_step", 1.0);
     // Number of iterations to carry on = max_sim_time/time_step
     numSteps = floor(max_sim_time / time_step);
 
@@ -172,25 +174,25 @@ void CFilamentSimulator::loadNodeParameters()
     filament_stop_counter = 0;
 
     // Gas concentration at the filament center - 3D gaussian [ppm]
-    filament_ppm_center = declare_parameter<double>("ppm_filament_center", 20);
+    filament_ppm_center = declare_parameter<float>("ppm_filament_center", 20);
 
     // [cm] Sigma of the filament at t=0-> 3DGaussian shape
-    filament_initial_std = declare_parameter<double>("filament_initial_std", 1.5);
+    filament_initial_std = declare_parameter<float>("filament_initial_std", 1.5);
 
     // [cm²/s] Growth ratio of the filament_std
-    filament_growth_gamma = declare_parameter<double>("filament_growth_gamma", 10.0);
+    filament_growth_gamma = declare_parameter<float>("filament_growth_gamma", 10.0);
 
     // [cm] Sigma of the white noise added on each iteration
-    filament_noise_std = declare_parameter<double>("filament_noise_std", 0.1);
+    filament_noise_std = declare_parameter<float>("filament_noise_std", 0.1);
 
     // Gas Type ID
     gasType = declare_parameter<int>("gas_type", 1);
 
     // Environment temperature (necessary for molecules/cm3 -> ppm)
-    envTemperature = declare_parameter<double>("temperature", 298.0);
+    envTemperature = declare_parameter<float>("temperature", 298.0);
 
     // Enviorment pressure (necessary for molecules/cm3 -> ppm)
-    envPressure = declare_parameter<double>("pressure", 1.0);
+    envPressure = declare_parameter<float>("pressure", 1.0);
 
     // Gas concentration units (0= molecules/cm3,  1=ppm)
     gasConc_unit = declare_parameter<int>("concentration_unit_choice", 1);
@@ -200,7 +202,7 @@ void CFilamentSimulator::loadNodeParameters()
     // CFD wind files location
     wind_files_location = declare_parameter<std::string>("wind_data", "");
     //(sec) Time increment between Wind snapshots --> Determines when to load a new wind field
-    windTime_step = declare_parameter<double>("wind_time_step", 1.0);
+    windTime_step = declare_parameter<float>("wind_time_step", 1.0);
     // Loop
     allow_looping = declare_parameter<bool>("allow_looping", false);
     loop_from_step = declare_parameter<int>("loop_from_step", 1);
@@ -229,8 +231,8 @@ void CFilamentSimulator::loadNodeParameters()
             GADEN_WARN("Could not create result directory: {}", results_location.c_str());
     }
     // create a sub-folder for this specific simulation
-    results_min_time = declare_parameter<double>("results_min_time", 0.0);
-    results_time_step = declare_parameter<double>("results_time_step", 1.0);
+    results_min_time = declare_parameter<float>("results_min_time", 0.0);
+    results_time_step = declare_parameter<float>("results_time_step", 1.0);
 
     if (verbose)
     {
@@ -260,20 +262,18 @@ void CFilamentSimulator::initSimulator()
         GADEN_INFO("Initializing Simulator... Please Wait!");
 
     // 1. Load Environment and Configure Matrices
-    if (FILE* file = fopen(occupancy3D_data.c_str(), "r"))
+    if (std::filesystem::exists(occupancy3D_data))
     {
-        // Files exist!, keep going!
-        fclose(file);
         if (verbose)
             GADEN_INFO("Loading 3D Occupancy GridMap");
 
-        Gaden::ReadResult result = Gaden::readEnvFile(occupancy3D_data, environment);
-        if (result == Gaden::ReadResult::NO_FILE)
+        gaden::ReadResult result = gaden::readEnvFile(occupancy3D_data, environment);
+        if (result == gaden::ReadResult::NO_FILE)
         {
             GADEN_WARN("No occupancy file provided to filament-simulator node!");
             return;
         }
-        else if (result == Gaden::ReadResult::READING_FAILED)
+        else if (result == gaden::ReadResult::READING_FAILED)
         {
             GADEN_WARN("Something went wrong while parsing the file!");
         }
@@ -283,21 +283,16 @@ void CFilamentSimulator::initSimulator()
                        environment.description.min_coord.y, environment.description.min_coord.z, environment.description.max_coord.x,
                        environment.description.max_coord.y, environment.description.max_coord.z);
         if (verbose)
-            GADEN_INFO("Env size in cells	 ({},{},{}) - with cell size {} [m]", environment.description.num_cells.x,
-                       environment.description.num_cells.y, environment.description.num_cells.z, environment.description.cell_size);
+            GADEN_INFO("Env size in cells	 ({},{},{}) - with cell size {} [m]", environment.description.dimensions.x,
+                       environment.description.dimensions.y, environment.description.dimensions.z, environment.description.cell_size);
 
         // Reserve memory for the 3D matrices: U,V,W,C and Env, according to provided num_cells of the environment.
         // It also init them to 0.0 values
-        configure3DMatrix(U);
-        configure3DMatrix(V);
-        configure3DMatrix(W);
-        configure3DMatrix(C);
-        configure3DMatrix(environment.Env);
+        wind.resize(environment.numCells());
+        environment.Env.resize(environment.numCells());
     }
     else
-    {
-        GADEN_WARN("File {} Does Not Exists!", occupancy3D_data.c_str());
-    }
+        GADEN_WARN("File {} Does Not Exist!", occupancy3D_data);
 
     // 2. Load the first Wind snapshot from file (all 3 components U,V,W)
     read_wind_snapshot(current_simulation_step);
@@ -308,17 +303,6 @@ void CFilamentSimulator::initSimulator()
     filaments.resize(total_number_filaments, CFilament(0.0, 0.0, 0.0, filament_initial_std));
 }
 
-// Resize a 3D Matrix compose of Vectors, This operation is only performed once!
-void CFilamentSimulator::configure3DMatrix(std::vector<double>& A)
-{
-    A.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
-}
-
-void CFilamentSimulator::configure3DMatrix(std::vector<uint8_t>& A)
-{
-    A.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
-}
-
 //==========================//
 //                          //
 //==========================//
@@ -327,55 +311,21 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
     if (last_wind_idx == idx)
         return;
 
-    // configure filenames to read
-
-    // the old way to do this was to pass "path/wind_" as the parameter and only append the index itseld
-    // but that is clunky, and inconsistent with all the other gaden nodes, which append the underscore automatically
-    // so now, for backwards compatibility, we need to check whether the underscore is already there or not
-    std::string separator = (wind_files_location.back() == '_') ? "" : "_";
-    std::string U_filename = fmt::format("{}{}{}.csv_U", wind_files_location, separator, idx);
-    std::string V_filename = fmt::format("{}{}{}.csv_V", wind_files_location, separator, idx);
-    std::string W_filename = fmt::format("{}{}{}.csv_W", wind_files_location, separator, idx);
-
-    // read data to 3D matrices
-    if (FILE* file = fopen(U_filename.c_str(), "r"))
+    // read wind data from disk. The old format (which we still support) used one file per component, so we need to check if this simulation has that
+    // format or the new one
+    if (parseWindFile(idx) || parseOldWindFiles(idx))
     {
-        if (verbose)
-            GADEN_INFO("Reading Wind Snapshot {}", U_filename.c_str());
-        // Files exist!, keep going!
-        fclose(file);
-
         last_wind_idx = idx;
         if (verbose)
             GADEN_INFO("Loading Wind Snapshot {}", idx);
-
-        // binary format files start with the code "999"
-        constexpr int IS_BINARY_FILE = 999;
-        std::ifstream ist(U_filename, std::ios_base::binary);
-        int check = 0;
-        ist.read((char*)&check, sizeof(int));
-        ist.close();
-
-        read_3D_file(U_filename, U, (check == IS_BINARY_FILE));
-        read_3D_file(V_filename, V, (check == IS_BINARY_FILE));
-        read_3D_file(W_filename, W, (check == IS_BINARY_FILE));
 
         if (!wind_finished)
         {
             // dump the binary wind data to file
             std::string out_filename = fmt::format("{}/wind/wind_iteration_{}", results_location, idx);
-            FILE* file = fopen(out_filename.c_str(), "wb");
-            if (file == NULL)
-            {
-                GADEN_WARN("CANNOT OPEN WIND LOG FILE\n");
-                exit(1);
-            }
-            fclose(file);
-            std::ofstream wind_File(out_filename.c_str());
-            wind_File.write((char*)U.data(), sizeof(double) * U.size());
-            wind_File.write((char*)V.data(), sizeof(double) * V.size());
-            wind_File.write((char*)W.data(), sizeof(double) * W.size());
-            wind_File.close();
+            std::ofstream outputWindFile(out_filename.c_str());
+            outputWindFile.write((char*)wind.data(), sizeof(gaden::Vector3) * wind.size());
+            outputWindFile.close();
         }
     }
     else
@@ -383,7 +333,11 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
         // No more wind data. Keep current info.
         if (!wind_notified)
         {
-            GADEN_WARN("File {} Does Not Exists!", U_filename.c_str());
+            std::string windFile = fmt::format("{}_{}.csv_gaden", wind_files_location, idx);
+            std::string separator = (wind_files_location.back() == '_') ? "" : "_";
+            std::string U_filename = fmt::format("{}{}{}.csv_U", wind_files_location, separator, idx);
+
+            GADEN_WARN("Could not find wind file in '{}' or '{}'", windFile, U_filename);
             GADEN_WARN("No more wind data available. Using last Wind snapshopt as SteadyState.");
             wind_notified = true;
             wind_finished = true;
@@ -394,70 +348,79 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
 //==========================//
 //                          //
 //==========================//
-void CFilamentSimulator::read_3D_file(std::string filename, std::vector<double>& A, bool binary)
+bool CFilamentSimulator::parseWindFile(int idx)
 {
-    if (binary)
+    std::string windFile = fmt::format("{}_{}.csv_gaden", wind_files_location, idx);
+    if (std::filesystem::exists(windFile))
     {
-        std::ifstream infile(filename, std::ios_base::binary);
-        infile.seekg(sizeof(int));
-        infile.read((char*)A.data(), sizeof(double) * A.size());
+        std::ifstream infile(windFile, std::ios_base::binary);
+
+        // header
+        int fileVersionMajor, fileVersionMinor;
+        infile.read((char*)&fileVersionMajor, sizeof(int));
+        infile.read((char*)&fileVersionMinor, sizeof(int));
+
+        // contents
+        infile.read((char*)wind.data(), sizeof(gaden::Vector3) * wind.size());
         infile.close();
+        return true;
     }
-    else
+    return false;
+}
+
+bool CFilamentSimulator::parseOldWindFiles(int idx)
+{
+    // the old-old way to do this was to pass "path/wind_" as the parameter and have this code only append the index itself
+    // but that is clunky, and inconsistent with all the other gaden nodes, which all append the underscore automatically
+    // so now, for backwards compatibility, we need to check whether the underscore is already there or not
+    std::string separator = (wind_files_location.back() == '_') ? "" : "_";
+    std::string U_filename = fmt::format("{}{}{}.csv_U", wind_files_location, separator, idx);
+    std::string V_filename = fmt::format("{}{}{}.csv_V", wind_files_location, separator, idx);
+    std::string W_filename = fmt::format("{}{}{}.csv_W", wind_files_location, separator, idx);
+
+    // read data to 3D matrices
+    if (std::filesystem::exists(U_filename))
     {
-        // open file
-        std::ifstream infile(filename.c_str());
-        std::string line;
-        int line_counter = 0;
-
-        // Read file line by line
-        int x_idx = 0;
-        int y_idx = 0;
-        int z_idx = 0;
-
-        while (std::getline(infile, line))
-        {
-            line_counter++;
-            std::stringstream ss(line);
-            if (z_idx >= environment.description.num_cells.z)
-            {
-                GADEN_WARN("Trying to read:[{}]", line.c_str());
-            }
-
-            if (line == ";")
-            {
-                // New Z-layer
-                z_idx++;
-                x_idx = 0;
-                y_idx = 0;
-            }
-            else
-            { // New line with constant x_idx and all the y_idx values
-                while (!ss.fail())
-                {
-                    double f;
-                    ss >> f; // get one double value
-                    if (!ss.fail())
-                    {
-                        A[indexFrom3D(x_idx, y_idx, z_idx)] = f;
-                        y_idx++;
-                    }
-                }
-
-                // Line has ended
-                x_idx++;
-                y_idx = 0;
-            }
-        }
-        // End of file.
         if (verbose)
-            GADEN_INFO("End of File");
-        infile.close();
+            GADEN_INFO("Reading Wind Snapshot {}", U_filename.c_str());
+
+        last_wind_idx = idx;
+        if (verbose)
+            GADEN_INFO("Loading Wind Snapshot {}", idx);
+
+        std::ifstream Uinfile(U_filename, std::ios_base::binary);
+        std::ifstream Vinfile(V_filename, std::ios_base::binary);
+        std::ifstream Winfile(W_filename, std::ios_base::binary);
+
+        // old files always start with a single int equal to 999
+        Uinfile.seekg(sizeof(int));
+        Vinfile.seekg(sizeof(int));
+        Winfile.seekg(sizeof(int));
+
+        for (size_t i = 0; i < wind.size(); i++)
+        {
+            // old files used doubles, but we are using floats now
+            double aux;
+            Uinfile.read((char*)&aux, sizeof(double));
+            wind[i].x = aux;
+            Vinfile.read((char*)&aux, sizeof(double));
+            wind[i].y = aux;
+            Winfile.read((char*)&aux, sizeof(double));
+            wind[i].z = aux;
+        }
+
+        Uinfile.close();
+        Vinfile.close();
+        Winfile.close();
+
+        return true;
     }
+
+    return false;
 }
 
 // Add new filaments. On each step add a total of "numFilaments_step"
-void CFilamentSimulator::add_new_filaments(double radius_arround_source)
+void CFilamentSimulator::add_new_filaments(float radius_arround_source)
 {
     numFilament_aux += numFilaments_step;
     // Release rate
@@ -480,14 +443,14 @@ void CFilamentSimulator::add_new_filaments(double radius_arround_source)
     }
     for (int i = 0; i < filaments_to_release; i++)
     {
-        double x, y, z;
+        float x, y, z;
         do
         {
             // Set position of new filament within the especified radius arround the gas source location
             x = gas_source_pos.x + random_number(-1, 1) * radius_arround_source;
             y = gas_source_pos.y + random_number(-1, 1) * radius_arround_source;
             z = gas_source_pos.z + random_number(-1, 1) * radius_arround_source;
-        } while (check_pose_with_environment(x, y, z) != Gaden::CellState::Free);
+        } while (check_pose_with_environment(x, y, z) != gaden::CellState::Free);
 
         /*Instead of adding new filaments to the filaments vector on each iteration (push_back)
           we had initially resized the filaments vector to the max number of filaments (numSteps*numFilaments_step)
@@ -504,15 +467,17 @@ void CFilamentSimulator::add_new_filaments(double radius_arround_source)
 //  0 = free space
 //  1 = obstacle, wall, or outside the environment
 //  2 = outlet (usefull to disable filaments)
-Gaden::CellState CFilamentSimulator::check_pose_with_environment(double pose_x, double pose_y, double pose_z)
+gaden::CellState CFilamentSimulator::check_pose_with_environment(float pose_x, float pose_y, float pose_z)
 {
     // Get 3D cell of the point
-    int x_idx = (pose_x - environment.description.min_coord.x) / environment.description.cell_size;
-    int y_idx = (pose_y - environment.description.min_coord.y) / environment.description.cell_size;
-    int z_idx = (pose_z - environment.description.min_coord.z) / environment.description.cell_size;
+    int x_idx = std::floor((pose_x - environment.description.min_coord.x) / environment.description.cell_size);
+    int y_idx = std::floor((pose_y - environment.description.min_coord.y) / environment.description.cell_size);
+    int z_idx = std::floor((pose_z - environment.description.min_coord.z) / environment.description.cell_size);
 
-    if (x_idx >= environment.description.num_cells.x || y_idx >= environment.description.num_cells.y || z_idx >= environment.description.num_cells.z)
-        return Gaden::CellState::OutOfBounds;
+    if (x_idx < 0 || x_idx >= environment.description.dimensions.x ||
+        y_idx < 0 || y_idx >= environment.description.dimensions.y ||
+        z_idx < 0 || z_idx >= environment.description.dimensions.z)
+        return gaden::CellState::OutOfBounds;
 
     // 1.2. Return cell occupancy (0=free, 1=obstacle, 2=outlet)
     return environment.at(x_idx, y_idx, z_idx);
@@ -521,16 +486,16 @@ Gaden::CellState CFilamentSimulator::check_pose_with_environment(double pose_x, 
 //==========================//
 //                          //
 //==========================//
-Gaden::CellState CFilamentSimulator::moveFilament(CFilament& filament, double end_x, double end_y, double end_z)
+gaden::CellState CFilamentSimulator::moveFilament(CFilament& filament, float end_x, float end_y, float end_z)
 {
     const bool PATH_OBSTRUCTED = true;
     const bool PATH_UNOBSTRUCTED = false;
 
     // Calculate displacement vector
-    Gaden::Vector3 end(end_x, end_y, end_z);
-    Gaden::Vector3 movementDir = end - filament.pose;
-    float distance = Gaden::length(movementDir);
-    movementDir = Gaden::normalized(movementDir);
+    gaden::Vector3 end(end_x, end_y, end_z);
+    gaden::Vector3 movementDir = end - filament.pose;
+    float distance = gaden::length(movementDir);
+    movementDir = gaden::normalized(movementDir);
 
     // Traverse path
     int steps = ceil(distance / environment.description.cell_size); // Make sure no two iteration steps are separated more than 1 cell
@@ -539,12 +504,12 @@ Gaden::CellState CFilamentSimulator::moveFilament(CFilament& filament, double en
     for (int i = 0; i < steps; i++)
     {
         // Determine point in space to evaluate
-        Gaden::Vector3 previous = filament.pose;
+        gaden::Vector3 previous = filament.pose;
         filament.pose += movementDir * increment;
 
         // Check if the cell is occupied
-        Gaden::CellState cellState = check_pose_with_environment(filament.pose.x, filament.pose.y, filament.pose.z);
-        if (cellState != Gaden::CellState::Free)
+        gaden::CellState cellState = check_pose_with_environment(filament.pose.x, filament.pose.y, filament.pose.z);
+        if (cellState != gaden::CellState::Free)
         {
             filament.pose = previous;
             return cellState;
@@ -552,7 +517,7 @@ Gaden::CellState CFilamentSimulator::moveFilament(CFilament& filament, double en
     }
 
     // Direct line of sight confirmed!
-    return Gaden::CellState::Free;
+    return gaden::CellState::Free;
 }
 
 // Update the filaments location in the 3D environment
@@ -564,33 +529,35 @@ Gaden::CellState CFilamentSimulator::moveFilament(CFilament& filament, double en
 void CFilamentSimulator::update_filament_location(int i)
 {
     // Estimte filament acceleration due to gravity & Bouyant force (for the given gas_type):
-    constexpr double g = 9.8;
-    constexpr double specific_gravity_air = 1; //[dimensionless]
-    double accel = g * (specific_gravity_air - SpecificGravity[gasType]) / SpecificGravity[gasType];
+    constexpr float g = 9.8;
+    constexpr float specific_gravity_air = 1; //[dimensionless]
+    float accel = g * (specific_gravity_air - SpecificGravity[gasType]) / SpecificGravity[gasType];
 
     try
     {
+        CFilament& filament = filaments[i];
         // Get 3D cell of the filament center
-        int x_idx = floor((filaments[i].pose.x - environment.description.min_coord.x) / environment.description.cell_size);
-        int y_idx = floor((filaments[i].pose.y - environment.description.min_coord.y) / environment.description.cell_size);
-        int z_idx = floor((filaments[i].pose.z - environment.description.min_coord.z) / environment.description.cell_size);
+        int x_idx = floor((filament.pose.x - environment.description.min_coord.x) / environment.description.cell_size);
+        int y_idx = floor((filament.pose.y - environment.description.min_coord.y) / environment.description.cell_size);
+        int z_idx = floor((filament.pose.z - environment.description.min_coord.z) / environment.description.cell_size);
 
         // 1. Simulate Advection (Va)
         //    Large scale wind-eddies -> Movement of a filament as a whole by wind
         //------------------------------------------------------------------------
-        double newpos_x = filaments[i].pose.x + U[indexFrom3D(x_idx, y_idx, z_idx)] * time_step;
-        double newpos_y = filaments[i].pose.y + V[indexFrom3D(x_idx, y_idx, z_idx)] * time_step;
-        double newpos_z = filaments[i].pose.z + W[indexFrom3D(x_idx, y_idx, z_idx)] * time_step;
+        const gaden::Vector3& windVec = wind[indexFrom3D(x_idx, y_idx, z_idx)];
+        float newpos_x = filament.pose.x + windVec.x * time_step;
+        float newpos_y = filament.pose.y + windVec.y * time_step;
+        float newpos_z = filament.pose.z + windVec.z * time_step;
 
         // 2. Simulate Gravity & Bouyant Force
         //------------------------------------
         // OLD approach: using accelerations (pure gas)
-        // newpos_z = filaments[i].pose_z + 0.5*accel*pow(time_step,2);
+        // newpos_z = filament.pose_z + 0.5*accel*pow(time_step,2);
 
         // Approximation from "Terminal Velocity of a Bubble Rise in a Liquid Column", World Academy of Science, Engineering and Technology 28 2007
-        constexpr double ro_air = 1.205; //[kg/m³] density of air
-        constexpr double mu = 19 * 1e-6; //[kg/s·m] dynamic viscosity of air
-        double terminal_buoyancy_velocity = (g * (1 - SpecificGravity[gasType]) * ro_air * filament_ppm_center * pow(10, -6)) / (18 * mu);
+        constexpr float ro_air = 1.205; //[kg/m³] density of air
+        constexpr float mu = 19 * 1e-6; //[kg/s·m] dynamic viscosity of air
+        float terminal_buoyancy_velocity = (g * (1 - SpecificGravity[gasType]) * ro_air * filament_ppm_center * pow(10, -6)) / (18 * mu);
         // newpos_z += terminal_buoyancy_velocity*time_step;
 
         // 3. Add some variability (stochastic process)
@@ -605,19 +572,19 @@ void CFilamentSimulator::update_filament_location(int i)
 
         // 4. Check filament location
         //------------------------------------
-        Gaden::CellState destinationState = moveFilament(filaments[i], newpos_x, newpos_y, newpos_z);
-        if (destinationState == Gaden::CellState::Outlet)
+        gaden::CellState destinationState = moveFilament(filament, newpos_x, newpos_y, newpos_z);
+        if (destinationState == gaden::CellState::Outlet)
         {
             // The location corresponds to an outlet! Delete filament!
-            filaments[i].valid = false;
+            filament.valid = false;
         }
 
         // 4. Filament growth with time (this affects the posterior estimation of gas concentration at each cell)
         //    Vd (small scale wind eddies) -> Difussion or change of the filament shape (growth with time)
         //    R = sigma of a 3D gaussian -> Increasing sigma with time
         //------------------------------------------------------------------------
-        filaments[i].sigma = sqrt(filament_initial_std * filament_initial_std //
-                                  + filament_growth_gamma * (sim_time - filaments[i].birth_time));
+        filament.sigma = sqrt(filament_initial_std * filament_initial_std //
+                              + filament_growth_gamma * (sim_time - filament.birth_time));
     }
     catch (std::exception& e)
     {
@@ -697,16 +664,16 @@ void CFilamentSimulator::publish_markers()
 //==========================//
 //                          //
 //==========================//
-double CFilamentSimulator::random_number(double min_val, double max_val)
+float CFilamentSimulator::random_number(float min_val, float max_val)
 {
-    double n = (double)(rand() % 100); // int random number [0, 100)
-    n = n / 100.0f;                    // random number [0, 1)
-    n = n * (max_val - min_val);       // random number [0, max-min)
-    n = n + min_val;                   // random number [min, max)
+    float n = (float)(rand() % 100); // int random number [0, 100)
+    n = n / 100.0f;                  // random number [0, 1)
+    n = n * (max_val - min_val);     // random number [0, max-min)
+    n = n + min_val;                 // random number [min, max)
     return n;
 }
 
-bool eq(double a, double b)
+bool eq(float a, float b)
 {
     return abs(a - b) < 0.001;
 }
@@ -746,9 +713,9 @@ void CFilamentSimulator::save_state_to_file()
     ist.write((char*)&gasType, sizeof(int));
 
     // constants to work out the gas concentration form the filament location
-    ist.write((char*)&filament_numMoles_of_gas, sizeof(double));
-    double num_moles_all_gases_in_cm3 = env_cell_numMoles / env_cell_vol;
-    ist.write((char*)&num_moles_all_gases_in_cm3, sizeof(double));
+    ist.write((char*)&filament_numMoles_of_gas, sizeof(filament_numMoles_of_gas));
+    float num_moles_all_gases_in_cm3 = env_cell_numMoles / env_cell_vol;
+    ist.write((char*)&num_moles_all_gases_in_cm3, sizeof(num_moles_all_gases_in_cm3));
 
     ist.write((char*)&last_wind_idx, sizeof(int)); // index of the wind file (they are stored separately under (results_location)/wind/... )
 
@@ -757,14 +724,8 @@ void CFilamentSimulator::save_state_to_file()
         if (filaments[i].valid)
         {
             ist.write((char*)&i, sizeof(int));
-            double aux;
-            aux = filaments[i].pose.x;
-            ist.write((char*)&aux, sizeof(double));
-            aux = filaments[i].pose.y;
-            ist.write((char*)&aux, sizeof(double));
-            aux = filaments[i].pose.z;
-            ist.write((char*)&aux, sizeof(double));
-            ist.write((char*)&filaments[i].sigma, sizeof(double));
+            ist.write((char*)&filaments[i].pose, sizeof(gaden::Vector3));
+            ist.write((char*)&filaments[i].sigma, sizeof(float));
         }
     }
 
@@ -773,9 +734,9 @@ void CFilamentSimulator::save_state_to_file()
     fi.close();
 }
 
-int CFilamentSimulator::indexFrom3D(int x, int y, int z)
+size_t CFilamentSimulator::indexFrom3D(int x, int y, int z)
 {
-    return Gaden::indexFrom3D(Gaden::Vector3i(x, y, z), environment.description.num_cells);
+    return gaden::indexFrom3D(gaden::Vector3i(x, y, z), environment.description.dimensions);
 }
 
 //==============================//
@@ -786,7 +747,7 @@ int main(int argc, char** argv)
     // Init ROS-NODE
     rclcpp::init(argc, argv);
 
-    Gaden::Utils::Time::Stopwatch stopwatch;
+    gaden::Utils::Time::Stopwatch stopwatch;
 
     // Create simulator obj and initialize it
     std::shared_ptr<CFilamentSimulator> sim = std::make_shared<CFilamentSimulator>();
@@ -836,7 +797,7 @@ int main(int argc, char** argv)
         // 4. Save data (if necessary)
         if ((sim->save_results == 1) && (sim->sim_time >= sim->results_min_time))
         {
-            double time_next_save = sim->results_time_step + sim->last_saved_timestamp;
+            float time_next_save = sim->results_time_step + sim->last_saved_timestamp;
             if (sim->sim_time > time_next_save || std::abs(sim->sim_time - time_next_save) < 0.01)
                 sim->save_state_to_file();
         }

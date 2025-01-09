@@ -14,10 +14,10 @@ struct GasData
     double total_moles_in_filament;
     double num_moles_all_gases_in_cm3;
     int gas_type;
-    Gaden::Vector3 source_position;
+    gaden::Vector3 source_position;
 };
 
-void load_logfile_version_1(std::stringstream& decompressed, Gaden::Environment& environment, GasData& gasData)
+void load_logfile_version_1(std::stringstream& decompressed, gaden::Environment& environment, GasData& gasData)
 {
     // coordinates were initially written as doubles, but we want to read them as floats now, so we need a buffer
     double bufferDoubles[5];
@@ -49,7 +49,7 @@ void load_logfile_version_1(std::stringstream& decompressed, Gaden::Environment&
     decompressed.read((char*)&gasData.num_moles_all_gases_in_cm3, sizeof(double));
 }
 
-void load_logfile_version_2(std::stringstream& decompressed, Gaden::Environment& environment, GasData& gasData)
+void load_logfile_version_2(std::stringstream& decompressed, gaden::Environment& environment, GasData& gasData)
 {
     decompressed.read((char*)&environment.description, sizeof(environment.description));
     decompressed.read((char*)&gasData.source_position, sizeof(gasData.source_position));
@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
 
     std::ofstream outFile(argv[2], std::ios::out);
 
-    Gaden::Environment environment;
+    gaden::Environment environment;
     GasData gasData;
     decompressed.read((char*)&environment.versionMajor, sizeof(int));
     if (environment.versionMajor == 1)

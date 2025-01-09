@@ -1,7 +1,9 @@
 #pragma once
+#include "gaden_common/Logging.h"
+#include "gaden_common/Vector3.h"
 #include <rclcpp/rclcpp.hpp>
-#include <tf2/LinearMath/Vector3.h>
 #include <std_msgs/msg/bool.hpp>
+#include <tf2/LinearMath/Vector3.h>
 #include <vector>
 
 enum cell_state
@@ -15,19 +17,18 @@ enum cell_state
 
 struct Triangle
 {
-    tf2::Vector3 p1;
-    tf2::Vector3 p2;
-    tf2::Vector3 p3;
+    gaden::Vector3 p1;
+    gaden::Vector3 p2;
+    gaden::Vector3 p3;
     Triangle()
-    {
-    }
-    Triangle(tf2::Vector3 p1, tf2::Vector3 p2, tf2::Vector3 p3)
+    {}
+    Triangle(const gaden::Vector3& p1, const gaden::Vector3& p2, const gaden::Vector3& p3)
     {
         this->p1 = p1;
         this->p2 = p2;
         this->p3 = p3;
     }
-    tf2::Vector3& operator[](int i)
+    gaden::Vector3& operator[](int i)
     {
         if (i == 0)
             return p1;
@@ -37,7 +38,7 @@ struct Triangle
             return p3;
         else
         {
-            std::cout << "Indexing error when accessing the tf2::Vector3s in triangle! Index must be >= 2";
+            GADEN_ERROR("Indexing error when accessing the gaden::Vector3s in triangle! Index must be >= 2");
             return p1;
         }
     }
@@ -84,13 +85,13 @@ private:
     void printOccupancyYaml(std::string outputFolder);
     void printBasicSimYaml(std::string outputFolder);
     void printGadenEnvFile(std::string filename, int scale);
-    void printWindFiles(const std::vector<double>& U, const std::vector<double>& V, const std::vector<double>& W, std::string filename);
+    void printWindFiles(const std::vector<gaden::Vector3>& wind, std::string filename);
 
-    std::array<tf2::Vector3, 9> cubePoints(const tf2::Vector3& query_point);
-    bool pointInTriangle(const tf2::Vector3& query_point, const tf2::Vector3& triangle_vertex_0, const tf2::Vector3& triangle_vertex_1,
-                         const tf2::Vector3& triangle_vertex_2);
+    std::array<gaden::Vector3, 9> cubePoints(const gaden::Vector3& query_point);
+    bool pointInTriangle(const gaden::Vector3& query_point, const gaden::Vector3& triangle_vertex_0, const gaden::Vector3& triangle_vertex_1,
+                         const gaden::Vector3& triangle_vertex_2);
 
-    void occupy(std::vector<Triangle>& triangles, const std::vector<tf2::Vector3>& normals, cell_state value_to_write);
+    void occupy(std::vector<Triangle>& triangles, const std::vector<gaden::Vector3>& normals, cell_state value_to_write);
 
     void parse(const std::string& filename, cell_state value_to_write);
     void findDimensions(const std::string& filename);
@@ -109,8 +110,8 @@ namespace Utils
         return std::abs(x - y) < 0.01;
     }
 
-    inline bool isParallel(const tf2::Vector3& vec)
+    inline bool isParallel(const gaden::Vector3& vec)
     {
-        return (eq(vec.y(), 0) && eq(vec.z(), 0)) || (eq(vec.x(), 0) && eq(vec.z(), 0)) || (eq(vec.x(), 0) && eq(vec.y(), 0));
+        return (eq(vec.y, 0) && eq(vec.z, 0)) || (eq(vec.x, 0) && eq(vec.z, 0)) || (eq(vec.x, 0) && eq(vec.y, 0));
     }
 } // namespace Utils

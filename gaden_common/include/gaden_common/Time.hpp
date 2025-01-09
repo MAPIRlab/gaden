@@ -2,7 +2,7 @@
 #include <chrono>
 #include <cmath>
 
-namespace Gaden::Utils::Time
+namespace gaden::Utils::Time
 {
     typedef std::chrono::high_resolution_clock Clock;
     typedef std::chrono::_V2::system_clock::duration Duration;

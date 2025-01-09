@@ -23,7 +23,7 @@ CFilament::CFilament()
 }
 
 // Overload Constructor
-CFilament::CFilament(double x, double y, double z, double sigma_filament)
+CFilament::CFilament(float x, float y, float z, float sigma_filament)
 {
     // Create a new filament!
     pose.x = x;             //[m] Filament center pose
@@ -38,7 +38,7 @@ CFilament::~CFilament()
 {
 }
 
-void CFilament::activate_filament(double x, double y, double z, double birth)
+void CFilament::activate_filament(float x, float y, float z, float birth)
 {
     // Active the filament at given location
     pose.x = x;

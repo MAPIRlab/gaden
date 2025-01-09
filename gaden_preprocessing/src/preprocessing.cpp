@@ -2,8 +2,7 @@
 #include <gaden_preprocessing/Gaden_preprocessing.h>
 #include <gaden_preprocessing/TriangleBoxIntersection.h>
 
-#define GADEN_LOGGER_ID "GadenPreprocessing"
-#include <gaden_common/Logging.h>
+#include <gaden_common/GadenVersion.h>
 #include <gaden_common/Utils.h>
 
 #include <filesystem>
@@ -17,9 +16,9 @@
 #include <yaml-cpp/yaml.h>
 
 #ifdef GENERATE_COPPELIA_SCENE
-    #define SIM_REMOTEAPICLIENT_OBJECTS
-    #include "gaden_preprocessing/Gaden_preprocessing.h"
-    #include <RemoteAPIClient.h>
+#define SIM_REMOTEAPICLIENT_OBJECTS
+#include "gaden_preprocessing/Gaden_preprocessing.h"
+#include <RemoteAPIClient.h>
 #endif
 
 static constexpr float MAP_SCALE = 10;
@@ -257,7 +256,7 @@ void Gaden_preprocessing::printOccupancyYaml(std::string outputFolder)
     yaml << YAML::Key << "resolution" << YAML::Value << cell_size / MAP_SCALE;
 
     float floor_height = getParam<float>(shared_from_this(), "floor_height", 0.0);
-    yaml << YAML::Key << "origin" << YAML::Value << YAML::Flow << std::vector<float>{env_min_x, env_min_y, 0.0}; //the third component is yaw, not Z!
+    yaml << YAML::Key << "origin" << YAML::Value << YAML::Flow << std::vector<float>{env_min_x, env_min_y, 0.0}; // the third component is yaw, not Z!
     yaml << YAML::Key << "occupied_thresh" << YAML::Value << 0.9;
     yaml << YAML::Key << "free_thresh" << YAML::Value << 0.1;
     yaml << YAML::Key << "negate" << YAML::Value << 0;
@@ -343,71 +342,64 @@ void Gaden_preprocessing::printGadenEnvFile(std::string filename, int scale)
     outfile.close();
 }
 
-void Gaden_preprocessing::printWindFiles(const std::vector<double>& U, const std::vector<double>& V, const std::vector<double>& W,
-                                         std::string filename)
+void Gaden_preprocessing::printWindFiles(const std::vector<gaden::Vector3>& wind, std::string filename)
 {
-    std::ofstream fileU(fmt::format("{}_U", filename));
-    std::ofstream fileV(fmt::format("{}_V", filename));
-    std::ofstream fileW(fmt::format("{}_W", filename));
+    std::ofstream outputFile(fmt::format("{}_gaden", filename));
 
-    // this code is a header to let the filament_simulator know the file is in binary
-    int code = 999;
+    // TODO include this in the file format (without breaking old ones pls)
+    constexpr int version_major = GADEN_VERSION_MAJOR;
+    constexpr int version_minor = GADEN_VERSION_MINOR;
 
-    fileU.write((char*)&code, sizeof(int));
-    fileV.write((char*)&code, sizeof(int));
-    fileW.write((char*)&code, sizeof(int));
+    outputFile.write((char*)&version_major, sizeof(int));
+    outputFile.write((char*)&version_minor, sizeof(int));
 
-    fileU.write((char*)U.data(), sizeof(double) * U.size());
-    fileV.write((char*)V.data(), sizeof(double) * V.size());
-    fileW.write((char*)W.data(), sizeof(double) * W.size());
+    outputFile.write((char*)wind.data(), sizeof(gaden::Vector3) * wind.size());
 
-    fileU.close();
-    fileV.close();
-    fileW.close();
+    outputFile.close();
 }
 
-std::array<tf2::Vector3, 9> Gaden_preprocessing::cubePoints(const tf2::Vector3& query_point)
+std::array<gaden::Vector3, 9> Gaden_preprocessing::cubePoints(const gaden::Vector3& query_point)
 {
-    std::array<tf2::Vector3, 9> points;
+    std::array<gaden::Vector3, 9> points;
     points[0] = (query_point);
-    points[1] = (tf2::Vector3(query_point.x() - cell_size / 2, query_point.y() - cell_size / 2, query_point.z() - cell_size / 2));
-    points[2] = (tf2::Vector3(query_point.x() - cell_size / 2, query_point.y() - cell_size / 2, query_point.z() + cell_size / 2));
-    points[3] = (tf2::Vector3(query_point.x() - cell_size / 2, query_point.y() + cell_size / 2, query_point.z() - cell_size / 2));
-    points[4] = (tf2::Vector3(query_point.x() - cell_size / 2, query_point.y() + cell_size / 2, query_point.z() + cell_size / 2));
-    points[5] = (tf2::Vector3(query_point.x() + cell_size / 2, query_point.y() - cell_size / 2, query_point.z() - cell_size / 2));
-    points[6] = (tf2::Vector3(query_point.x() + cell_size / 2, query_point.y() - cell_size / 2, query_point.z() + cell_size / 2));
-    points[7] = (tf2::Vector3(query_point.x() + cell_size / 2, query_point.y() + cell_size / 2, query_point.z() - cell_size / 2));
-    points[8] = (tf2::Vector3(query_point.x() + cell_size / 2, query_point.y() + cell_size / 2, query_point.z() + cell_size / 2));
+    points[1] = (gaden::Vector3(query_point.x - cell_size / 2, query_point.y - cell_size / 2, query_point.z - cell_size / 2));
+    points[2] = (gaden::Vector3(query_point.x - cell_size / 2, query_point.y - cell_size / 2, query_point.z + cell_size / 2));
+    points[3] = (gaden::Vector3(query_point.x - cell_size / 2, query_point.y + cell_size / 2, query_point.z - cell_size / 2));
+    points[4] = (gaden::Vector3(query_point.x - cell_size / 2, query_point.y + cell_size / 2, query_point.z + cell_size / 2));
+    points[5] = (gaden::Vector3(query_point.x + cell_size / 2, query_point.y - cell_size / 2, query_point.z - cell_size / 2));
+    points[6] = (gaden::Vector3(query_point.x + cell_size / 2, query_point.y - cell_size / 2, query_point.z + cell_size / 2));
+    points[7] = (gaden::Vector3(query_point.x + cell_size / 2, query_point.y + cell_size / 2, query_point.z - cell_size / 2));
+    points[8] = (gaden::Vector3(query_point.x + cell_size / 2, query_point.y + cell_size / 2, query_point.z + cell_size / 2));
     return points;
 }
 
-bool Gaden_preprocessing::pointInTriangle(const tf2::Vector3& query_point, const tf2::Vector3& triangle_vertex_0,
-                                          const tf2::Vector3& triangle_vertex_1, const tf2::Vector3& triangle_vertex_2)
+bool Gaden_preprocessing::pointInTriangle(const gaden::Vector3& query_point, const gaden::Vector3& triangle_vertex_0,
+                                          const gaden::Vector3& triangle_vertex_1, const gaden::Vector3& triangle_vertex_2)
 {
     // u=P2−P1
-    tf2::Vector3 u = triangle_vertex_1 - triangle_vertex_0;
+    gaden::Vector3 u = triangle_vertex_1 - triangle_vertex_0;
     // v=P3−P1
-    tf2::Vector3 v = triangle_vertex_2 - triangle_vertex_0;
+    gaden::Vector3 v = triangle_vertex_2 - triangle_vertex_0;
     // n=u×v
-    tf2::Vector3 n = u.cross(v);
+    gaden::Vector3 n = gaden::cross(u, v);
     bool anyProyectionInTriangle = false;
-    std::array<tf2::Vector3, 9> cube = cubePoints(query_point);
-    for (const tf2::Vector3& vec : cube)
+    std::array<gaden::Vector3, 9> cube = cubePoints(query_point);
+    for (const gaden::Vector3& vec : cube)
     {
         // w=P−P1
-        tf2::Vector3 w = vec - triangle_vertex_0;
+        gaden::Vector3 w = vec - triangle_vertex_0;
         // Barycentric coordinates of the projection P′of P onto T:
         // γ=[(u×w)⋅n]/n²
-        float gamma = u.cross(w).dot(n) / n.dot(n);
+        float gamma = gaden::dot(gaden::cross(u, w), n) / gaden::dot(n, n);
         // β=[(w×v)⋅n]/n²
-        float beta = w.cross(v).dot(n) / n.dot(n);
+        float beta = gaden::dot(gaden::cross(w, v), n) / gaden::dot(n, n);
         float alpha = 1 - gamma - beta;
         // The point P′ lies inside T if:
         bool proyectionInTriangle = ((0 <= alpha) && (alpha <= 1) && (0 <= beta) && (beta <= 1) && (0 <= gamma) && (gamma <= 1));
         anyProyectionInTriangle = anyProyectionInTriangle || proyectionInTriangle;
     }
 
-    n.normalize();
+    n = gaden::normalized(n);
 
     // we consider that the triangle goes through the cell if the proyection of the center
     // is inside the triangle AND the plane of the triangle intersects the cube of the cell
@@ -415,7 +407,7 @@ bool Gaden_preprocessing::pointInTriangle(const tf2::Vector3& query_point, const
     return anyProyectionInTriangle;
 }
 
-void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::vector<tf2::Vector3>& normals, cell_state value_to_write)
+void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::vector<gaden::Vector3>& normals, cell_state value_to_write)
 {
     int numberOfProcessedTriangles = 0; // for logging, doesn't actually do anything
     std::mutex mtx;
@@ -424,15 +416,15 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
     for (int i = 0; i < triangles.size(); i++)
     {
         // We try to find all the cells that some triangle goes through
-        int x1 = roundf((triangles[i].p1.x() - env_min_x) * (roundFactor)) / (cell_size * (roundFactor));
-        int y1 = roundf((triangles[i].p1.y() - env_min_y) * (roundFactor)) / (cell_size * (roundFactor));
-        int z1 = roundf((triangles[i].p1.z() - env_min_z) * (roundFactor)) / (cell_size * (roundFactor));
-        int x2 = roundf((triangles[i].p2.x() - env_min_x) * (roundFactor)) / (cell_size * (roundFactor));
-        int y2 = roundf((triangles[i].p2.y() - env_min_y) * (roundFactor)) / (cell_size * (roundFactor));
-        int z2 = roundf((triangles[i].p2.z() - env_min_z) * (roundFactor)) / (cell_size * (roundFactor));
-        int x3 = roundf((triangles[i].p3.x() - env_min_x) * (roundFactor)) / (cell_size * (roundFactor));
-        int y3 = roundf((triangles[i].p3.y() - env_min_y) * (roundFactor)) / (cell_size * (roundFactor));
-        int z3 = roundf((triangles[i].p3.z() - env_min_z) * (roundFactor)) / (cell_size * (roundFactor));
+        int x1 = roundf((triangles[i].p1.x - env_min_x) * (roundFactor)) / (cell_size * (roundFactor));
+        int y1 = roundf((triangles[i].p1.y - env_min_y) * (roundFactor)) / (cell_size * (roundFactor));
+        int z1 = roundf((triangles[i].p1.z - env_min_z) * (roundFactor)) / (cell_size * (roundFactor));
+        int x2 = roundf((triangles[i].p2.x - env_min_x) * (roundFactor)) / (cell_size * (roundFactor));
+        int y2 = roundf((triangles[i].p2.y - env_min_y) * (roundFactor)) / (cell_size * (roundFactor));
+        int z2 = roundf((triangles[i].p2.z - env_min_z) * (roundFactor)) / (cell_size * (roundFactor));
+        int x3 = roundf((triangles[i].p3.x - env_min_x) * (roundFactor)) / (cell_size * (roundFactor));
+        int y3 = roundf((triangles[i].p3.y - env_min_y) * (roundFactor)) / (cell_size * (roundFactor));
+        int z3 = roundf((triangles[i].p3.z - env_min_z) * (roundFactor)) / (cell_size * (roundFactor));
 
         int min_x = std::min({x1, x2, x3});
         int min_y = std::min({y1, y2, y3});
@@ -443,17 +435,14 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
         int max_z = std::max({z1, z2, z3});
 
         // is the triangle right at the boundary between two cells (in any axis)?
-        bool xLimit =
-            Utils::eq(std::fmod(std::max({triangles[i][0].x(), triangles[i][1].x(), triangles[i][2].x()}) - env_min_x, cell_size), 0) ||
-            Utils::eq(std::fmod(std::max({triangles[i][0].x(), triangles[i][1].x(), triangles[i][2].x()}) - env_min_x, cell_size), cell_size);
+        bool xLimit = Utils::eq(std::fmod(std::max({triangles[i][0].x, triangles[i][1].x, triangles[i][2].x}) - env_min_x, cell_size), 0) ||
+                      Utils::eq(std::fmod(std::max({triangles[i][0].x, triangles[i][1].x, triangles[i][2].x}) - env_min_x, cell_size), cell_size);
 
-        bool yLimit =
-            Utils::eq(std::fmod(std::max({triangles[i][0].y(), triangles[i][1].y(), triangles[i][2].y()}) - env_min_y, cell_size), 0) ||
-            Utils::eq(std::fmod(std::max({triangles[i][0].y(), triangles[i][1].y(), triangles[i][2].y()}) - env_min_y, cell_size), cell_size);
+        bool yLimit = Utils::eq(std::fmod(std::max({triangles[i][0].y, triangles[i][1].y, triangles[i][2].y}) - env_min_y, cell_size), 0) ||
+                      Utils::eq(std::fmod(std::max({triangles[i][0].y, triangles[i][1].y, triangles[i][2].y}) - env_min_y, cell_size), cell_size);
 
-        bool zLimit =
-            Utils::eq(std::fmod(std::max({triangles[i][0].z(), triangles[i][1].z(), triangles[i][2].z()}) - env_min_z, cell_size), 0) ||
-            Utils::eq(std::fmod(std::max({triangles[i][0].z(), triangles[i][1].z(), triangles[i][2].z()}) - env_min_z, cell_size), cell_size);
+        bool zLimit = Utils::eq(std::fmod(std::max({triangles[i][0].z, triangles[i][1].z, triangles[i][2].z}) - env_min_z, cell_size), 0) ||
+                      Utils::eq(std::fmod(std::max({triangles[i][0].z, triangles[i][1].z, triangles[i][2].z}) - env_min_z, cell_size), cell_size);
 
         bool isParallel = Utils::isParallel(normals[i]);
         for (int row = min_x; row <= max_x && row < env[0].size(); row++)
@@ -466,17 +455,17 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
                     // special case for triangles that are parallel to the coordinate axes because the discretization can cause
                     // problems if they fall right on the boundary of two cells
                     if ((isParallel &&
-                         pointInTriangle(tf2::Vector3(row * cell_size + env_min_x + cell_size / 2, col * cell_size + env_min_y + cell_size / 2,
-                                                      height * cell_size + env_min_z + cell_size / 2),
-                                         tf2::Vector3(triangles[i][0].x(), triangles[i][0].y(), triangles[i][0].z()),
-                                         tf2::Vector3(triangles[i][1].x(), triangles[i][1].y(), triangles[i][1].z()),
-                                         tf2::Vector3(triangles[i][2].x(), triangles[i][2].y(), triangles[i][2].z()))) ||
-                        triBoxOverlap(tf2::Vector3(row * cell_size + env_min_x + cell_size / 2, col * cell_size + env_min_y + cell_size / 2,
-                                                   height * cell_size + env_min_z + cell_size / 2),
-                                      tf2::Vector3(cell_size / 2, cell_size / 2, cell_size / 2),
-                                      tf2::Vector3(triangles[i][0].x(), triangles[i][0].y(), triangles[i][0].z()),
-                                      tf2::Vector3(triangles[i][1].x(), triangles[i][1].y(), triangles[i][1].z()),
-                                      tf2::Vector3(triangles[i][2].x(), triangles[i][2].y(), triangles[i][2].z())))
+                         pointInTriangle(gaden::Vector3(row * cell_size + env_min_x + cell_size / 2, col * cell_size + env_min_y + cell_size / 2,
+                                                        height * cell_size + env_min_z + cell_size / 2),
+                                         gaden::Vector3(triangles[i][0].x, triangles[i][0].y, triangles[i][0].z),
+                                         gaden::Vector3(triangles[i][1].x, triangles[i][1].y, triangles[i][1].z),
+                                         gaden::Vector3(triangles[i][2].x, triangles[i][2].y, triangles[i][2].z))) ||
+                        triBoxOverlap(gaden::Vector3(row * cell_size + env_min_x + cell_size / 2, col * cell_size + env_min_y + cell_size / 2,
+                                                     height * cell_size + env_min_z + cell_size / 2),
+                                      gaden::Vector3(cell_size / 2, cell_size / 2, cell_size / 2),
+                                      gaden::Vector3(triangles[i][0].x, triangles[i][0].y, triangles[i][0].z),
+                                      gaden::Vector3(triangles[i][1].x, triangles[i][1].y, triangles[i][1].z),
+                                      gaden::Vector3(triangles[i][2].x, triangles[i][2].y, triangles[i][2].z)))
                     {
                         mtx.lock();
                         env[col][row][height] = value_to_write;
@@ -517,7 +506,7 @@ void Gaden_preprocessing::parse(const std::string& filename, cell_state value_to
     bool ascii = isASCII(filename);
 
     std::vector<Triangle> triangles;
-    std::vector<tf2::Vector3> normals;
+    std::vector<gaden::Vector3> normals;
 
     if (ascii)
     {
@@ -553,11 +542,11 @@ void Gaden_preprocessing::parse(const std::string& filename, cell_state value_to
             float aux;
             std::stringstream ss(line);
             ss >> std::skipws >> aux;
-            normals[i].setX(roundf(aux * roundFactor) / roundFactor);
+            normals[i].x = (roundf(aux * roundFactor) / roundFactor);
             ss >> std::skipws >> aux;
-            normals[i].setY(roundf(aux * roundFactor) / roundFactor);
+            normals[i].y = (roundf(aux * roundFactor) / roundFactor);
             ss >> std::skipws >> aux;
-            normals[i].setZ(roundf(aux * roundFactor) / roundFactor);
+            normals[i].z = (roundf(aux * roundFactor) / roundFactor);
             std::getline(infile, line);
 
             for (int j = 0; j < 3; j++)
@@ -567,11 +556,11 @@ void Gaden_preprocessing::parse(const std::string& filename, cell_state value_to
                 line.erase(0, pos + 7);
                 std::stringstream ss(line);
                 ss >> std::skipws >> aux;
-                triangles[i][j].setX(roundf(aux * roundFactor) / roundFactor);
+                triangles[i][j].x = (roundf(aux * roundFactor) / roundFactor);
                 ss >> std::skipws >> aux;
-                triangles[i][j].setY(roundf(aux * roundFactor) / roundFactor);
+                triangles[i][j].y = (roundf(aux * roundFactor) / roundFactor);
                 ss >> std::skipws >> aux;
-                triangles[i][j].setZ(roundf(aux * roundFactor) / roundFactor);
+                triangles[i][j].z = (roundf(aux * roundFactor) / roundFactor);
             }
             i++;
             // skipping lines here makes checking for the end of the file more convenient
@@ -599,9 +588,9 @@ void Gaden_preprocessing::parse(const std::string& filename, cell_state value_to
             {
                 std::array<float, 3> vec;
                 infile.read((char*)&vec, 3 * sizeof(uint32_t)); // read the point
-                triangles[i][j].setX(vec[0]);
-                triangles[i][j].setY(vec[1]);
-                triangles[i][j].setZ(vec[2]);
+                triangles[i][j].x = (vec[0]);
+                triangles[i][j].y = (vec[1]);
+                triangles[i][j].z = (vec[2]);
             }
 
             infile.seekg(sizeof(uint16_t), std::ios_base::cur); // skip the attribute data
@@ -721,15 +710,15 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
     std::string line;
     struct ParsedLine
     {
-        double point[3];
-        double windVector[3];
+        float point[3];
+        float windVector[3];
     };
     ParsedLine parsedLine;
 
     // Depending on the verion of Paraview used to export the file, lines might be (Point, vector) OR (vector, Point)
     // so we need to check the header before we know where to put what
-    double* firstPartOfLine;
-    double* secondPartOfLine;
+    float* firstPartOfLine;
+    float* secondPartOfLine;
     {
         std::getline(infile, line);
         size_t pos = line.find(",");
@@ -747,9 +736,7 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
         }
     }
 
-    std::vector<double> U(env[0].size() * env.size() * env[0][0].size());
-    std::vector<double> V(env[0].size() * env.size() * env[0][0].size());
-    std::vector<double> W(env[0].size() * env.size() * env[0][0].size());
+    std::vector<gaden::Vector3> wind(env[0].size() * env.size() * env[0][0].size());
 
     int x_idx = 0;
     int y_idx = 0;
@@ -776,13 +763,15 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
             x_idx = (int)roundf((parsedLine.point[0] - env_min_x) / cell_size * roundFactor) / roundFactor;
             y_idx = (int)roundf((parsedLine.point[1] - env_min_y) / cell_size * roundFactor) / roundFactor;
             z_idx = (int)roundf((parsedLine.point[2] - env_min_z) / cell_size * roundFactor) / roundFactor;
-            U[indexFrom3D(x_idx, y_idx, z_idx)] = parsedLine.windVector[0];
-            V[indexFrom3D(x_idx, y_idx, z_idx)] = parsedLine.windVector[1];
-            W[indexFrom3D(x_idx, y_idx, z_idx)] = parsedLine.windVector[2];
+
+            size_t index3D = indexFrom3D(x_idx, y_idx, z_idx);
+            wind[index3D].x = parsedLine.windVector[0];
+            wind[index3D].y = parsedLine.windVector[1];
+            wind[index3D].z = parsedLine.windVector[2];
         }
     }
     infile.close();
-    printWindFiles(U, V, W, filename);
+    printWindFiles(wind, filename);
 }
 
 void Gaden_preprocessing::fill()
@@ -798,53 +787,54 @@ void Gaden_preprocessing::fill()
     cell_state new_value = cell_state::empty;
     cell_state value_to_overwrite = cell_state::non_initialized;
 
-    std::queue<Eigen::Vector3i> q;
-    q.push(Eigen::Vector3i(x, y, z));
+    std::queue<gaden::Vector3i> q;
+    q.emplace(x, y, z);
     env[x][y][z] = new_value;
     while (!q.empty())
     {
-        Eigen::Vector3i point = q.front();
+        gaden::Vector3i point = q.front();
         q.pop();
-        if (compare_cell(point.x() + 1, point.y(), point.z(), value_to_overwrite))
+        if (compare_cell(point.x + 1, point.y, point.z, value_to_overwrite))
         { // x+1, y, z
-            env[point.x() + 1][point.y()][point.z()] = new_value;
-            q.push(Eigen::Vector3i(point.x() + 1, point.y(), point.z()));
+            env[point.x + 1][point.y][point.z] = new_value;
+            q.emplace(point.x + 1, point.y, point.z);
         }
 
-        if (compare_cell(point.x() - 1, point.y(), point.z(), value_to_overwrite))
+        if (compare_cell(point.x - 1, point.y, point.z, value_to_overwrite))
         { // x-1, y, z
-            env[point.x() - 1][point.y()][point.z()] = new_value;
-            q.push(Eigen::Vector3i(point.x() - 1, point.y(), point.z()));
+            env[point.x - 1][point.y][point.z] = new_value;
+            q.emplace(point.x - 1, point.y, point.z);
         }
 
-        if (compare_cell(point.x(), point.y() + 1, point.z(), value_to_overwrite))
+        if (compare_cell(point.x, point.y + 1, point.z, value_to_overwrite))
         { // x, y+1, z
-            env[point.x()][point.y() + 1][point.z()] = new_value;
-            q.push(Eigen::Vector3i(point.x(), point.y() + 1, point.z()));
+            env[point.x][point.y + 1][point.z] = new_value;
+            q.emplace(point.x, point.y + 1, point.z);
         }
 
-        if (compare_cell(point.x(), point.y() - 1, point.z(), value_to_overwrite))
+        if (compare_cell(point.x, point.y - 1, point.z, value_to_overwrite))
         { // x, y-1, z
-            env[point.x()][point.y() - 1][point.z()] = new_value;
-            q.push(Eigen::Vector3i(point.x(), point.y() - 1, point.z()));
+            env[point.x][point.y - 1][point.z] = new_value;
+            q.emplace(point.x, point.y - 1, point.z);
         }
 
-        if (compare_cell(point.x(), point.y(), point.z() + 1, value_to_overwrite))
+        if (compare_cell(point.x, point.y, point.z + 1, value_to_overwrite))
         { // x, y, z+1
-            env[point.x()][point.y()][point.z() + 1] = new_value;
-            q.push(Eigen::Vector3i(point.x(), point.y(), point.z() + 1));
+            env[point.x][point.y][point.z + 1] = new_value;
+            q.emplace(point.x, point.y, point.z + 1);
         }
 
-        if (compare_cell(point.x(), point.y(), point.z() - 1, value_to_overwrite))
+        if (compare_cell(point.x, point.y, point.z - 1, value_to_overwrite))
         { // x, y, z-1
-            env[point.x()][point.y()][point.z() - 1] = new_value;
-            q.push(Eigen::Vector3i(point.x(), point.y(), point.z() - 1));
+            env[point.x][point.y][point.z - 1] = new_value;
+            q.emplace(point.x, point.y, point.z - 1);
         }
     }
 }
 
 void Gaden_preprocessing::clean()
 {
+#pragma omp parallel for collapse(3)
     for (int col = 0; col < env.size(); col++)
     {
         for (int row = 0; row < env[0].size(); row++)
@@ -907,9 +897,7 @@ void Gaden_preprocessing::processWind()
         std::ifstream infile(windFileName);
         std::string line;
 
-        std::vector<double> U(env[0].size() * env.size() * env[0][0].size());
-        std::vector<double> V(env[0].size() * env.size() * env[0][0].size());
-        std::vector<double> W(env[0].size() * env.size() * env[0][0].size());
+        std::vector<gaden::Vector3> wind(env[0].size() * env.size() * env[0][0].size());
         while (std::getline(infile, line))
         {
             std::vector<double> v;
@@ -928,15 +916,15 @@ void Gaden_preprocessing::processWind()
                     {
                         if (env[j][i][k] == cell_state::empty)
                         {
-                            U[indexFrom3D(i, j, k)] = v[0];
-                            V[indexFrom3D(i, j, k)] = v[1];
-                            W[indexFrom3D(i, j, k)] = v[2];
+                            wind[indexFrom3D(i, j, k)].x = v[0];
+                            wind[indexFrom3D(i, j, k)].y = v[1];
+                            wind[indexFrom3D(i, j, k)].z = v[2];
                         }
                     }
                 }
             }
             infile.close();
-            printWindFiles(U, V, W, fmt::format("{}_{}.csv", windFileName, idx));
+            printWindFiles(wind, fmt::format("{}_{}.csv", windFileName, idx));
             idx++;
         }
     }

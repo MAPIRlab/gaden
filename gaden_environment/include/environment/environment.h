@@ -47,7 +47,7 @@ private:
     // Environment 3D
     std::string occupancy3D_data; // Location of the 3D Occupancy GridMap of the environment
     std::string fixed_frame;      // Frame where to publish the markers
-    Gaden::Environment environment;
+    gaden::Environment environment;
 
     bool verbose;
     bool wait_preprocessing;
@@ -58,7 +58,7 @@ private:
     void loadEnvironment(visualization_msgs::msg::MarkerArray& env_marker);
     int indexFrom3D(int x, int y, int z)
     {
-        return Gaden::indexFrom3D(Gaden::Vector3i(x, y, z), environment.description.num_cells);
+        return gaden::indexFrom3D(gaden::Vector3i(x, y, z), environment.description.dimensions);
     }
 
     bool occupancyMapServiceCB(gaden_msgs::srv::Occupancy_Request::SharedPtr request,

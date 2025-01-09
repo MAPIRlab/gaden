@@ -5,8 +5,8 @@
  * It also generates a point cloud representing the gas concentration [ppm] on the 3D environment
  --------------------------------------------------------------------------------*/
 
-#include <boost/format.hpp>
 #include "simulation_player.h"
+#include <boost/format.hpp>
 #include <filesystem>
 
 #define GADEN_LOGGER_ID "GadenPlayer"
@@ -24,8 +24,7 @@ int main(int argc, char** argv)
 }
 
 Player::Player() : rclcpp::Node("gaden_player")
-{
-}
+{}
 
 //--------------- SERVICES CALLBACKS----------------------//
 
@@ -235,8 +234,7 @@ void Player::display_current_gas_distribution()
 //==================================== SIM_OBJ ==============================//
 
 // Constructor
-sim_obj::sim_obj(std::string filepath, bool load_wind_info, std::string occupancy_filePath)
-    : occupancyFile(occupancy_filePath)
+sim_obj::sim_obj(std::string filepath, bool load_wind_info, std::string occupancy_filePath) : occupancyFile(occupancy_filePath)
 {
     gas_type = "unknown";
     simulation_filename = filepath;
@@ -251,8 +249,7 @@ sim_obj::sim_obj(std::string filepath, bool load_wind_info, std::string occupanc
 }
 
 sim_obj::~sim_obj()
-{
-}
+{}
 
 // Load a new file with Gas+Wind data
 void sim_obj::load_data_from_logfile(int sim_iteration)
@@ -309,9 +306,9 @@ void sim_obj::load_logfile_version_1(std::stringstream& decompressed)
         environment.description.max_coord.y = bufferDoubles[1];
         environment.description.max_coord.z = bufferDoubles[2];
 
-        decompressed.read((char*)&environment.description.num_cells.x, sizeof(int));
-        decompressed.read((char*)&environment.description.num_cells.y, sizeof(int));
-        decompressed.read((char*)&environment.description.num_cells.z, sizeof(int));
+        decompressed.read((char*)&environment.description.dimensions.x, sizeof(int));
+        decompressed.read((char*)&environment.description.dimensions.y, sizeof(int));
+        decompressed.read((char*)&environment.description.dimensions.z, sizeof(int));
 
         decompressed.read((char*)&bufferDoubles, 3 * sizeof(double));
         environment.description.cell_size = bufferDoubles[0];
@@ -342,7 +339,6 @@ void sim_obj::load_logfile_version_1(std::stringstream& decompressed)
     double x, y, z, stdDev;
     while (decompressed.peek() != EOF)
     {
-
         decompressed.read((char*)&filament_index, sizeof(int));
         decompressed.read((char*)&x, sizeof(double));
         decompressed.read((char*)&y, sizeof(double));
@@ -361,7 +357,7 @@ void sim_obj::load_logfile_version_2(std::stringstream& decompressed)
     if (first_reading)
     {
         decompressed.read((char*)&environment.description, sizeof(environment.description));
-        Gaden::Vector3 source_position;
+        gaden::Vector3 source_position;
         decompressed.read((char*)&source_position, sizeof(source_position));
 
         int gas_type_index;
@@ -378,7 +374,7 @@ void sim_obj::load_logfile_version_2(std::stringstream& decompressed)
         // skip header
         decompressed.seekg(2 * sizeof(int)                   // version
                            + sizeof(environment.description) // description
-                           + sizeof(Gaden::Vector3)          // source position
+                           + sizeof(gaden::Vector3)          // source position
                            + sizeof(int)                     // gas type
                            + 2 * sizeof(double)              // moles constants
         );
@@ -392,7 +388,6 @@ void sim_obj::load_logfile_version_2(std::stringstream& decompressed)
     double x, y, z, stdDev;
     while (decompressed.peek() != EOF)
     {
-
         decompressed.read((char*)&filament_index, sizeof(int));
         decompressed.read((char*)&x, sizeof(double));
         decompressed.read((char*)&y, sizeof(double));
@@ -412,6 +407,7 @@ void sim_obj::load_wind_file(int wind_index)
         return;
     last_wind_idx = wind_index;
 
+    // TODO header?
     std::ifstream infile(fmt::format("{}/wind/wind_iteration_{}", simulation_filename, wind_index), std::ios_base::binary);
     infile.read((char*)U.data(), sizeof(double) * U.size());
     infile.read((char*)V.data(), sizeof(double) * U.size());
@@ -422,18 +418,15 @@ void sim_obj::load_wind_file(int wind_index)
 // Get Gas concentration at lcoation (x,y,z)
 double sim_obj::get_gas_concentration(float x, float y, float z)
 {
-
     int xx, yy, zz;
     xx = (int)ceil((x - environment.description.min_coord.x) / environment.description.cell_size);
     yy = (int)ceil((y - environment.description.min_coord.y) / environment.description.cell_size);
     zz = (int)ceil((z - environment.description.min_coord.z) / environment.description.cell_size);
 
-    if (xx < 0 || xx > environment.description.num_cells.x || yy < 0 || yy > environment.description.num_cells.y || zz < 0 ||
-        zz > environment.description.num_cells.z)
+    if (xx < 0 || xx > environment.description.dimensions.x || yy < 0 || yy > environment.description.dimensions.y || zz < 0 ||
+        zz > environment.description.dimensions.z)
     {
-        GADEN_ERROR(
-                     "Requested gas concentration at a point outside the environment ({}, {}, {}). Are you using the correct coordinates?\n", x, y,
-                     z);
+        GADEN_ERROR("Requested gas concentration at a point outside the environment ({}, {}, {}). Are you using the correct coordinates?\n", x, y, z);
         return 0;
     }
     double gas_conc = 0;
@@ -527,7 +520,7 @@ int sim_obj::check_pose_with_environment(double pose_x, double pose_y, double po
     int y_idx = (pose_y - environment.description.min_coord.y) / environment.description.cell_size;
     int z_idx = (pose_z - environment.description.min_coord.z) / environment.description.cell_size;
 
-    if (x_idx >= environment.description.num_cells.x || y_idx >= environment.description.num_cells.y || z_idx >= environment.description.num_cells.z)
+    if (x_idx >= environment.description.dimensions.x || y_idx >= environment.description.dimensions.y || z_idx >= environment.description.dimensions.z)
         return 1;
 
     // 1.2. Return cell occupancy (0=free, 1=obstacle, 2=outlet)
@@ -544,8 +537,8 @@ void sim_obj::get_wind_value(float x, float y, float z, double& u, double& v, do
         yy = (int)ceil((y - environment.description.min_coord.y) / environment.description.cell_size);
         zz = (int)ceil((z - environment.description.min_coord.z) / environment.description.cell_size);
 
-        if (xx < 0 || xx > environment.description.num_cells.x || yy < 0 || yy > environment.description.num_cells.y || zz < 0 ||
-            zz > environment.description.num_cells.z)
+        if (xx < 0 || xx > environment.description.dimensions.x || yy < 0 || yy > environment.description.dimensions.y || zz < 0 ||
+            zz > environment.description.dimensions.z)
         {
             GADEN_ERROR("Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
             return;
@@ -566,23 +559,22 @@ void sim_obj::get_wind_value(float x, float y, float z, double& u, double& v, do
 void sim_obj::configure_environment()
 {
     // Resize Gas Concentration container
-    C.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
+    C.resize(environment.description.dimensions.x * environment.description.dimensions.y * environment.description.dimensions.z);
 
     // Resize Wind info container (if necessary)
     if (load_wind_data)
     {
-
-        U.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
-        V.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
-        W.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
+        U.resize(environment.description.dimensions.x * environment.description.dimensions.y * environment.description.dimensions.z);
+        V.resize(environment.description.dimensions.x * environment.description.dimensions.y * environment.description.dimensions.z);
+        W.resize(environment.description.dimensions.x * environment.description.dimensions.y * environment.description.dimensions.z);
     }
 
-    Gaden::ReadResult result = Gaden::readEnvFile(occupancyFile, environment);
-    if (result == Gaden::ReadResult::NO_FILE)
+    gaden::ReadResult result = gaden::readEnvFile(occupancyFile, environment);
+    if (result == gaden::ReadResult::NO_FILE)
     {
         GADEN_FATAL("No occupancy file provided to Gaden-player node!");
     }
-    else if (result == Gaden::ReadResult::READING_FAILED)
+    else if (result == gaden::ReadResult::READING_FAILED)
     {
         GADEN_FATAL("Something went wrong while parsing the file!");
     }
@@ -615,5 +607,5 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::msg::Marker& mkr_
 
 int sim_obj::indexFrom3D(int x, int y, int z)
 {
-    return x + y * environment.description.num_cells.x + z * environment.description.num_cells.x * environment.description.num_cells.y;
+    return x + y * environment.description.dimensions.x + z * environment.description.dimensions.x * environment.description.dimensions.y;
 }

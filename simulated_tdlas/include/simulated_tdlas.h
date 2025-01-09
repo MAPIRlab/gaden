@@ -41,7 +41,7 @@ private:
     float m_rayMarchResolution;
     float m_measurementFrequency;
     std::vector<std::vector<std::vector<bool>>> m_map;
-    Gaden::Vector3 m_mapOrigin;
+    gaden::Vector3 m_mapOrigin;
 
     void getEnvironment();
     double takeMeasurement();
@@ -49,17 +49,17 @@ private:
     struct PositionAndDirection
     {
         geometry_msgs::msg::Transform pose;
-        Gaden::Vector3 forward()
+        gaden::Vector3 forward()
         {
             tf2::Quaternion quat;
             tf2::fromMsg(pose.rotation, quat);
-            return Gaden::fromTF(tf2::quatRotate(quat, tf2::Vector3{1, 0, 0}));
+            return gaden::fromTF(tf2::quatRotate(quat, tf2::Vector3{1, 0, 0}));
         }
     };
     PositionAndDirection m_poseInFixedFrame;
     void updatePoseInFixedFrame();
 
-    Gaden::Vector3 m_endPointLastMeasurement;
+    gaden::Vector3 m_endPointLastMeasurement;
     void publish(double measured);
 
     // optional reflector data. If you are using a second robot to reflect the laser off of

@@ -5,8 +5,8 @@
 
 struct Triangle
 {
-    Gaden::Vector3 normal;
-    Gaden::Vector3 vertices[3];
+    gaden::Vector3 normal;
+    gaden::Vector3 vertices[3];
 };
 
 int main(int argc, char** argv)
@@ -18,10 +18,10 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    Gaden::Environment environment;
-    Gaden::ReadResult result = Gaden::readEnvFile(argv[1], environment);
+    gaden::Environment environment;
+    gaden::ReadResult result = gaden::readEnvFile(argv[1], environment);
 
-    if (result != Gaden::ReadResult::OK)
+    if (result != gaden::ReadResult::OK)
     {
         spdlog::error("Could not open input file {}", argv[1]);
         return -1;
@@ -33,7 +33,7 @@ int main(int argc, char** argv)
     if (argc >= 4)
         generateInnerVolume = strcmp(argv[3], "true") == 0 || strcmp(argv[3], "True") == 0;
 
-    Gaden::CellState targetState = generateInnerVolume ? Gaden::CellState::Obstacle : Gaden::CellState::Free;
+    gaden::CellState targetState = generateInnerVolume ? gaden::CellState::Obstacle : gaden::CellState::Free;
     std::vector<Triangle> triangles;
     for (int z = 0; z < environment.description.num_cells.z; z++)
     {
@@ -44,7 +44,7 @@ int main(int argc, char** argv)
                 if (environment.at(x, y, z) == targetState)
                     continue;
 
-                Gaden::Vector3 center = environment.coordsOfCellCenter({x, y, z});
+                gaden::Vector3 center = environment.coordsOfCellCenter({x, y, z});
                 float offset = environment.description.cell_size * 0.5f;
                 // Z
                 {
@@ -52,30 +52,30 @@ int main(int argc, char** argv)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {0, 0, -1};
-                        triangles.back().vertices[0] = center + offset * Gaden::Vector3{-1, -1, -1};
-                        triangles.back().vertices[1] = center + offset * Gaden::Vector3{-1, +1, -1};
-                        triangles.back().vertices[2] = center + offset * Gaden::Vector3{+1, +1, -1};
+                        triangles.back().vertices[0] = center + offset * gaden::Vector3{-1, -1, -1};
+                        triangles.back().vertices[1] = center + offset * gaden::Vector3{-1, +1, -1};
+                        triangles.back().vertices[2] = center + offset * gaden::Vector3{+1, +1, -1};
 
                         triangles.emplace_back();
                         triangles.back().normal = {0, 0, -1};
-                        triangles.back().vertices[0] = center + offset * Gaden::Vector3{+1, +1, -1};
-                        triangles.back().vertices[1] = center + offset * Gaden::Vector3{+1, -1, -1};
-                        triangles.back().vertices[2] = center + offset * Gaden::Vector3{-1, -1, -1};
+                        triangles.back().vertices[0] = center + offset * gaden::Vector3{+1, +1, -1};
+                        triangles.back().vertices[1] = center + offset * gaden::Vector3{+1, -1, -1};
+                        triangles.back().vertices[2] = center + offset * gaden::Vector3{-1, -1, -1};
                     }
 
                     if (z + 1 >= environment.description.num_cells.z || environment.at(x, y, z + 1) == targetState)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {0, 0, 1};
-                        triangles.back().vertices[0] = center + offset * Gaden::Vector3{-1, -1, +1};
-                        triangles.back().vertices[1] = center + offset * Gaden::Vector3{+1, +1, +1};
-                        triangles.back().vertices[2] = center + offset * Gaden::Vector3{-1, +1, +1};
+                        triangles.back().vertices[0] = center + offset * gaden::Vector3{-1, -1, +1};
+                        triangles.back().vertices[1] = center + offset * gaden::Vector3{+1, +1, +1};
+                        triangles.back().vertices[2] = center + offset * gaden::Vector3{-1, +1, +1};
 
                         triangles.emplace_back();
                         triangles.back().normal = {0, 0, 1};
-                        triangles.back().vertices[0] = center + offset * Gaden::Vector3{+1, +1, +1};
-                        triangles.back().vertices[1] = center + offset * Gaden::Vector3{-1, -1, +1};
-                        triangles.back().vertices[2] = center + offset * Gaden::Vector3{+1, -1, +1};
+                        triangles.back().vertices[0] = center + offset * gaden::Vector3{+1, +1, +1};
+                        triangles.back().vertices[1] = center + offset * gaden::Vector3{-1, -1, +1};
+                        triangles.back().vertices[2] = center + offset * gaden::Vector3{+1, -1, +1};
                     }
                 }
 
@@ -85,30 +85,30 @@ int main(int argc, char** argv)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {-1, 0, 0};
-                        triangles.back().vertices[0] = center + offset * Gaden::Vector3{-1, -1, -1};
-                        triangles.back().vertices[1] = center + offset * Gaden::Vector3{-1, -1, +1};
-                        triangles.back().vertices[2] = center + offset * Gaden::Vector3{-1, +1, +1};
+                        triangles.back().vertices[0] = center + offset * gaden::Vector3{-1, -1, -1};
+                        triangles.back().vertices[1] = center + offset * gaden::Vector3{-1, -1, +1};
+                        triangles.back().vertices[2] = center + offset * gaden::Vector3{-1, +1, +1};
 
                         triangles.emplace_back();
                         triangles.back().normal = {-1, 0, 0};
-                        triangles.back().vertices[0] = center + offset * Gaden::Vector3{-1, +1, +1};
-                        triangles.back().vertices[1] = center + offset * Gaden::Vector3{-1, +1, -1};
-                        triangles.back().vertices[2] = center + offset * Gaden::Vector3{-1, -1, -1};
+                        triangles.back().vertices[0] = center + offset * gaden::Vector3{-1, +1, +1};
+                        triangles.back().vertices[1] = center + offset * gaden::Vector3{-1, +1, -1};
+                        triangles.back().vertices[2] = center + offset * gaden::Vector3{-1, -1, -1};
                     }
 
                     if (x + 1 >= environment.description.num_cells.x || environment.at(x + 1, y, z) == targetState)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {1, 0, 0};
-                        triangles.back().vertices[0] = center + offset * Gaden::Vector3{+1, -1, -1};
-                        triangles.back().vertices[1] = center + offset * Gaden::Vector3{+1, +1, +1};
-                        triangles.back().vertices[2] = center + offset * Gaden::Vector3{+1, -1, +1};
+                        triangles.back().vertices[0] = center + offset * gaden::Vector3{+1, -1, -1};
+                        triangles.back().vertices[1] = center + offset * gaden::Vector3{+1, +1, +1};
+                        triangles.back().vertices[2] = center + offset * gaden::Vector3{+1, -1, +1};
 
                         triangles.emplace_back();
                         triangles.back().normal = {1, 0, 0};
-                        triangles.back().vertices[0] = center + offset * Gaden::Vector3{+1, +1, +1};
-                        triangles.back().vertices[1] = center + offset * Gaden::Vector3{+1, -1, -1};
-                        triangles.back().vertices[2] = center + offset * Gaden::Vector3{+1, +1, -1};
+                        triangles.back().vertices[0] = center + offset * gaden::Vector3{+1, +1, +1};
+                        triangles.back().vertices[1] = center + offset * gaden::Vector3{+1, -1, -1};
+                        triangles.back().vertices[2] = center + offset * gaden::Vector3{+1, +1, -1};
                     }
                 }
 
@@ -118,30 +118,30 @@ int main(int argc, char** argv)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {0, -1, 0};
-                        triangles.back().vertices[0] = center + offset * Gaden::Vector3{-1, -1, -1};
-                        triangles.back().vertices[1] = center + offset * Gaden::Vector3{+1, -1, -1};
-                        triangles.back().vertices[2] = center + offset * Gaden::Vector3{+1, -1, +1};
+                        triangles.back().vertices[0] = center + offset * gaden::Vector3{-1, -1, -1};
+                        triangles.back().vertices[1] = center + offset * gaden::Vector3{+1, -1, -1};
+                        triangles.back().vertices[2] = center + offset * gaden::Vector3{+1, -1, +1};
 
                         triangles.emplace_back();
                         triangles.back().normal = {0, -1, 0};
-                        triangles.back().vertices[0] = center + offset * Gaden::Vector3{+1, -1, +1};
-                        triangles.back().vertices[1] = center + offset * Gaden::Vector3{-1, -1, +1};
-                        triangles.back().vertices[2] = center + offset * Gaden::Vector3{-1, -1, -1};
+                        triangles.back().vertices[0] = center + offset * gaden::Vector3{+1, -1, +1};
+                        triangles.back().vertices[1] = center + offset * gaden::Vector3{-1, -1, +1};
+                        triangles.back().vertices[2] = center + offset * gaden::Vector3{-1, -1, -1};
                     }
 
                     if (y + 1 >= environment.description.num_cells.y || environment.at(x, y + 1, z) == targetState)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {0, 1, 0};
-                        triangles.back().vertices[0] = center + offset * Gaden::Vector3{-1, +1, -1};
-                        triangles.back().vertices[1] = center + offset * Gaden::Vector3{+1, +1, +1};
-                        triangles.back().vertices[2] = center + offset * Gaden::Vector3{+1, +1, -1};
+                        triangles.back().vertices[0] = center + offset * gaden::Vector3{-1, +1, -1};
+                        triangles.back().vertices[1] = center + offset * gaden::Vector3{+1, +1, +1};
+                        triangles.back().vertices[2] = center + offset * gaden::Vector3{+1, +1, -1};
 
                         triangles.emplace_back();
                         triangles.back().normal = {0, 1, 0};
-                        triangles.back().vertices[0] = center + offset * Gaden::Vector3{+1, +1, +1};
-                        triangles.back().vertices[1] = center + offset * Gaden::Vector3{-1, +1, -1};
-                        triangles.back().vertices[2] = center + offset * Gaden::Vector3{-1, +1, +1};
+                        triangles.back().vertices[0] = center + offset * gaden::Vector3{+1, +1, +1};
+                        triangles.back().vertices[1] = center + offset * gaden::Vector3{-1, +1, -1};
+                        triangles.back().vertices[2] = center + offset * gaden::Vector3{-1, +1, +1};
                     }
                 }
             }

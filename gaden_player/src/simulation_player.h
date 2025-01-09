@@ -78,7 +78,7 @@ public:
     std::string gas_type;
     std::string simulation_filename;
     std::string occupancyFile;
-    Gaden::Environment environment;
+    gaden::Environment environment;
     double source_pos_x, source_pos_y, source_pos_z;
 
     bool load_wind_data;

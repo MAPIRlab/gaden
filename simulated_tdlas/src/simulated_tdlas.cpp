@@ -151,9 +151,9 @@ void TDLAS::updatePoseInFixedFrame()
 double TDLAS::takeMeasurement()
 {
     // run the DDA algorithm
-    Gaden::Vector3 rayOrigin = Gaden::fromGeoMSg(m_poseInFixedFrame.pose.translation);
+    gaden::Vector3 rayOrigin = gaden::fromGeoMSg(m_poseInFixedFrame.pose.translation);
 
-    Gaden::Vector3 rayDirection = m_poseInFixedFrame.forward();
+    gaden::Vector3 rayDirection = m_poseInFixedFrame.forward();
 
     static auto identity = [](const bool& b) { return b; };
 
@@ -179,7 +179,7 @@ double TDLAS::takeMeasurement()
     auto request = std::make_shared<gaden_msgs::srv::GasPosition::Request>();
     for (const auto& pair : rayData.lengthInCell)
     {
-        Gaden::Vector3 coords = Gaden::Vector3(pair.first) * m_rayMarchResolution + m_mapOrigin;
+        gaden::Vector3 coords = gaden::Vector3(pair.first) * m_rayMarchResolution + m_mapOrigin;
         request->x.push_back(coords.x);
         request->y.push_back(coords.y);
         request->z.push_back(coords.z);
@@ -235,9 +235,9 @@ void TDLAS::publish(double measured)
         marker.color.r = 1;
         marker.color.a = 1;
 
-        marker.points.push_back(Gaden::geoMsgToPoint(m_poseInFixedFrame.pose.translation));
+        marker.points.push_back(gaden::geoMsgToPoint(m_poseInFixedFrame.pose.translation));
 
-        geometry_msgs::msg::Point endPoint = Gaden::toPoint(m_endPointLastMeasurement);
+        geometry_msgs::msg::Point endPoint = gaden::toPoint(m_endPointLastMeasurement);
 
         marker.points.push_back(endPoint);
 
@@ -252,5 +252,5 @@ void TDLAS::reflectorLocCB(const geometry_msgs::msg::PoseWithCovarianceStamped::
     pose_original_frame.pose = msg->pose.pose;
 
     geometry_msgs::msg::PoseStamped pose_fixed_frame = m_tfBuffer->transform(pose_original_frame, m_fixedFrame);
-    m_reflectorRobot.baseCenter = Gaden::fromPoint(pose_fixed_frame.pose.position);
+    m_reflectorRobot.baseCenter = gaden::fromPoint(pose_fixed_frame.pose.position);
 }

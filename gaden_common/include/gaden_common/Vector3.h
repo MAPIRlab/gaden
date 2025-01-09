@@ -8,7 +8,7 @@
 #include <gaden_common/third_party/glm/glm/vec2.hpp>
 #include <gaden_common/third_party/glm/glm/vec3.hpp>
 
-namespace Gaden
+namespace gaden
 {
     using Vector2 = glm::vec2;
     using Vector3 = glm::vec3;
@@ -24,6 +24,19 @@ namespace Gaden
     inline Vec normalized(const Vec& vec)
     {
         return glm::normalize(vec);
+    }
+
+    template <typename Vec>
+    inline Vec cross(const Vec& a, const Vec& b)
+    {
+        return glm::cross(a, b);
+    }
+
+
+    template <typename Vec>
+    inline float dot(const Vec& a, const Vec& b)
+    {
+        return glm::dot(a, b);
     }
 
     template <typename Vec>
