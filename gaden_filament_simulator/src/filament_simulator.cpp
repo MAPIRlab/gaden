@@ -29,6 +29,7 @@
 
 #include "filament_simulator/filament_simulator.h"
 #include "filament_simulator/filament.h"
+#include "gaden_common/GadenVersion.h"
 #include "gaden_common/ReadEnvironment.h"
 #include "gaden_common/Vector3.h"
 #include <filesystem>
@@ -324,6 +325,9 @@ void CFilamentSimulator::read_wind_snapshot(int idx)
             // dump the binary wind data to file
             std::string out_filename = fmt::format("{}/wind/wind_iteration_{}", results_location, idx);
             std::ofstream outputWindFile(out_filename.c_str());
+
+            outputWindFile.write((char*)&gaden::version_major, sizeof(int));
+            outputWindFile.write((char*)&gaden::version_minor, sizeof(int));
             outputWindFile.write((char*)wind.data(), sizeof(gaden::Vector3) * wind.size());
             outputWindFile.close();
         }
@@ -700,11 +704,8 @@ void CFilamentSimulator::save_state_to_file()
     inbuf.push(boost::iostreams::zlib_compressor());
     inbuf.push(ist);
 
-    constexpr int version_major = GADEN_VERSION_MAJOR;
-    constexpr int version_minor = GADEN_VERSION_MINOR;
-
-    ist.write((char*)&version_major, sizeof(int));
-    ist.write((char*)&version_minor, sizeof(int));
+    ist.write((char*)&gaden::version_major, sizeof(int));
+    ist.write((char*)&gaden::version_minor, sizeof(int));
 
     ist.write((char*)&environment.description, sizeof(environment.description));
 

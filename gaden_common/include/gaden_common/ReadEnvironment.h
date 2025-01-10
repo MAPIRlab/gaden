@@ -25,8 +25,8 @@ namespace gaden
 
     struct Environment
     {
-        int versionMajor = GADEN_VERSION_MAJOR,
-            versionMinor = GADEN_VERSION_MINOR; // version of gaden used to generate a log file. Used to figure out how to parse the binary format
+        int versionMajor = gaden::version_major,
+            versionMinor = gaden::version_minor; // version of gaden used to generate a log file. Used to figure out how to parse the binary format
         struct Description
         {
             Vector3i dimensions;

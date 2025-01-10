@@ -347,11 +347,9 @@ void Gaden_preprocessing::printWindFiles(const std::vector<gaden::Vector3>& wind
     std::ofstream outputFile(fmt::format("{}_gaden", filename));
 
     // TODO include this in the file format (without breaking old ones pls)
-    constexpr int version_major = GADEN_VERSION_MAJOR;
-    constexpr int version_minor = GADEN_VERSION_MINOR;
 
-    outputFile.write((char*)&version_major, sizeof(int));
-    outputFile.write((char*)&version_minor, sizeof(int));
+    outputFile.write((char*)&gaden::version_major, sizeof(int));
+    outputFile.write((char*)&gaden::version_minor, sizeof(int));
 
     outputFile.write((char*)wind.data(), sizeof(gaden::Vector3) * wind.size());
 

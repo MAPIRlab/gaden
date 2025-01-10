@@ -1,3 +1,4 @@
+#include "gaden_common/Vector3.h"
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <std_msgs/msg/float32.hpp>
@@ -11,7 +12,6 @@
 #include <math.h>
 #include <vector>
 #include <string>
-#include <map>
 
 #include <boost/iostreams/filter/zlib.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -22,8 +22,8 @@
 struct Filament
 {
 public:
-    double x, y, z, sigma;
-    Filament(double a, double b, double c, double d)
+    float x, y, z, sigma;
+    Filament(float a, float b, float c, float d)
     {
         x = a;
         y = b;
@@ -32,7 +32,7 @@ public:
     }
 };
 
-class sim_obj;
+class Simulation;
 
 class Player : public rclcpp::Node
 {
@@ -44,11 +44,11 @@ private:
     // ----------------------  MAIN--------------------//
 
     // Parameters
-    double player_freq;
+    float player_freq;
     int num_simulators;
     bool verbose;
     std::vector<std::string> simulation_data;
-    std::vector<sim_obj> player_instances; // To handle N simulations at a time.
+    std::vector<Simulation> player_instances; // To handle N simulations at a time.
 
     int initial_iteration, loop_from_iteration, loop_to_iteration;
     bool allow_looping;
@@ -69,44 +69,45 @@ private:
 };
 
 // CLASS for every simulation to run. If two gas sources are needed, just create 2 instances!
-class sim_obj
+class Simulation
 {
 public:
-    sim_obj(std::string filepath, bool load_wind_info, std::string occupancy_filepath);
-    ~sim_obj();
+    Simulation(std::string filepath, bool load_wind_info, std::string occupancy_filepath);
+    ~Simulation();
 
     std::string gas_type;
     std::string simulation_filename;
     std::string occupancyFile;
     gaden::Environment environment;
-    double source_pos_x, source_pos_y, source_pos_z;
+    float source_pos_x, source_pos_y, source_pos_z;
 
     bool load_wind_data;
-    std::vector<double> C; // 3D Gas concentration
-    std::vector<double> U; // 3D Wind U
-    std::vector<double> V; // 3D Wind V
-    std::vector<double> W; // 3D Wind W
+    std::vector<gaden::Vector3> wind;
     bool first_reading;
     int last_wind_idx = -1;
 
-    double total_moles_in_filament;
-    double num_moles_all_gases_in_cm3;
-    std::map<int, Filament> activeFilaments;
+    float total_moles_in_filament;
+    float num_moles_all_gases_in_cm3;
+    std::vector<Filament> activeFilaments;
 
     // methods
     void configure_environment();
+    
     void load_data_from_logfile(int sim_iteration);
     void load_logfile_version_1(std::stringstream& decompressed);
-    void load_logfile_version_2(std::stringstream& decompressed);
-    double get_gas_concentration(float x, float y, float z);
-    double concentration_from_filament(float x, float y, float z, Filament fil);
-    bool check_environment_for_obstacle(double start_x, double start_y, double start_z, double end_x, double end_y, double end_z);
-    int check_pose_with_environment(double pose_x, double pose_y, double pose_z);
+    void load_logfile_version_pre_2_6(std::stringstream& decompressed);
+    void load_logfile_current(std::stringstream& decompressed);
+    void load_wind_file_pre_2_6(int wind_index);
+    void load_wind_file_current(int wind_index);
 
-    void get_wind_value(float x, float y, float z, double& u, double& v, double& w);
+    float get_gas_concentration(float x, float y, float z);
+    float concentration_from_filament(float x, float y, float z, Filament fil);
+    bool check_environment_for_obstacle(float start_x, float start_y, float start_z, float end_x, float end_y, float end_z);
+    int check_pose_with_environment(float pose_x, float pose_y, float pose_z);
+
+    gaden::Vector3 get_wind_value(const gaden::Vector3& location);
     void get_concentration_as_markers(visualization_msgs::msg::Marker& mkr_points);
 
-    void load_wind_file(int wind_index);
 
     int indexFrom3D(int x, int y, int z);
 
