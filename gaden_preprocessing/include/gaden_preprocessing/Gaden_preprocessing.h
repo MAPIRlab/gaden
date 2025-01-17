@@ -3,15 +3,16 @@
 #include "gaden_common/Vector3.h"
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <string_view>
 #include <tf2/LinearMath/Vector3.h>
 #include <vector>
 
 enum cell_state
 {
-    non_initialized = 0,
-    empty = 1,
-    occupied = 2,
-    outlet = 3,
+    non_initialized = 9,
+    empty = 0,
+    occupied = 1,
+    outlet = 2,
     edge = 4
 };
 
@@ -47,10 +48,10 @@ struct Triangle
 class Gaden_preprocessing : public rclcpp::Node
 {
 public:
-    Gaden_preprocessing() : rclcpp::Node("Gaden_Preprocessing")
+    Gaden_preprocessing()
+        : rclcpp::Node("Gaden_Preprocessing")
     {
         cell_size = declare_parameter<float>("cell_size", 1); // size of the cells
-        roundFactor = 100.0 / cell_size;
         jobDone_pub = create_publisher<std_msgs::msg::Bool>("preprocessing_done", 10);
     }
 
@@ -64,28 +65,24 @@ public:
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr jobDone_pub;
 
 private:
-    std::vector<std::vector<std::vector<int>>> env;
+    std::vector<cell_state> env;
+    gaden::Vector3i dimensions;
 
     // dimensions of the enviroment [m]
-    float env_min_x;
-    float env_min_y;
-    float env_min_z;
-    float env_max_x;
-    float env_max_y;
-    float env_max_z;
+    gaden::Vector3 env_min;
+    gaden::Vector3 env_max;
     // length of the sides of the cell [m]
     float cell_size;
-    float roundFactor; // for rounding numbers to avoid certain precision problems. Depends on the cell size
 
     bool isASCII(const std::string& filename);
 
-    bool compare_cell(int x, int y, int z, cell_state value);
+    bool compare_cell(gaden::Vector3i pos, cell_state value);
     void changeStageWorldFile(const std::string& filename);
-    void printOccupancyMap(std::string filename, int scale, bool block_outlets);
-    void printOccupancyYaml(std::string outputFolder);
-    void printBasicSimYaml(std::string outputFolder);
-    void printGadenEnvFile(std::string filename, int scale);
-    void printWindFiles(const std::vector<gaden::Vector3>& wind, std::string filename);
+    void printOccupancyMap(std::string_view filename, bool block_outlets);
+    void printOccupancyYaml(std::string_view outputFolder);
+    void printBasicSimYaml(std::string_view outputFolder);
+    void printGadenEnvFile(std::string_view filename);
+    void printWindFiles(const std::vector<gaden::Vector3>& wind, std::string_view filename);
 
     std::array<gaden::Vector3, 9> cubePoints(const gaden::Vector3& query_point);
     bool pointInTriangle(const gaden::Vector3& query_point, const gaden::Vector3& triangle_vertex_0, const gaden::Vector3& triangle_vertex_1,
@@ -97,10 +94,16 @@ private:
     void findDimensions(const std::string& filename);
     void openFoam_to_gaden(const std::string& filename);
 
-    int indexFrom3D(int x, int y, int z)
+    size_t indexFrom3D(int x, int y, int z)
     {
-        return x + y * env[0].size() + z * env[0].size() * env.size();
+        return y + x * dimensions.y + z * dimensions.x * dimensions.y;
     }
+
+    size_t indexFrom3D(gaden::Vector3i vec)
+    {
+        return indexFrom3D(vec.x, vec.y, vec.z);
+    }
+
 };
 
 namespace Utils

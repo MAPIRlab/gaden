@@ -1,3 +1,5 @@
+#include "gaden_common/Logging.h"
+#include "gaden_common/Vector3.h"
 #include <fmt/color.h>
 #include <gaden_preprocessing/Gaden_preprocessing.h>
 #include <gaden_preprocessing/TriangleBoxIntersection.h>
@@ -102,12 +104,8 @@ void Gaden_preprocessing::parseMainModels()
         findDimensions(model);
     }
 
-    // x and y are interchanged!!!!!! it goes env[y][x][z]
-    // I cannot for the life of me remember why I did that, but there must have been a reason
-    env = std::vector<std::vector<std::vector<int>>>(
-        ceil((env_max_y - env_min_y) * (roundFactor) / (cell_size * (roundFactor))),
-        std::vector<std::vector<int>>(ceil((env_max_x - env_min_x) * (roundFactor) / (cell_size * (roundFactor))),
-                                      std::vector<int>(ceil((env_max_z - env_min_z) * (roundFactor) / (cell_size * (roundFactor))), 0)));
+    dimensions = ceil((env_max - env_min) / cell_size);
+    env = std::vector<cell_state>(dimensions.x * dimensions.y * dimensions.z, cell_state::non_initialized);
 
     for (const std::string& model : stlModels)
     {
@@ -164,15 +162,15 @@ void Gaden_preprocessing::parseOutletModels()
     }
 }
 
-bool Gaden_preprocessing::compare_cell(int x, int y, int z, cell_state value)
+bool Gaden_preprocessing::compare_cell(gaden::Vector3i pos, cell_state value)
 {
-    if (x < 0 || x >= env.size() || y < 0 || y >= env[0].size() || z < 0 || z >= env[0][0].size())
+    if (pos.x < 0 || pos.x >= dimensions.x || pos.y < 0 || pos.y >= dimensions.y || pos.z < 0 || pos.z >= dimensions.z)
     {
         return false;
     }
     else
     {
-        return env[x][y][z] == value;
+        return env[indexFrom3D(pos)] == value;
     }
 }
 
@@ -196,8 +194,8 @@ void Gaden_preprocessing::changeStageWorldFile(const std::string& filename)
                << "(\n"
                << "  name \"SimulatedMap\"\n"
                << "  bitmap \"../../occupancy.pgm\"\n"
-               << "  size [" << (env_max_x - env_min_x) << " " << (env_max_y - env_min_y) << " " << (env_max_z - env_min_z) << "]           #m \n"
-               << "  pose [" << (env_max_x - env_min_x) / 2 + env_min_x << " " << (env_max_y - env_min_y) / 2 + env_min_y << " " << floor_height
+               << "  size [" << (env_max.x - env_min.x) << " " << (env_max.y - env_min.y) << " " << (env_max.z - env_min.z) << "]           #m \n"
+               << "  pose [" << (env_max.x - env_min.x) / 2 + env_min.x << " " << (env_max.y - env_min.y) / 2 + env_min.y << " " << floor_height
                << " 0]    #Coordinates (m) of the Center of the image_map\n"
                << ")\n";
         }
@@ -212,51 +210,46 @@ void Gaden_preprocessing::changeStageWorldFile(const std::string& filename)
     out.close();
 }
 
-void Gaden_preprocessing::printOccupancyMap(std::string filename, int scale, bool block_outlets)
+void Gaden_preprocessing::printOccupancyMap(std::string_view filename, bool block_outlets)
 {
-    std::ofstream outfile(filename.c_str());
+    std::ofstream outfile(filename.data());
     outfile << "P2\n"
-            << scale * env[0].size() << " " << scale * env.size() << "\n"
+            << dimensions.x << " " << dimensions.y << "\n"
             << "1\n";
     // things are repeated to scale them up (the image is too small!)
 
     float floor_height = getParam<float>(shared_from_this(), "floor_height", 0);
-    int height = (floor_height - env_min_z) / cell_size; // a xy slice of the 3D environment is used as a geometric map for navigation
-    if (height >= env[0][0].size())
+    int height = (floor_height - env_min.z) / cell_size; // a xy slice of the 3D environment is used as a geometric map for navigation
+    if (height >= dimensions.z)
     {
-        GADEN_ERROR("Cannot print the occupancy map at height {} -- the environment only gets to height {}", floor_height, env_max_z);
+        GADEN_ERROR("Cannot print the occupancy map at height {} -- the environment only gets to height {}", floor_height, env_max.z);
         return;
     }
-    for (int row = env.size() - 1; row >= 0; row--)
+    for (int row = dimensions.y - 1; row >= 0; row--)
     {
-        for (int j = 0; j < scale; j++)
+        for (int col = 0; col < dimensions.x; col++)
         {
-            for (int col = 0; col < env[0].size(); col++)
-            {
-                for (int i = 0; i < scale; i++)
-                {
-                    auto& cell = env[row][col][height];
-                    bool outletTerm = cell == cell_state::outlet && !block_outlets;
-                    outfile << (cell == cell_state::empty || outletTerm ? 1 : 0) << " ";
-                }
-            }
-            outfile << "\n";
+            auto& cell = env[indexFrom3D(col, row, height)];
+            bool outletTerm = cell == cell_state::outlet && !block_outlets;
+            outfile << (cell == cell_state::empty || outletTerm ? 1 : 0) << " ";
+            // outfile << cell << " ";
         }
+        outfile << "\n";
     }
     outfile.close();
 }
 
-void Gaden_preprocessing::printOccupancyYaml(std::string outputFolder)
+void Gaden_preprocessing::printOccupancyYaml(std::string_view outputFolder)
 {
     std::ofstream file(fmt::format("{}/occupancy.yaml", outputFolder));
     YAML::Emitter yaml;
     yaml.SetDoublePrecision(3);
     yaml << YAML::BeginMap;
     yaml << YAML::Key << "image" << YAML::Value << "occupancy.pgm";
-    yaml << YAML::Key << "resolution" << YAML::Value << cell_size / MAP_SCALE;
+    yaml << YAML::Key << "resolution" << YAML::Value << cell_size;
 
     float floor_height = getParam<float>(shared_from_this(), "floor_height", 0.0);
-    yaml << YAML::Key << "origin" << YAML::Value << YAML::Flow << std::vector<float>{env_min_x, env_min_y, 0.0}; // the third component is yaw, not Z!
+    yaml << YAML::Key << "origin" << YAML::Value << YAML::Flow << std::vector<float>{env_min.x, env_min.y, 0.0}; // the third component is yaw, not Z!
     yaml << YAML::Key << "occupied_thresh" << YAML::Value << 0.9;
     yaml << YAML::Key << "free_thresh" << YAML::Value << 0.1;
     yaml << YAML::Key << "negate" << YAML::Value << 0;
@@ -266,7 +259,7 @@ void Gaden_preprocessing::printOccupancyYaml(std::string outputFolder)
     file.close();
 }
 
-void Gaden_preprocessing::printBasicSimYaml(std::string outputFolder)
+void Gaden_preprocessing::printBasicSimYaml(std::string_view outputFolder)
 {
     std::ofstream file(fmt::format("{}/BasicSimScene.yaml", outputFolder));
     YAML::Emitter yaml;
@@ -312,41 +305,35 @@ void Gaden_preprocessing::printBasicSimYaml(std::string outputFolder)
     file.close();
 }
 
-void Gaden_preprocessing::printGadenEnvFile(std::string filename, int scale)
+void Gaden_preprocessing::printGadenEnvFile(std::string_view filename)
 {
-    std::ofstream outfile(filename.c_str());
+    std::ofstream outfile(filename.data());
 
-    outfile << "#env_min(m) " << env_min_x << " " << env_min_y << " " << env_min_z << "\n";
-    outfile << "#env_max(m) " << env_max_x << " " << env_max_y << " " << env_max_z << "\n";
-    outfile << "#num_cells " << env[0].size() << " " << env.size() << " " << env[0][0].size() << "\n";
+    outfile << "#env_min(m) " << env_min.x << " " << env_min.y << " " << env_min.z << "\n";
+    outfile << "#env_max(m) " << env_max.x << " " << env_max.y << " " << env_max.z << "\n";
+    outfile << "#num_cells " << dimensions.x << " " << dimensions.y << " " << dimensions.z << "\n";
     outfile << "#cell_size(m) " << cell_size << "\n";
     // things are repeated to scale them up (the image is too small!)
-    for (int height = 0; height < env[0][0].size(); height++)
+    for (int height = 0; height < dimensions.z; height++)
     {
-        for (int col = 0; col < env[0].size(); col++)
+        for (int col = 0; col < dimensions.x; col++)
         {
-            for (int j = 0; j < scale; j++)
+            for (int row = 0; row < dimensions.y; row++)
             {
-                for (int row = 0; row < env.size(); row++)
-                {
-                    for (int i = 0; i < scale; i++)
-                    {
-                        outfile << (env[row][col][height] == cell_state::empty ? 0 : (env[row][col][height] == cell_state::outlet ? 2 : 1)) << " ";
-                    }
-                }
-                outfile << "\n";
+                outfile << (env[indexFrom3D(col, row, height)] == cell_state::empty ? 0
+                                                                                    : (env[indexFrom3D(col, row, height)] == cell_state::outlet ? 2 : 1))
+                        << " ";
             }
+            outfile << "\n";
         }
         outfile << ";\n";
     }
     outfile.close();
 }
 
-void Gaden_preprocessing::printWindFiles(const std::vector<gaden::Vector3>& wind, std::string filename)
+void Gaden_preprocessing::printWindFiles(const std::vector<gaden::Vector3>& wind, std::string_view filename)
 {
     std::ofstream outputFile(fmt::format("{}_gaden", filename));
-
-    // TODO include this in the file format (without breaking old ones pls)
 
     outputFile.write((char*)&gaden::version_major, sizeof(int));
     outputFile.write((char*)&gaden::version_minor, sizeof(int));
@@ -409,20 +396,20 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
 {
     int numberOfProcessedTriangles = 0; // for logging, doesn't actually do anything
     std::mutex mtx;
-// Let's occupy the enviroment!
+    // Let's occupy the enviroment!
 #pragma omp parallel for
     for (int i = 0; i < triangles.size(); i++)
     {
         // We try to find all the cells that some triangle goes through
-        int x1 = roundf((triangles[i].p1.x - env_min_x) * (roundFactor)) / (cell_size * (roundFactor));
-        int y1 = roundf((triangles[i].p1.y - env_min_y) * (roundFactor)) / (cell_size * (roundFactor));
-        int z1 = roundf((triangles[i].p1.z - env_min_z) * (roundFactor)) / (cell_size * (roundFactor));
-        int x2 = roundf((triangles[i].p2.x - env_min_x) * (roundFactor)) / (cell_size * (roundFactor));
-        int y2 = roundf((triangles[i].p2.y - env_min_y) * (roundFactor)) / (cell_size * (roundFactor));
-        int z2 = roundf((triangles[i].p2.z - env_min_z) * (roundFactor)) / (cell_size * (roundFactor));
-        int x3 = roundf((triangles[i].p3.x - env_min_x) * (roundFactor)) / (cell_size * (roundFactor));
-        int y3 = roundf((triangles[i].p3.y - env_min_y) * (roundFactor)) / (cell_size * (roundFactor));
-        int z3 = roundf((triangles[i].p3.z - env_min_z) * (roundFactor)) / (cell_size * (roundFactor));
+        int x1 = (triangles[i].p1.x - env_min.x) / cell_size;
+        int y1 = (triangles[i].p1.y - env_min.y) / cell_size;
+        int z1 = (triangles[i].p1.z - env_min.z) / cell_size;
+        int x2 = (triangles[i].p2.x - env_min.x) / cell_size;
+        int y2 = (triangles[i].p2.y - env_min.y) / cell_size;
+        int z2 = (triangles[i].p2.z - env_min.z) / cell_size;
+        int x3 = (triangles[i].p3.x - env_min.x) / cell_size;
+        int y3 = (triangles[i].p3.y - env_min.y) / cell_size;
+        int z3 = (triangles[i].p3.z - env_min.z) / cell_size;
 
         int min_x = std::min({x1, x2, x3});
         int min_y = std::min({y1, y2, y3});
@@ -433,53 +420,55 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
         int max_z = std::max({z1, z2, z3});
 
         // is the triangle right at the boundary between two cells (in any axis)?
-        bool xLimit = Utils::eq(std::fmod(std::max({triangles[i][0].x, triangles[i][1].x, triangles[i][2].x}) - env_min_x, cell_size), 0) ||
-                      Utils::eq(std::fmod(std::max({triangles[i][0].x, triangles[i][1].x, triangles[i][2].x}) - env_min_x, cell_size), cell_size);
+        bool xLimit = Utils::eq(std::fmod(std::max({triangles[i][0].x, triangles[i][1].x, triangles[i][2].x}) - env_min.x, cell_size), 0) ||
+                      Utils::eq(std::fmod(std::max({triangles[i][0].x, triangles[i][1].x, triangles[i][2].x}) - env_min.x, cell_size), cell_size);
 
-        bool yLimit = Utils::eq(std::fmod(std::max({triangles[i][0].y, triangles[i][1].y, triangles[i][2].y}) - env_min_y, cell_size), 0) ||
-                      Utils::eq(std::fmod(std::max({triangles[i][0].y, triangles[i][1].y, triangles[i][2].y}) - env_min_y, cell_size), cell_size);
+        bool yLimit = Utils::eq(std::fmod(std::max({triangles[i][0].y, triangles[i][1].y, triangles[i][2].y}) - env_min.y, cell_size), 0) ||
+                      Utils::eq(std::fmod(std::max({triangles[i][0].y, triangles[i][1].y, triangles[i][2].y}) - env_min.y, cell_size), cell_size);
 
-        bool zLimit = Utils::eq(std::fmod(std::max({triangles[i][0].z, triangles[i][1].z, triangles[i][2].z}) - env_min_z, cell_size), 0) ||
-                      Utils::eq(std::fmod(std::max({triangles[i][0].z, triangles[i][1].z, triangles[i][2].z}) - env_min_z, cell_size), cell_size);
+        bool zLimit = Utils::eq(std::fmod(std::max({triangles[i][0].z, triangles[i][1].z, triangles[i][2].z}) - env_min.z, cell_size), 0) ||
+                      Utils::eq(std::fmod(std::max({triangles[i][0].z, triangles[i][1].z, triangles[i][2].z}) - env_min.z, cell_size), cell_size);
 
         bool isParallel = Utils::isParallel(normals[i]);
-        for (int row = min_x; row <= max_x && row < env[0].size(); row++)
+        for (int row = min_y; row <= max_y && row < dimensions.y; row++)
         {
-            for (int col = min_y; col <= max_y && col < env.size(); col++)
+            for (int col = min_x; col <= max_x && col < dimensions.x; col++)
             {
-                for (int height = min_z; height <= max_z && height < env[0][0].size(); height++)
+                for (int height = min_z; height <= max_z && height < dimensions.z; height++)
                 {
                     // check if the triangle goes through this cell
                     // special case for triangles that are parallel to the coordinate axes because the discretization can cause
                     // problems if they fall right on the boundary of two cells
+                    gaden::Vector3 cellCenter(
+                        col * cell_size + env_min.x + cell_size / 2,
+                        row * cell_size + env_min.y + cell_size / 2,
+                        height * cell_size + env_min.z + cell_size / 2);
                     if ((isParallel &&
-                         pointInTriangle(gaden::Vector3(row * cell_size + env_min_x + cell_size / 2, col * cell_size + env_min_y + cell_size / 2,
-                                                        height * cell_size + env_min_z + cell_size / 2),
-                                         gaden::Vector3(triangles[i][0].x, triangles[i][0].y, triangles[i][0].z),
-                                         gaden::Vector3(triangles[i][1].x, triangles[i][1].y, triangles[i][1].z),
-                                         gaden::Vector3(triangles[i][2].x, triangles[i][2].y, triangles[i][2].z))) ||
-                        triBoxOverlap(gaden::Vector3(row * cell_size + env_min_x + cell_size / 2, col * cell_size + env_min_y + cell_size / 2,
-                                                     height * cell_size + env_min_z + cell_size / 2),
+                         pointInTriangle(cellCenter,
+                                         triangles[i][0],
+                                         triangles[i][1],
+                                         triangles[i][2])) ||
+                        triBoxOverlap(cellCenter,
                                       gaden::Vector3(cell_size / 2, cell_size / 2, cell_size / 2),
-                                      gaden::Vector3(triangles[i][0].x, triangles[i][0].y, triangles[i][0].z),
-                                      gaden::Vector3(triangles[i][1].x, triangles[i][1].y, triangles[i][1].z),
-                                      gaden::Vector3(triangles[i][2].x, triangles[i][2].y, triangles[i][2].z)))
+                                      triangles[i][0],
+                                      triangles[i][1],
+                                      triangles[i][2]))
                     {
                         mtx.lock();
-                        env[col][row][height] = value_to_write;
+                        env[indexFrom3D(col, row, height)] = value_to_write;
                         if (value_to_write == cell_state::occupied)
                         {
                             // if the "limit" flags are activated, AND we are on the offending cells,
                             // AND the cell has not previously marked as normally occupied by a different triangle
                             // AND the cells are not on the very limit of the environment, mark the cell as "edge" for later cleanup
-                            bool limitOfproblematicTriangle = (xLimit && row == max_x) || (yLimit && col == max_y) || (zLimit && height == max_z);
+                            bool limitOfproblematicTriangle = (xLimit && col == max_x) || (yLimit && row == max_y) || (zLimit && height == max_z);
 
                             bool endOfTheEnvironment =
-                                (col > 0 || col < env.size() || row > 0 || row < env[0].size() || height > 0 || height < env[0][0].size());
+                                (col > 0 || col < dimensions.x || row > 0 || row < dimensions.y || height > 0 || height < dimensions.z);
 
-                            if (!endOfTheEnvironment && limitOfproblematicTriangle && env[col][row][height] != cell_state::occupied)
+                            if (!endOfTheEnvironment && limitOfproblematicTriangle && env[indexFrom3D(col, row, height)] != cell_state::occupied)
                             {
-                                env[col][row][height] = cell_state::edge;
+                                env[indexFrom3D(col, row, height)] = cell_state::edge;
                             }
                         }
                         mtx.unlock();
@@ -492,7 +481,7 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
         if (i > numberOfProcessedTriangles + triangles.size() / 10)
         {
             mtx.lock();
-            GADEN_INFO("{}%%", (int)((100 * i) / triangles.size()));
+            GADEN_INFO("{}%", (int)((100 * i) / triangles.size()));
             numberOfProcessedTriangles = i;
             mtx.unlock();
         }
@@ -540,11 +529,11 @@ void Gaden_preprocessing::parse(const std::string& filename, cell_state value_to
             float aux;
             std::stringstream ss(line);
             ss >> std::skipws >> aux;
-            normals[i].x = (roundf(aux * roundFactor) / roundFactor);
+            normals[i].x = aux;
             ss >> std::skipws >> aux;
-            normals[i].y = (roundf(aux * roundFactor) / roundFactor);
+            normals[i].y = aux;
             ss >> std::skipws >> aux;
-            normals[i].z = (roundf(aux * roundFactor) / roundFactor);
+            normals[i].z = aux;
             std::getline(infile, line);
 
             for (int j = 0; j < 3; j++)
@@ -554,11 +543,11 @@ void Gaden_preprocessing::parse(const std::string& filename, cell_state value_to
                 line.erase(0, pos + 7);
                 std::stringstream ss(line);
                 ss >> std::skipws >> aux;
-                triangles[i][j].x = (roundf(aux * roundFactor) / roundFactor);
+                triangles[i][j].x = aux;
                 ss >> std::skipws >> aux;
-                triangles[i][j].y = (roundf(aux * roundFactor) / roundFactor);
+                triangles[i][j].y = aux;
                 ss >> std::skipws >> aux;
-                triangles[i][j].z = (roundf(aux * roundFactor) / roundFactor);
+                triangles[i][j].z = aux;
             }
             i++;
             // skipping lines here makes checking for the end of the file more convenient
@@ -646,17 +635,17 @@ void Gaden_preprocessing::findDimensions(const std::string& filename)
                 std::stringstream ss(line);
                 float aux;
                 ss >> std::skipws >> aux;
-                x = roundf(aux * roundFactor) / roundFactor;
+                x = aux;
                 ss >> std::skipws >> aux;
-                y = roundf(aux * roundFactor) / roundFactor;
+                y = aux;
                 ss >> std::skipws >> aux;
-                z = roundf(aux * roundFactor) / roundFactor;
-                env_max_x = env_max_x >= x ? env_max_x : x;
-                env_max_y = env_max_y >= y ? env_max_y : y;
-                env_max_z = env_max_z >= z ? env_max_z : z;
-                env_min_x = env_min_x <= x ? env_min_x : x;
-                env_min_y = env_min_y <= y ? env_min_y : y;
-                env_min_z = env_min_z <= z ? env_min_z : z;
+                z = aux;
+                env_max.x = env_max.x >= x ? env_max.x : x;
+                env_max.y = env_max.y >= y ? env_max.y : y;
+                env_max.z = env_max.z >= z ? env_max.z : z;
+                env_min.x = env_min.x <= x ? env_min.x : x;
+                env_min.y = env_min.y <= y ? env_min.y : y;
+                env_min.z = env_min.z <= z ? env_min.z : z;
             }
             i++;
             // skipping three lines here makes checking for the end of the file more convenient
@@ -682,12 +671,12 @@ void Gaden_preprocessing::findDimensions(const std::string& filename)
                 infile.read((char*)&x, sizeof(float));
                 infile.read((char*)&y, sizeof(float));
                 infile.read((char*)&z, sizeof(float));
-                env_max_x = env_max_x >= x ? env_max_x : x;
-                env_max_y = env_max_y >= y ? env_max_y : y;
-                env_max_z = env_max_z >= z ? env_max_z : z;
-                env_min_x = env_min_x <= x ? env_min_x : x;
-                env_min_y = env_min_y <= y ? env_min_y : y;
-                env_min_z = env_min_z <= z ? env_min_z : z;
+                env_max.x = env_max.x >= x ? env_max.x : x;
+                env_max.y = env_max.y >= y ? env_max.y : y;
+                env_max.z = env_max.z >= z ? env_max.z : z;
+                env_min.x = env_min.x <= x ? env_min.x : x;
+                env_min.y = env_min.y <= y ? env_min.y : y;
+                env_min.z = env_min.z <= z ? env_min.z : z;
             }
 
             infile.seekg(sizeof(uint16_t), std::ios_base::cur); // skip the attribute data
@@ -698,7 +687,7 @@ void Gaden_preprocessing::findDimensions(const std::string& filename)
                "	x : ({}, {})\n"
                "	y : ({}, {})\n"
                "	z : ({}, {})\n",
-               env_min_x, env_max_x, env_min_y, env_max_y, env_min_z, env_max_z);
+               env_min.x, env_max.x, env_min.y, env_max.y, env_min.z, env_max.z);
 }
 
 void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
@@ -734,7 +723,7 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
         }
     }
 
-    std::vector<gaden::Vector3> wind(env[0].size() * env.size() * env[0][0].size());
+    std::vector<gaden::Vector3> wind(env.size(), gaden::Vector3(0, 0, 0));
 
     int x_idx = 0;
     int y_idx = 0;
@@ -758,9 +747,9 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
             }
 
             // assign each of the points we have information about to the nearest cell
-            x_idx = (int)roundf((parsedLine.point[0] - env_min_x) / cell_size * roundFactor) / roundFactor;
-            y_idx = (int)roundf((parsedLine.point[1] - env_min_y) / cell_size * roundFactor) / roundFactor;
-            z_idx = (int)roundf((parsedLine.point[2] - env_min_z) / cell_size * roundFactor) / roundFactor;
+            x_idx = (parsedLine.point[0] - env_min.x) / cell_size;
+            y_idx = (parsedLine.point[1] - env_min.y) / cell_size;
+            z_idx = (parsedLine.point[2] - env_min.z) / cell_size;
 
             size_t index3D = indexFrom3D(x_idx, y_idx, z_idx);
             wind[index3D].x = parsedLine.windVector[0];
@@ -768,89 +757,82 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
             wind[index3D].z = parsedLine.windVector[2];
         }
     }
+    
     infile.close();
     printWindFiles(wind, filename);
 }
 
 void Gaden_preprocessing::fill()
 {
-    float empty_point_x = getParam<float>(shared_from_this(), "empty_point_x", 0);
-    float empty_point_y = getParam<float>(shared_from_this(), "empty_point_y", 0);
-    float empty_point_z = getParam<float>(shared_from_this(), "empty_point_z", 0);
-
-    int x = (empty_point_y - env_min_y) / cell_size;
-    int z = (empty_point_z - env_min_z) / cell_size;
-    int y = (empty_point_x - env_min_x) / cell_size;
-
-    cell_state new_value = cell_state::empty;
-    cell_state value_to_overwrite = cell_state::non_initialized;
-
+    // essentially a flood fill algorithm
+    // start from a point specified by a ros parameter, and replace any uninitialized cells you find with free ones
+    // occupied cells block the propagation, so the only cells that will remain uninitialized at the end are the ones that are unreachable from the seed point
+    // i.e. inside of obstacles
     std::queue<gaden::Vector3i> q;
-    q.emplace(x, y, z);
-    env[x][y][z] = new_value;
+    {
+        gaden::Vector3 empty_point =
+            {
+                getParam<float>(shared_from_this(), "empty_point_x", 0),
+                getParam<float>(shared_from_this(), "empty_point_y", 0),
+                getParam<float>(shared_from_this(), "empty_point_z", 0)};
+
+        gaden::Vector3i indices = (empty_point - env_min) / cell_size;
+
+        q.emplace(indices);
+        env[indexFrom3D(indices)] = cell_state::empty;
+    }
+
     while (!q.empty())
     {
-        gaden::Vector3i point = q.front();
+        gaden::Vector3i oldPoint = q.front();
         q.pop();
-        if (compare_cell(point.x + 1, point.y, point.z, value_to_overwrite))
-        { // x+1, y, z
-            env[point.x + 1][point.y][point.z] = new_value;
-            q.emplace(point.x + 1, point.y, point.z);
-        }
 
-        if (compare_cell(point.x - 1, point.y, point.z, value_to_overwrite))
-        { // x-1, y, z
-            env[point.x - 1][point.y][point.z] = new_value;
-            q.emplace(point.x - 1, point.y, point.z);
-        }
+        // if oldPoint+offset is non_initialized, set it to free and add its indices to the queue to keep propagating
+        auto compareAndAdd = [&](gaden::Vector3i offset)
+        {
+            gaden::Vector3i currentPoint = oldPoint + offset;
+            if (compare_cell(currentPoint, cell_state::non_initialized))
+            {
+                env[indexFrom3D(currentPoint)] = cell_state::empty;
+                q.emplace(currentPoint);
+            }
+        };
 
-        if (compare_cell(point.x, point.y + 1, point.z, value_to_overwrite))
-        { // x, y+1, z
-            env[point.x][point.y + 1][point.z] = new_value;
-            q.emplace(point.x, point.y + 1, point.z);
-        }
+        compareAndAdd({1, 0, 0});
+        compareAndAdd({-1, 0, 0});
 
-        if (compare_cell(point.x, point.y - 1, point.z, value_to_overwrite))
-        { // x, y-1, z
-            env[point.x][point.y - 1][point.z] = new_value;
-            q.emplace(point.x, point.y - 1, point.z);
-        }
+        compareAndAdd({0, 1, 0});
+        compareAndAdd({0, -1, 0});
 
-        if (compare_cell(point.x, point.y, point.z + 1, value_to_overwrite))
-        { // x, y, z+1
-            env[point.x][point.y][point.z + 1] = new_value;
-            q.emplace(point.x, point.y, point.z + 1);
-        }
-
-        if (compare_cell(point.x, point.y, point.z - 1, value_to_overwrite))
-        { // x, y, z-1
-            env[point.x][point.y][point.z - 1] = new_value;
-            q.emplace(point.x, point.y, point.z - 1);
-        }
+        compareAndAdd({0, 0, 1});
+        compareAndAdd({0, 0, -1});
     }
 }
 
 void Gaden_preprocessing::clean()
 {
+    // remove cells that were marked as "edge" during the occupy phase
+    // that is, cells where the parsed triangle falls *right* at the limit of the cell and should probably not be considered occupied
+
 #pragma omp parallel for collapse(3)
-    for (int col = 0; col < env.size(); col++)
+    for (int col = 0; col < dimensions.x; col++)
     {
-        for (int row = 0; row < env[0].size(); row++)
+        for (int row = 0; row < dimensions.y; row++)
         {
-            for (int height = 0; height < env[0][0].size(); height++)
+            for (int height = 0; height < dimensions.z; height++)
             {
-                if (env[col][row][height] == cell_state::edge)
+                if (env[indexFrom3D(col, row, height)] == cell_state::edge)
                 {
-                    if (compare_cell(col + 1, row, height, cell_state::empty) || compare_cell(col, row + 1, height, cell_state::empty) ||
-                        compare_cell(col, row, height + 1, cell_state::empty) ||
-                        (compare_cell(col + 1, row + 1, height, cell_state::empty) && env[col][row + 1][height] == cell_state::edge &&
-                         env[col + 1][row][height] == cell_state::edge))
+                    if (compare_cell({col + 1, row, height}, cell_state::empty) ||
+                        compare_cell({col, row + 1, height}, cell_state::empty) ||
+                        compare_cell({col, row, height + 1}, cell_state::empty) ||
+                        (compare_cell({col + 1, row + 1, height}, cell_state::empty) && env[indexFrom3D(col, row + 1, height)] == cell_state::edge && env[indexFrom3D(col + 1, row, height)] == cell_state::edge))
                     {
-                        env[col][row][height] = cell_state::empty;
+                        env[indexFrom3D(col, row, height)] = cell_state::empty;
                     }
                     else
                     {
-                        env[col][row][height] = cell_state::occupied;
+                        env[indexFrom3D(col, row, height)] = cell_state::occupied;
                     }
                 }
             }
@@ -868,7 +850,7 @@ void Gaden_preprocessing::generateOutput()
     }
 
     GADEN_INFO_COLOR(fmt::terminal_color::blue, "Writing output to folder '{}'", outputFolder);
-    printOccupancyMap(fmt::format("{}/occupancy.pgm", outputFolder), MAP_SCALE, getParam<bool>(shared_from_this(), "block_outlets", false));
+    printOccupancyMap(fmt::format("{}/occupancy.pgm", outputFolder), getParam<bool>(shared_from_this(), "block_outlets", false));
     printOccupancyYaml(outputFolder);
 
     std::string worldFile;
@@ -878,7 +860,7 @@ void Gaden_preprocessing::generateOutput()
     printBasicSimYaml(outputFolder);
 
     // output - path, occupancy vector, scale
-    printGadenEnvFile(fmt::format("{}/OccupancyGrid3D.csv", outputFolder), 1);
+    printGadenEnvFile(fmt::format("{}/OccupancyGrid3D.csv", outputFolder));
 }
 
 void Gaden_preprocessing::processWind()
@@ -895,7 +877,7 @@ void Gaden_preprocessing::processWind()
         std::ifstream infile(windFileName);
         std::string line;
 
-        std::vector<gaden::Vector3> wind(env[0].size() * env.size() * env[0][0].size());
+        std::vector<gaden::Vector3> wind(env.size());
         while (std::getline(infile, line))
         {
             std::vector<double> v;
@@ -906,13 +888,13 @@ void Gaden_preprocessing::processWind()
                 line.erase(0, pos + 1);
             }
 
-            for (int i = 0; i < env[0].size(); i++)
+            for (int i = 0; i < dimensions.x; i++)
             {
-                for (int j = 0; j < env.size(); j++)
+                for (int j = 0; j < dimensions.y; j++)
                 {
-                    for (int k = 0; k < env[0][0].size(); k++)
+                    for (int k = 0; k < dimensions.z; k++)
                     {
-                        if (env[j][i][k] == cell_state::empty)
+                        if (env[indexFrom3D(i, j, k)] == cell_state::empty)
                         {
                             wind[indexFrom3D(i, j, k)].x = v[0];
                             wind[indexFrom3D(i, j, k)].y = v[1];
