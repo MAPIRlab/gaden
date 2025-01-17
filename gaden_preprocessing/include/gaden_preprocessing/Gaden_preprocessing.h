@@ -1,6 +1,5 @@
 #pragma once
-#include "gaden_common/Logging.h"
-#include "gaden_common/Vector3.h"
+#include "Triangle.hpp"
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <string_view>
@@ -12,38 +11,9 @@ enum cell_state
     non_initialized = 9,
     empty = 0,
     occupied = 1,
-    outlet = 2,
-    edge = 4
+    outlet = 2
 };
 
-struct Triangle
-{
-    gaden::Vector3 p1;
-    gaden::Vector3 p2;
-    gaden::Vector3 p3;
-    Triangle()
-    {}
-    Triangle(const gaden::Vector3& p1, const gaden::Vector3& p2, const gaden::Vector3& p3)
-    {
-        this->p1 = p1;
-        this->p2 = p2;
-        this->p3 = p3;
-    }
-    gaden::Vector3& operator[](int i)
-    {
-        if (i == 0)
-            return p1;
-        else if (i == 1)
-            return p2;
-        else if (i == 2)
-            return p3;
-        else
-        {
-            GADEN_ERROR("Indexing error when accessing the gaden::Vector3s in triangle! Index must be >= 2");
-            return p1;
-        }
-    }
-};
 
 class Gaden_preprocessing : public rclcpp::Node
 {
@@ -58,7 +28,6 @@ public:
     void parseMainModels();
     void parseOutletModels();
     void fill();
-    void clean();
     void generateOutput();
     void processWind();
 
@@ -85,8 +54,7 @@ private:
     void printWindFiles(const std::vector<gaden::Vector3>& wind, std::string_view filename);
 
     std::array<gaden::Vector3, 9> cubePoints(const gaden::Vector3& query_point);
-    bool pointInTriangle(const gaden::Vector3& query_point, const gaden::Vector3& triangle_vertex_0, const gaden::Vector3& triangle_vertex_1,
-                         const gaden::Vector3& triangle_vertex_2);
+    bool pointInTriangle(const gaden::Vector3& query_point, Triangle& triangle);
 
     void occupy(std::vector<Triangle>& triangles, const std::vector<gaden::Vector3>& normals, cell_state value_to_write);
 

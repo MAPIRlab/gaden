@@ -39,9 +39,6 @@ int main(int argc, char** argv)
     // the ones that cannot be reached will be marked as occupied when printing
     node->fill();
 
-    // get rid of the cells marked as "edge", since those are not truly occupied
-    node->clean();
-
     node->processWind();
     node->generateOutput();
 
@@ -358,13 +355,12 @@ std::array<gaden::Vector3, 9> Gaden_preprocessing::cubePoints(const gaden::Vecto
     return points;
 }
 
-bool Gaden_preprocessing::pointInTriangle(const gaden::Vector3& query_point, const gaden::Vector3& triangle_vertex_0,
-                                          const gaden::Vector3& triangle_vertex_1, const gaden::Vector3& triangle_vertex_2)
+bool Gaden_preprocessing::pointInTriangle(const gaden::Vector3& query_point, Triangle& triangle)
 {
     // u=P2−P1
-    gaden::Vector3 u = triangle_vertex_1 - triangle_vertex_0;
+    gaden::Vector3 u = triangle[1] - triangle[0];
     // v=P3−P1
-    gaden::Vector3 v = triangle_vertex_2 - triangle_vertex_0;
+    gaden::Vector3 v = triangle[2] - triangle[0];
     // n=u×v
     gaden::Vector3 n = gaden::cross(u, v);
     bool anyProyectionInTriangle = false;
@@ -372,7 +368,7 @@ bool Gaden_preprocessing::pointInTriangle(const gaden::Vector3& query_point, con
     for (const gaden::Vector3& vec : cube)
     {
         // w=P−P1
-        gaden::Vector3 w = vec - triangle_vertex_0;
+        gaden::Vector3 w = vec - triangle[0];
         // Barycentric coordinates of the projection P′of P onto T:
         // γ=[(u×w)⋅n]/n²
         float gamma = gaden::dot(gaden::cross(u, w), n) / gaden::dot(n, n);
@@ -411,6 +407,7 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
         int y3 = (triangles[i].p3.y - env_min.y) / cell_size;
         int z3 = (triangles[i].p3.z - env_min.z) / cell_size;
 
+        //triangle Bounding Box
         int min_x = std::min({x1, x2, x3});
         int min_y = std::min({y1, y2, y3});
         int min_z = std::min({z1, z2, z3});
@@ -418,16 +415,6 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
         int max_x = std::max({x1, x2, x3});
         int max_y = std::max({y1, y2, y3});
         int max_z = std::max({z1, z2, z3});
-
-        // is the triangle right at the boundary between two cells (in any axis)?
-        bool xLimit = Utils::eq(std::fmod(std::max({triangles[i][0].x, triangles[i][1].x, triangles[i][2].x}) - env_min.x, cell_size), 0) ||
-                      Utils::eq(std::fmod(std::max({triangles[i][0].x, triangles[i][1].x, triangles[i][2].x}) - env_min.x, cell_size), cell_size);
-
-        bool yLimit = Utils::eq(std::fmod(std::max({triangles[i][0].y, triangles[i][1].y, triangles[i][2].y}) - env_min.y, cell_size), 0) ||
-                      Utils::eq(std::fmod(std::max({triangles[i][0].y, triangles[i][1].y, triangles[i][2].y}) - env_min.y, cell_size), cell_size);
-
-        bool zLimit = Utils::eq(std::fmod(std::max({triangles[i][0].z, triangles[i][1].z, triangles[i][2].z}) - env_min.z, cell_size), 0) ||
-                      Utils::eq(std::fmod(std::max({triangles[i][0].z, triangles[i][1].z, triangles[i][2].z}) - env_min.z, cell_size), cell_size);
 
         bool isParallel = Utils::isParallel(normals[i]);
         for (int row = min_y; row <= max_y && row < dimensions.y; row++)
@@ -443,34 +430,10 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
                         col * cell_size + env_min.x + cell_size / 2,
                         row * cell_size + env_min.y + cell_size / 2,
                         height * cell_size + env_min.z + cell_size / 2);
-                    if ((isParallel &&
-                         pointInTriangle(cellCenter,
-                                         triangles[i][0],
-                                         triangles[i][1],
-                                         triangles[i][2])) ||
-                        triBoxOverlap(cellCenter,
-                                      gaden::Vector3(cell_size / 2, cell_size / 2, cell_size / 2),
-                                      triangles[i][0],
-                                      triangles[i][1],
-                                      triangles[i][2]))
+                    if ((isParallel && pointInTriangle(cellCenter, triangles[i])) || triBoxOverlap(cellCenter, triangles[i], cell_size * 0.5))
                     {
                         mtx.lock();
                         env[indexFrom3D(col, row, height)] = value_to_write;
-                        if (value_to_write == cell_state::occupied)
-                        {
-                            // if the "limit" flags are activated, AND we are on the offending cells,
-                            // AND the cell has not previously marked as normally occupied by a different triangle
-                            // AND the cells are not on the very limit of the environment, mark the cell as "edge" for later cleanup
-                            bool limitOfproblematicTriangle = (xLimit && col == max_x) || (yLimit && row == max_y) || (zLimit && height == max_z);
-
-                            bool endOfTheEnvironment =
-                                (col > 0 || col < dimensions.x || row > 0 || row < dimensions.y || height > 0 || height < dimensions.z);
-
-                            if (!endOfTheEnvironment && limitOfproblematicTriangle && env[indexFrom3D(col, row, height)] != cell_state::occupied)
-                            {
-                                env[indexFrom3D(col, row, height)] = cell_state::edge;
-                            }
-                        }
                         mtx.unlock();
                     }
                 }
@@ -757,7 +720,7 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
             wind[index3D].z = parsedLine.windVector[2];
         }
     }
-    
+
     infile.close();
     printWindFiles(wind, filename);
 }
@@ -809,36 +772,6 @@ void Gaden_preprocessing::fill()
     }
 }
 
-void Gaden_preprocessing::clean()
-{
-    // remove cells that were marked as "edge" during the occupy phase
-    // that is, cells where the parsed triangle falls *right* at the limit of the cell and should probably not be considered occupied
-
-#pragma omp parallel for collapse(3)
-    for (int col = 0; col < dimensions.x; col++)
-    {
-        for (int row = 0; row < dimensions.y; row++)
-        {
-            for (int height = 0; height < dimensions.z; height++)
-            {
-                if (env[indexFrom3D(col, row, height)] == cell_state::edge)
-                {
-                    if (compare_cell({col + 1, row, height}, cell_state::empty) ||
-                        compare_cell({col, row + 1, height}, cell_state::empty) ||
-                        compare_cell({col, row, height + 1}, cell_state::empty) ||
-                        (compare_cell({col + 1, row + 1, height}, cell_state::empty) && env[indexFrom3D(col, row + 1, height)] == cell_state::edge && env[indexFrom3D(col + 1, row, height)] == cell_state::edge))
-                    {
-                        env[indexFrom3D(col, row, height)] = cell_state::empty;
-                    }
-                    else
-                    {
-                        env[indexFrom3D(col, row, height)] = cell_state::occupied;
-                    }
-                }
-            }
-        }
-    }
-}
 
 void Gaden_preprocessing::generateOutput()
 {

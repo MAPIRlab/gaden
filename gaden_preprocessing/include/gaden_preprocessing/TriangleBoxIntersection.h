@@ -1,6 +1,7 @@
 #pragma once
 #include "gaden_common/Vector3.h"
 #include <tf2/LinearMath/Vector3.h>
+#include "Triangle.hpp"
 
 /*------------------------------------------------
 
@@ -24,7 +25,7 @@ inline void findMinMax(float x0, float x1, float x2, float& min, float& max)
         max = x2;
 }
 
-inline bool planeBoxOverlap(gaden::Vector3 normal, gaden::Vector3 vert, gaden::Vector3 maxbox)
+inline bool planeBoxOverlap(gaden::Vector3 normal, gaden::Vector3 vert, float boxHalfSize)
 {
     gaden::Vector3 vmin, vmax;
     float v;
@@ -33,13 +34,13 @@ inline bool planeBoxOverlap(gaden::Vector3 normal, gaden::Vector3 vert, gaden::V
         v = vert[q];
         if (normal[q] > 0.0f)
         {
-            vmin[q] = -maxbox[q] - v;
-            vmax[q] = maxbox[q] - v;
+            vmin[q] = -boxHalfSize - v;
+            vmax[q] = boxHalfSize - v;
         }
         else
         {
-            vmin[q] = maxbox[q] - v;
-            vmax[q] = -maxbox[q] - v;
+            vmin[q] = boxHalfSize - v;
+            vmax[q] = -boxHalfSize - v;
         }
     }
     if (gaden::dot(normal, vmin) > 0.0f)
@@ -52,7 +53,7 @@ inline bool planeBoxOverlap(gaden::Vector3 normal, gaden::Vector3 vert, gaden::V
 
 /*======================== X-tests ========================*/
 
-inline bool axisTestX01(float a, float b, float fa, float fb, const gaden::Vector3& v0, const gaden::Vector3& v2, const gaden::Vector3& boxhalfsize,
+inline bool axisTestX01(float a, float b, float fa, float fb, const gaden::Vector3& v0, const gaden::Vector3& v2, float boxHalfSize,
                         float& rad, float& min, float& max, float& p0, float& p2)
 {
     p0 = a * v0.y - b * v0.z;
@@ -67,12 +68,12 @@ inline bool axisTestX01(float a, float b, float fa, float fb, const gaden::Vecto
         min = p2;
         max = p0;
     }
-    rad = fa * boxhalfsize.y + fb * boxhalfsize.z;
+    rad = fa * boxHalfSize + fb * boxHalfSize;
     if (min > rad || max < -rad)
         return false;
     return true;
 }
-inline bool axisTestX2(float a, float b, float fa, float fb, const gaden::Vector3& v0, const gaden::Vector3& v1, const gaden::Vector3& boxhalfsize,
+inline bool axisTestX2(float a, float b, float fa, float fb, const gaden::Vector3& v0, const gaden::Vector3& v1, float boxHalfSize,
                        float& rad, float& min, float& max, float& p0, float& p1)
 {
     p0 = a * v0.y - b * v0.z;
@@ -87,7 +88,7 @@ inline bool axisTestX2(float a, float b, float fa, float fb, const gaden::Vector
         min = p1;
         max = p0;
     }
-    rad = fa * boxhalfsize.y + fb * boxhalfsize.z;
+    rad = fa * boxHalfSize + fb * boxHalfSize;
     if (min > rad || max < -rad)
         return false;
     return true;
@@ -95,7 +96,7 @@ inline bool axisTestX2(float a, float b, float fa, float fb, const gaden::Vector
 
 /*======================== Y-tests ========================*/
 
-inline bool axisTestY02(float a, float b, float fa, float fb, const gaden::Vector3& v0, const gaden::Vector3& v2, const gaden::Vector3& boxhalfsize,
+inline bool axisTestY02(float a, float b, float fa, float fb, const gaden::Vector3& v0, const gaden::Vector3& v2, float boxHalfSize,
                         float& rad, float& min, float& max, float& p0, float& p2)
 {
     p0 = -a * v0.x + b * v0.z;
@@ -110,13 +111,13 @@ inline bool axisTestY02(float a, float b, float fa, float fb, const gaden::Vecto
         min = p2;
         max = p0;
     }
-    rad = fa * boxhalfsize.x + fb * boxhalfsize.z;
+    rad = fa * boxHalfSize + fb * boxHalfSize;
     if (min > rad || max < -rad)
         return false;
     return true;
 }
 
-inline bool axisTestY1(float a, float b, float fa, float fb, const gaden::Vector3& v0, const gaden::Vector3& v1, const gaden::Vector3& boxhalfsize,
+inline bool axisTestY1(float a, float b, float fa, float fb, const gaden::Vector3& v0, const gaden::Vector3& v1, float boxHalfSize,
                        float& rad, float& min, float& max, float& p0, float& p1)
 {
     p0 = -a * v0.x + b * v0.z;
@@ -131,14 +132,14 @@ inline bool axisTestY1(float a, float b, float fa, float fb, const gaden::Vector
         min = p1;
         max = p0;
     }
-    rad = fa * boxhalfsize.x + fb * boxhalfsize.z;
+    rad = fa * boxHalfSize + fb * boxHalfSize;
     if (min > rad || max < -rad)
         return false;
     return true;
 }
 
 /*======================== Z-tests ========================*/
-inline bool axisTestZ12(float a, float b, float fa, float fb, const gaden::Vector3& v1, const gaden::Vector3& v2, const gaden::Vector3& boxhalfsize,
+inline bool axisTestZ12(float a, float b, float fa, float fb, const gaden::Vector3& v1, const gaden::Vector3& v2, float boxHalfSize,
                         float& rad, float& min, float& max, float& p1, float& p2)
 {
     p1 = a * v1.x - b * v1.y;
@@ -153,13 +154,13 @@ inline bool axisTestZ12(float a, float b, float fa, float fb, const gaden::Vecto
         min = p2;
         max = p1;
     }
-    rad = fa * boxhalfsize.x + fb * boxhalfsize.y;
+    rad = fa * boxHalfSize + fb * boxHalfSize;
     if (min > rad || max < -rad)
         return false;
     return true;
 }
 
-inline bool axisTestZ0(float a, float b, float fa, float fb, const gaden::Vector3& v0, const gaden::Vector3& v1, const gaden::Vector3& boxhalfsize,
+inline bool axisTestZ0(float a, float b, float fa, float fb, const gaden::Vector3& v0, const gaden::Vector3& v1, float boxHalfSize,
                        float& rad, float& min, float& max, float& p0, float& p1)
 {
     p0 = a * v0.x - b * v0.y;
@@ -174,14 +175,13 @@ inline bool axisTestZ0(float a, float b, float fa, float fb, const gaden::Vector
         min = p1;
         max = p0;
     }
-    rad = fa * boxhalfsize.x + fb * boxhalfsize.y;
+    rad = fa * boxHalfSize + fb * boxHalfSize;
     if (min > rad || max < -rad)
         return false;
     return true;
 }
 
-inline bool triBoxOverlap(const gaden::Vector3& boxcenter, const gaden::Vector3& boxhalfsize, const gaden::Vector3& tv0, const gaden::Vector3& tv1,
-                          const gaden::Vector3& tv2)
+inline bool triBoxOverlap(const gaden::Vector3& boxcenter, Triangle& triangle, float boxHalfSize)
 {
     /*    use separating axis theorem to test overlap between triangle and box */
     /*    need to test for overlap in these directions: */
@@ -196,9 +196,9 @@ inline bool triBoxOverlap(const gaden::Vector3& boxcenter, const gaden::Vector3&
 
     /* This is the fastest branch on Sun */
     /* move everything so that the boxcenter is in (0,0,0) */
-    v0 = tv0 - boxcenter;
-    v1 = tv1 - boxcenter;
-    v2 = tv2 - boxcenter;
+    v0 = triangle[0] - boxcenter;
+    v1 = triangle[1] - boxcenter;
+    v2 = triangle[2] - boxcenter;
 
     /* compute triangle edges */
     e0 = v1 - v0;
@@ -211,32 +211,32 @@ inline bool triBoxOverlap(const gaden::Vector3& boxcenter, const gaden::Vector3&
     fey = std::abs(e0.y);
     fez = std::abs(e0.z);
 
-    if (!axisTestX01(e0.z, e0.y, fez, fey, v0, v2, boxhalfsize, rad, min, max, p0, p2))
+    if (!axisTestX01(e0.z, e0.y, fez, fey, v0, v2, boxHalfSize, rad, min, max, p0, p2))
         return false;
-    if (!axisTestY02(e0.z, e0.x, fez, fex, v0, v2, boxhalfsize, rad, min, max, p0, p2))
+    if (!axisTestY02(e0.z, e0.x, fez, fex, v0, v2, boxHalfSize, rad, min, max, p0, p2))
         return false;
-    if (!axisTestZ12(e0.y, e0.x, fey, fex, v1, v2, boxhalfsize, rad, min, max, p1, p2))
+    if (!axisTestZ12(e0.y, e0.x, fey, fex, v1, v2, boxHalfSize, rad, min, max, p1, p2))
         return false;
 
     fex = std::abs(e1.x);
     fey = std::abs(e1.y);
     fez = std::abs(e1.z);
 
-    if (!axisTestX01(e1.z, e1.y, fez, fey, v0, v2, boxhalfsize, rad, min, max, p0, p2))
+    if (!axisTestX01(e1.z, e1.y, fez, fey, v0, v2, boxHalfSize, rad, min, max, p0, p2))
         return false;
-    if (!axisTestY02(e1.z, e1.x, fez, fex, v0, v2, boxhalfsize, rad, min, max, p0, p2))
+    if (!axisTestY02(e1.z, e1.x, fez, fex, v0, v2, boxHalfSize, rad, min, max, p0, p2))
         return false;
-    if (!axisTestZ0(e1.y, e1.x, fey, fex, v0, v1, boxhalfsize, rad, min, max, p0, p1))
+    if (!axisTestZ0(e1.y, e1.x, fey, fex, v0, v1, boxHalfSize, rad, min, max, p0, p1))
         return false;
 
     fex = std::abs(e2.x);
     fey = std::abs(e2.y);
     fez = std::abs(e2.z);
-    if (!axisTestX2(e2.z, e2.y, fez, fey, v0, v1, boxhalfsize, rad, min, max, p0, p1))
+    if (!axisTestX2(e2.z, e2.y, fez, fey, v0, v1, boxHalfSize, rad, min, max, p0, p1))
         return false;
-    if (!axisTestY1(e2.z, e2.x, fez, fex, v0, v1, boxhalfsize, rad, min, max, p0, p1))
+    if (!axisTestY1(e2.z, e2.x, fez, fex, v0, v1, boxHalfSize, rad, min, max, p0, p1))
         return false;
-    if (!axisTestZ12(e2.y, e2.x, fey, fex, v1, v2, boxhalfsize, rad, min, max, p1, p2))
+    if (!axisTestZ12(e2.y, e2.x, fey, fex, v1, v2, boxHalfSize, rad, min, max, p1, p2))
         return false;
 
     /* Bullet 1: */
@@ -247,24 +247,24 @@ inline bool triBoxOverlap(const gaden::Vector3& boxcenter, const gaden::Vector3&
 
     /* test in X-direction */
     findMinMax(v0.x, v1.x, v2.x, min, max);
-    if (min > boxhalfsize.x || max < -boxhalfsize.x)
+    if (min > boxHalfSize || max < -boxHalfSize)
         return false;
 
     /* test in Y-direction */
     findMinMax(v0.y, v1.y, v2.y, min, max);
-    if (min > boxhalfsize.y || max < -boxhalfsize.y)
+    if (min > boxHalfSize || max < -boxHalfSize)
         return false;
 
     /* test in Z-direction */
     findMinMax(v0.z, v1.z, v2.z, min, max);
-    if (min > boxhalfsize.z || max < -boxhalfsize.z)
+    if (min > boxHalfSize || max < -boxHalfSize)
         return false;
 
     /* Bullet 2: */
     /*  test if the box intersects the plane of the triangle */
     /*  compute plane equation of triangle: normal*x+d=0 */
     normal = gaden::cross(e0, e1);
-    if (!planeBoxOverlap(normal, v0, boxhalfsize))
+    if (!planeBoxOverlap(normal, v0, boxHalfSize))
         return false;
 
     return true; /* box and triangle overlaps */
