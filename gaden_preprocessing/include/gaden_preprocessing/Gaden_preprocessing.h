@@ -35,7 +35,7 @@ public:
 
 private:
     std::vector<cell_state> env;
-    gaden::Vector3i dimensions;
+    gaden::Vector3i dimensions; //number of cells along each axis
 
     // dimensions of the enviroment [m]
     gaden::Vector3 env_min;
@@ -43,9 +43,21 @@ private:
     // length of the sides of the cell [m]
     float cell_size;
 
-    bool isASCII(const std::string& filename);
 
     bool compare_cell(gaden::Vector3i pos, cell_state value);
+    std::array<gaden::Vector3, 9> cubePoints(const gaden::Vector3& query_point);
+    bool pointInTriangle(const gaden::Vector3& query_point, Triangle& triangle);
+
+    // STL
+    bool isASCII(const std::string& filename);
+    void findDimensions(const std::string& filename);
+    void parse(const std::string& filename, cell_state value_to_write);
+    void occupy(std::vector<Triangle>& triangles, const std::vector<gaden::Vector3>& normals, cell_state value_to_write);
+
+    //wind
+    void openFoam_to_gaden(const std::string& filename);
+
+    //output
     void changeStageWorldFile(const std::string& filename);
     void printOccupancyMap(std::string_view filename, bool block_outlets);
     void printOccupancyYaml(std::string_view outputFolder);
@@ -53,14 +65,6 @@ private:
     void printGadenEnvFile(std::string_view filename);
     void printWindFiles(const std::vector<gaden::Vector3>& wind, std::string_view filename);
 
-    std::array<gaden::Vector3, 9> cubePoints(const gaden::Vector3& query_point);
-    bool pointInTriangle(const gaden::Vector3& query_point, Triangle& triangle);
-
-    void occupy(std::vector<Triangle>& triangles, const std::vector<gaden::Vector3>& normals, cell_state value_to_write);
-
-    void parse(const std::string& filename, cell_state value_to_write);
-    void findDimensions(const std::string& filename);
-    void openFoam_to_gaden(const std::string& filename);
 
     size_t indexFrom3D(int x, int y, int z)
     {
@@ -76,13 +80,13 @@ private:
 
 namespace Utils
 {
-    inline bool eq(float x, float y)
+    inline bool approx(float x, float y)
     {
-        return std::abs(x - y) < 0.01;
+        return std::abs(x - y) < 1e-3;
     }
 
     inline bool isParallel(const gaden::Vector3& vec)
     {
-        return (eq(vec.y, 0) && eq(vec.z, 0)) || (eq(vec.x, 0) && eq(vec.z, 0)) || (eq(vec.x, 0) && eq(vec.y, 0));
+        return (approx(vec.y, 0) && approx(vec.z, 0)) || (approx(vec.x, 0) && approx(vec.z, 0)) || (approx(vec.x, 0) && approx(vec.y, 0));
     }
 } // namespace Utils
