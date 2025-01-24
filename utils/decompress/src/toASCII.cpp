@@ -1,7 +1,6 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <vector>
 #include <bits/stdc++.h>
 #include <boost/format.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -31,9 +30,9 @@ void load_logfile_version_1(std::stringstream& decompressed, gaden::Environment&
     environment.description.max_coord.y = bufferDoubles[1];
     environment.description.max_coord.z = bufferDoubles[2];
 
-    decompressed.read((char*)&environment.description.num_cells.x, sizeof(int));
-    decompressed.read((char*)&environment.description.num_cells.y, sizeof(int));
-    decompressed.read((char*)&environment.description.num_cells.z, sizeof(int));
+    decompressed.read((char*)&environment.description.dimensions.x, sizeof(int));
+    decompressed.read((char*)&environment.description.dimensions.y, sizeof(int));
+    decompressed.read((char*)&environment.description.dimensions.z, sizeof(int));
 
     decompressed.read((char*)&bufferDoubles, 3 * sizeof(double));
     environment.description.cell_size = bufferDoubles[0];
@@ -102,9 +101,9 @@ int main(int argc, char* argv[])
     outFile << " " << environment.description.max_coord.y;
     outFile << " " << environment.description.max_coord.z << "\n";
 
-    outFile << "NumCells_XYZ " << environment.description.num_cells.x;
-    outFile << " " << environment.description.num_cells.y;
-    outFile << " " << environment.description.num_cells.z << "\n";
+    outFile << "NumCells_XYZ " << environment.description.dimensions.x;
+    outFile << " " << environment.description.dimensions.y;
+    outFile << " " << environment.description.dimensions.z << "\n";
 
     outFile << "CellSize " << environment.description.cell_size << "\n";
 
