@@ -1,8 +1,8 @@
+#include "preprocessing.hpp"
+#include "TriangleBoxIntersection.hpp"
 #include "gaden_common/Logging.h"
 #include "gaden_common/Vector3.h"
 #include <fmt/color.h>
-#include <gaden_preprocessing/Gaden_preprocessing.h>
-#include <gaden_preprocessing/TriangleBoxIntersection.h>
 
 #include <gaden_common/GadenVersion.h>
 #include <gaden_common/Utils.h>
@@ -159,7 +159,6 @@ void Gaden_preprocessing::parseOutletModels()
     }
 }
 
-
 void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::vector<gaden::Vector3>& normals, cell_state value_to_write)
 {
     int numberOfProcessedTriangles = 0; // for logging, doesn't actually do anything
@@ -179,7 +178,7 @@ void Gaden_preprocessing::occupy(std::vector<Triangle>& triangles, const std::ve
         int y3 = (triangles[i].p3.y - env_min.y) / cell_size;
         int z3 = (triangles[i].p3.z - env_min.z) / cell_size;
 
-        //triangle Bounding Box
+        // triangle Bounding Box
         int min_x = std::min({x1, x2, x3});
         int min_y = std::min({y1, y2, y3});
         int min_z = std::min({z1, z2, z3});
@@ -472,7 +471,6 @@ void Gaden_preprocessing::fill()
     }
 }
 
-
 // WIND
 //---------------------------------
 
@@ -540,7 +538,6 @@ void Gaden_preprocessing::processWind()
         }
     }
 }
-
 
 void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
 {
@@ -617,7 +614,6 @@ void Gaden_preprocessing::openFoam_to_gaden(const std::string& filename)
 /// OUTPUT
 //-------------------------------------
 
-
 void Gaden_preprocessing::generateOutput()
 {
     std::string outputFolder = get_parameter_or<std::string>("output_path", "");
@@ -640,7 +636,6 @@ void Gaden_preprocessing::generateOutput()
     // output - path, occupancy vector, scale
     printGadenEnvFile(fmt::format("{}/OccupancyGrid3D.csv", outputFolder));
 }
-
 
 void Gaden_preprocessing::changeStageWorldFile(const std::string& filename)
 {
@@ -810,7 +805,6 @@ void Gaden_preprocessing::printWindFiles(const std::vector<gaden::Vector3>& wind
 
     outputFile.close();
 }
-
 
 // AUX CHECKS
 //-----------------------------------------

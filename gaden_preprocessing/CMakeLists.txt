@@ -45,7 +45,7 @@ find_package(OpenMP)
 
 
 include_directories(
-  include
+  src
 )
     
     # Main Target

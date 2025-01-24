@@ -68,7 +68,7 @@ private:
 
     size_t indexFrom3D(int x, int y, int z)
     {
-        return y + x * dimensions.y + z * dimensions.x * dimensions.y;
+        return x + y * dimensions.x + z * dimensions.x * dimensions.y;
     }
 
     size_t indexFrom3D(gaden::Vector3i vec)
