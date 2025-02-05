@@ -14,7 +14,7 @@ def read_sim_yaml(context, path):
             SetLaunchConfiguration(name=key, value=parse_substitution(str(sim_description[key]))).execute(context)
 
 def read_sim_yaml(context):
-    read_sim_yaml(os.path.join(LaunchConfiguration("pkg_dir").perform(context), 
+    read_sim_yaml(context, os.path.join(LaunchConfiguration("pkg_dir").perform(context), 
                            "scenarios",
                             LaunchConfiguration("scenario").perform(context),
                             "simulations", 
