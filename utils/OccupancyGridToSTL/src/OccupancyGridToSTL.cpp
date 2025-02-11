@@ -35,11 +35,11 @@ int main(int argc, char** argv)
 
     gaden::CellState targetState = generateInnerVolume ? gaden::CellState::Obstacle : gaden::CellState::Free;
     std::vector<Triangle> triangles;
-    for (int z = 0; z < environment.description.num_cells.z; z++)
+    for (int z = 0; z < environment.description.dimensions.z; z++)
     {
-        for (int x = 0; x < environment.description.num_cells.x; x++)
+        for (int x = 0; x < environment.description.dimensions.x; x++)
         {
-            for (int y = 0; y < environment.description.num_cells.y; y++)
+            for (int y = 0; y < environment.description.dimensions.y; y++)
             {
                 if (environment.at(x, y, z) == targetState)
                     continue;
@@ -63,7 +63,7 @@ int main(int argc, char** argv)
                         triangles.back().vertices[2] = center + offset * gaden::Vector3{-1, -1, -1};
                     }
 
-                    if (z + 1 >= environment.description.num_cells.z || environment.at(x, y, z + 1) == targetState)
+                    if (z + 1 >= environment.description.dimensions.z || environment.at(x, y, z + 1) == targetState)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {0, 0, 1};
@@ -96,7 +96,7 @@ int main(int argc, char** argv)
                         triangles.back().vertices[2] = center + offset * gaden::Vector3{-1, -1, -1};
                     }
 
-                    if (x + 1 >= environment.description.num_cells.x || environment.at(x + 1, y, z) == targetState)
+                    if (x + 1 >= environment.description.dimensions.x || environment.at(x + 1, y, z) == targetState)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {1, 0, 0};
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
                         triangles.back().vertices[2] = center + offset * gaden::Vector3{-1, -1, -1};
                     }
 
-                    if (y + 1 >= environment.description.num_cells.y || environment.at(x, y + 1, z) == targetState)
+                    if (y + 1 >= environment.description.dimensions.y || environment.at(x, y + 1, z) == targetState)
                     {
                         triangles.emplace_back();
                         triangles.back().normal = {0, 1, 0};
