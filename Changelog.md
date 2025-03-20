@@ -1,3 +1,7 @@
+## 2.6.1
+# Bug Fixes
+- Fixed a bug with file parsing in previous commit
+
 ## 2.6.0
 ### Major changes
 - Moved message definitions to a separate package for better IDE support (it's a better way to organize things anyways). If you used any of the gaden services in your own node, you now need to use the `gaden_msgs` package.
