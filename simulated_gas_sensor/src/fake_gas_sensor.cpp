@@ -35,7 +35,7 @@ void FakeGasSensor::run()
     auto marker_pub = create_publisher<visualization_msgs::msg::Marker>(fmt::format("{}/{}", get_fully_qualified_name(), "Sensor_display"), 100);
 
     // Service to request gas concentration
-    auto playerClient = create_client<gaden_player::srv::GasPosition>("/odor_value");
+    auto playerClient = create_client<gaden_msgs::srv::GasPosition>("/odor_value");
 
     auto shared_this = shared_from_this();
 
@@ -108,7 +108,7 @@ void FakeGasSensor::run()
 
             // Get Gas concentration at current position (of each gas present)
             // Service request to the simulator
-            auto request = std::make_shared<gaden_player::srv::GasPosition::Request>();
+            auto request = std::make_shared<gaden_msgs::srv::GasPosition::Request>();
             request->x.push_back(x_pos);
             request->y.push_back(y_pos);
             request->z.push_back(z_pos);
@@ -224,7 +224,7 @@ void FakeGasSensor::run()
 // Simulate MOX response: Sensitivity + Dynamic response
 // RS = R0*( A * conc^B )
 // This method employes a curve fitting based on a line in the loglog scale to set the sensitivity
-float FakeGasSensor::simulate_mox_as_line_loglog(std::shared_ptr<gaden_player::srv::GasPosition_Response> GT_gas_concentrations)
+float FakeGasSensor::simulate_mox_as_line_loglog(std::shared_ptr<gaden_msgs::srv::GasPosition_Response> GT_gas_concentrations)
 {
     if (first_reading)
     {
@@ -319,7 +319,7 @@ float FakeGasSensor::simulate_mox_as_line_loglog(std::shared_ptr<gaden_player::s
 }
 
 // Simulate PID response : Weighted Sum of all gases
-float FakeGasSensor::simulate_pid(std::shared_ptr<gaden_player::srv::GasPosition_Response> GT_gas_concentrations)
+float FakeGasSensor::simulate_pid(std::shared_ptr<gaden_msgs::srv::GasPosition_Response> GT_gas_concentrations)
 {
     // Handle multiple gases
     float accumulated_conc = 0.0;

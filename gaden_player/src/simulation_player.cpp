@@ -5,8 +5,9 @@
  * It also generates a point cloud representing the gas concentration [ppm] on the 3D environment
  --------------------------------------------------------------------------------*/
 
-#include <boost/format.hpp>
 #include "simulation_player.h"
+#include "gaden_common/Vector3.h"
+#include <boost/format.hpp>
 #include <filesystem>
 
 #define GADEN_LOGGER_ID "GadenPlayer"
@@ -23,13 +24,13 @@ int main(int argc, char** argv)
     return 0;
 }
 
-Player::Player() : rclcpp::Node("gaden_player")
-{
-}
+Player::Player()
+    : rclcpp::Node("gaden_player")
+{}
 
 //--------------- SERVICES CALLBACKS----------------------//
 
-gaden_player::msg::GasInCell Player::get_all_gases_single_cell(float x, float y, float z, const std::vector<std::string>& gas_types)
+gaden_msgs::msg::GasInCell Player::get_all_gases_single_cell(float x, float y, float z, const std::vector<std::string>& gas_types)
 {
     std::vector<double> srv_response_gas_concs(num_simulators);
     std::map<std::string, double> concentrationByGasType;
@@ -41,7 +42,7 @@ gaden_player::msg::GasInCell Player::get_all_gases_single_cell(float x, float y,
         concentrationByGasType[player_instances[i].gas_type] += player_instances[i].get_gas_concentration(x, y, z);
 
     // Configure Response
-    gaden_player::msg::GasInCell response;
+    gaden_msgs::msg::GasInCell response;
     for (int i = 0; i < gas_types.size(); i++)
     {
         response.concentration.push_back(concentrationByGasType[gas_types[i]]);
@@ -49,7 +50,7 @@ gaden_player::msg::GasInCell Player::get_all_gases_single_cell(float x, float y,
     return response;
 }
 
-bool Player::get_gas_value_srv(gaden_player::srv::GasPosition::Request::SharedPtr req, gaden_player::srv::GasPosition::Response::SharedPtr res)
+bool Player::get_gas_value_srv(gaden_msgs::srv::GasPosition::Request::SharedPtr req, gaden_msgs::srv::GasPosition::Response::SharedPtr res)
 {
     std::set<std::string> gas_types;
 
@@ -65,16 +66,15 @@ bool Player::get_gas_value_srv(gaden_player::srv::GasPosition::Request::SharedPt
     return true;
 }
 
-bool Player::get_wind_value_srv(gaden_player::srv::WindPosition::Request::SharedPtr req, gaden_player::srv::WindPosition::Response::SharedPtr res)
+bool Player::get_wind_value_srv(gaden_msgs::srv::WindPosition::Request::SharedPtr req, gaden_msgs::srv::WindPosition::Response::SharedPtr res)
 {
     // Since the wind fields are identical among different instances, return just the information from instance[0]
     for (int i = 0; i < req->x.size(); i++)
     {
-        double u, v, w;
-        player_instances[0].get_wind_value(req->x[i], req->y[i], req->z[i], u, v, w);
-        res->u.push_back(u);
-        res->v.push_back(v);
-        res->w.push_back(w);
+        gaden::Vector3 windVec = player_instances[0].get_wind_value({req->x[i], req->y[i], req->z[i]});
+        res->u.push_back(windVec.x);
+        res->v.push_back(windVec.y);
+        res->w.push_back(windVec.z);
     }
     return true;
 }
@@ -105,9 +105,9 @@ void Player::run()
     mkr_gas_points.pose.orientation.w = 1.0;
 
     // Services offered
-    auto serviceGas = create_service<gaden_player::srv::GasPosition>(
+    auto serviceGas = create_service<gaden_msgs::srv::GasPosition>(
         "odor_value", std::bind(&Player::get_gas_value_srv, this, std::placeholders::_1, std::placeholders::_2));
-    auto serviceWind = create_service<gaden_player::srv::WindPosition>(
+    auto serviceWind = create_service<gaden_msgs::srv::WindPosition>(
         "wind_value", std::bind(&Player::get_wind_value_srv, this, std::placeholders::_1, std::placeholders::_2));
 
     // Publishers
@@ -155,7 +155,7 @@ void Player::loadNodeParameters()
     verbose = declare_parameter<bool>("verbose", false);
 
     // player_freq
-    player_freq = declare_parameter<double>("player_freq", 1); // Hz
+    player_freq = declare_parameter<float>("player_freq", 1); // Hz
 
     // Number of simulators to load (For simulating multiple gases and multiple sources)
     num_simulators = declare_parameter<int>("num_simulators", 1);
@@ -193,13 +193,13 @@ void Player::init_all_simulation_instances()
     GADEN_INFO("Initializing {} instances", num_simulators);
 
     // At least one instance is needed which loads the wind field data!
-    sim_obj so(simulation_data[0], true, occupancyFile);
+    Simulation so(simulation_data[0], true, occupancyFile);
     player_instances.push_back(so);
 
     // Create other instances, but do not save wind information! It is the same for all instances
     for (int i = 1; i < num_simulators; i++)
     {
-        sim_obj so(simulation_data[i], false, occupancyFile);
+        Simulation so(simulation_data[i], false, occupancyFile);
         player_instances.push_back(so);
     }
 
@@ -235,7 +235,7 @@ void Player::display_current_gas_distribution()
 //==================================== SIM_OBJ ==============================//
 
 // Constructor
-sim_obj::sim_obj(std::string filepath, bool load_wind_info, std::string occupancy_filePath)
+Simulation::Simulation(std::string filepath, bool load_wind_info, std::string occupancy_filePath)
     : occupancyFile(occupancy_filePath)
 {
     gas_type = "unknown";
@@ -246,17 +246,15 @@ sim_obj::sim_obj(std::string filepath, bool load_wind_info, std::string occupanc
 
     if (!std::filesystem::exists(simulation_filename))
     {
-        GADEN_ERROR("Simulation folder does not exist: {}", simulation_filename.c_str());
-        raise(SIGTRAP);
+        GADEN_FATAL("Simulation folder does not exist: {}", simulation_filename.c_str());
     }
 }
 
-sim_obj::~sim_obj()
-{
-}
+Simulation::~Simulation()
+{}
 
 // Load a new file with Gas+Wind data
-void sim_obj::load_data_from_logfile(int sim_iteration)
+void Simulation::load_data_from_logfile(int sim_iteration)
 {
     std::string filename = fmt::format("{}/iteration_{}", simulation_filename, sim_iteration);
     FILE* fileCheck;
@@ -282,16 +280,19 @@ void sim_obj::load_data_from_logfile(int sim_iteration)
         environment.versionMinor = 0;
         load_logfile_version_1(decompressed);
     }
-    else
+    else if (environment.versionMajor == 2)
     {
         decompressed.read((char*)&environment.versionMinor, sizeof(int));
-        load_logfile_version_2(decompressed);
+        if (environment.versionMinor <= 5)
+            load_logfile_version_pre_2_6(decompressed);
+        else
+            load_logfile_current(decompressed);
     }
 
     infile.close();
 }
 
-void sim_obj::load_logfile_version_1(std::stringstream& decompressed)
+void Simulation::load_logfile_version_1(std::stringstream& decompressed)
 {
     if (first_reading)
     {
@@ -310,9 +311,9 @@ void sim_obj::load_logfile_version_1(std::stringstream& decompressed)
         environment.description.max_coord.y = bufferDoubles[1];
         environment.description.max_coord.z = bufferDoubles[2];
 
-        decompressed.read((char*)&environment.description.num_cells.x, sizeof(int));
-        decompressed.read((char*)&environment.description.num_cells.y, sizeof(int));
-        decompressed.read((char*)&environment.description.num_cells.z, sizeof(int));
+        decompressed.read((char*)&environment.description.dimensions.x, sizeof(int));
+        decompressed.read((char*)&environment.description.dimensions.y, sizeof(int));
+        decompressed.read((char*)&environment.description.dimensions.z, sizeof(int));
 
         decompressed.read((char*)&bufferDoubles, 3 * sizeof(double));
         environment.description.cell_size = bufferDoubles[0];
@@ -343,27 +344,25 @@ void sim_obj::load_logfile_version_1(std::stringstream& decompressed)
     double x, y, z, stdDev;
     while (decompressed.peek() != EOF)
     {
-
         decompressed.read((char*)&filament_index, sizeof(int));
         decompressed.read((char*)&x, sizeof(double));
         decompressed.read((char*)&y, sizeof(double));
         decompressed.read((char*)&z, sizeof(double));
         decompressed.read((char*)&stdDev, sizeof(double));
 
-        std::pair<int, Filament> pair(filament_index, Filament(x, y, z, stdDev));
-        activeFilaments.insert(pair);
+        activeFilaments.emplace_back(x, y, z, stdDev);
     }
 
-    load_wind_file(wind_index);
+    load_wind_file_pre_2_6(wind_index);
 }
 
-void sim_obj::load_logfile_version_2(std::stringstream& decompressed)
+void Simulation::load_logfile_version_pre_2_6(std::stringstream& decompressed)
 {
     if (first_reading)
     {
         decompressed.read((char*)&environment.description, sizeof(environment.description));
-        Gaden::Vector3 source_position;
-        decompressed.read((char*)&source_position, sizeof(source_position));
+        gaden::Vector3 source_position;
+        decompressed.read((char*)&source_position, sizeof(gaden::Vector3));
 
         int gas_type_index;
         decompressed.read((char*)&gas_type_index, sizeof(int));
@@ -379,7 +378,7 @@ void sim_obj::load_logfile_version_2(std::stringstream& decompressed)
         // skip header
         decompressed.seekg(2 * sizeof(int)                   // version
                            + sizeof(environment.description) // description
-                           + sizeof(Gaden::Vector3)          // source position
+                           + sizeof(gaden::Vector3)          // source position
                            + sizeof(int)                     // gas type
                            + 2 * sizeof(double)              // moles constants
         );
@@ -393,57 +392,134 @@ void sim_obj::load_logfile_version_2(std::stringstream& decompressed)
     double x, y, z, stdDev;
     while (decompressed.peek() != EOF)
     {
-
         decompressed.read((char*)&filament_index, sizeof(int));
         decompressed.read((char*)&x, sizeof(double));
         decompressed.read((char*)&y, sizeof(double));
         decompressed.read((char*)&z, sizeof(double));
         decompressed.read((char*)&stdDev, sizeof(double));
 
-        std::pair<int, Filament> pair(filament_index, Filament(x, y, z, stdDev));
-        activeFilaments.insert(pair);
+        activeFilaments.emplace_back(x, y, z, stdDev);
     }
 
-    load_wind_file(wind_index);
+    load_wind_file_pre_2_6(wind_index);
 }
 
-void sim_obj::load_wind_file(int wind_index)
+void Simulation::load_logfile_current(std::stringstream& decompressed)
+{
+    if (first_reading)
+    {
+        decompressed.read((char*)&environment.description, sizeof(environment.description));
+        gaden::Vector3 source_position;
+        decompressed.read((char*)&source_position, sizeof(gaden::Vector3));
+
+        int gas_type_index;
+        decompressed.read((char*)&gas_type_index, sizeof(int));
+        gas_type = gasTypesByCode[gas_type_index];
+
+        decompressed.read((char*)&total_moles_in_filament, sizeof(float));
+        decompressed.read((char*)&num_moles_all_gases_in_cm3, sizeof(float));
+        configure_environment();
+        first_reading = false;
+    }
+    else
+    {
+        // skip header
+        decompressed.seekg(2 * sizeof(int)                   // version
+                           + sizeof(environment.description) // description
+                           + sizeof(gaden::Vector3)          // source position
+                           + sizeof(int)                     // gas type
+                           + 2 * sizeof(float)               // moles constants
+        );
+    }
+
+    int wind_index;
+    decompressed.read((char*)&wind_index, sizeof(int));
+
+    activeFilaments.clear();
+    int filament_index;
+    float x, y, z, stdDev;
+    while (decompressed.peek() != EOF)
+    {
+        decompressed.read((char*)&filament_index, sizeof(int));
+        decompressed.read((char*)&x, sizeof(float));
+        decompressed.read((char*)&y, sizeof(float));
+        decompressed.read((char*)&z, sizeof(float));
+        decompressed.read((char*)&stdDev, sizeof(float));
+
+        activeFilaments.emplace_back(x, y, z, stdDev);
+    }
+
+    load_wind_file_current(wind_index);
+}
+
+void Simulation::load_wind_file_pre_2_6(int wind_index)
 {
     if (wind_index == last_wind_idx)
         return;
     last_wind_idx = wind_index;
 
     std::ifstream infile(fmt::format("{}/wind/wind_iteration_{}", simulation_filename, wind_index), std::ios_base::binary);
-    infile.read((char*)U.data(), sizeof(double) * U.size());
-    infile.read((char*)V.data(), sizeof(double) * U.size());
-    infile.read((char*)W.data(), sizeof(double) * U.size());
+
+    // these files have three consecutive arrays of doubles, one for each component
+    for (size_t i = 0; i < wind.size(); i++)
+    {
+        double aux;
+        infile.read((char*)&aux, sizeof(double));
+        wind[i].x = aux;
+    }
+    for (size_t i = 0; i < wind.size(); i++)
+    {
+        double aux;
+        infile.read((char*)&aux, sizeof(double));
+        wind[i].y = aux;
+    }
+    for (size_t i = 0; i < wind.size(); i++)
+    {
+        double aux;
+        infile.read((char*)&aux, sizeof(double));
+        wind[i].z = aux;
+    }
+    infile.close();
+}
+
+void Simulation::load_wind_file_current(int wind_index)
+{
+    if (wind_index == last_wind_idx)
+        return;
+    last_wind_idx = wind_index;
+
+    std::ifstream infile(fmt::format("{}/wind/wind_iteration_{}", simulation_filename, wind_index), std::ios_base::binary);
+    
+    //read header
+    int versionMajor, versionMinor;
+    infile.read((char*)&versionMajor, sizeof(int));
+    infile.read((char*)&versionMinor, sizeof(int));
+
+    infile.read((char*)wind.data(), sizeof(gaden::Vector3) * wind.size());
     infile.close();
 }
 
 // Get Gas concentration at lcoation (x,y,z)
-double sim_obj::get_gas_concentration(float x, float y, float z)
+float Simulation::get_gas_concentration(float x, float y, float z)
 {
-
     int xx, yy, zz;
     xx = (int)ceil((x - environment.description.min_coord.x) / environment.description.cell_size);
     yy = (int)ceil((y - environment.description.min_coord.y) / environment.description.cell_size);
     zz = (int)ceil((z - environment.description.min_coord.z) / environment.description.cell_size);
 
-    if (xx < 0 || xx > environment.description.num_cells.x || yy < 0 || yy > environment.description.num_cells.y || zz < 0 ||
-        zz > environment.description.num_cells.z)
+    if (xx < 0 || xx > environment.description.dimensions.x || yy < 0 || yy > environment.description.dimensions.y || zz < 0 ||
+        zz > environment.description.dimensions.z)
     {
-        GADEN_ERROR(
-                     "Requested gas concentration at a point outside the environment ({}, {}, {}). Are you using the correct coordinates?\n", x, y,
-                     z);
+        GADEN_ERROR("Requested gas concentration at a point outside the environment ({}, {}, {}). Are you using the correct coordinates?\n", x, y, z);
         return 0;
     }
-    double gas_conc = 0;
+    float gas_conc = 0;
     for (auto it = activeFilaments.begin(); it != activeFilaments.end(); it++)
     {
-        Filament fil = it->second;
-        double distSQR = (x - fil.x) * (x - fil.x) + (y - fil.y) * (y - fil.y) + (z - fil.z) * (z - fil.z);
+        const Filament& fil = *it;
+        float distSQR = (x - fil.x) * (x - fil.x) + (y - fil.y) * (y - fil.y) + (z - fil.z) * (z - fil.z);
 
-        double limitDistance = fil.sigma * 5 / 100;
+        float limitDistance = fil.sigma * 5 / 100;
         if (distSQR < limitDistance * limitDistance && check_environment_for_obstacle(x, y, z, fil.x, fil.y, fil.z))
         {
             gas_conc += concentration_from_filament(x, y, z, fil);
@@ -453,21 +529,21 @@ double sim_obj::get_gas_concentration(float x, float y, float z)
     return gas_conc;
 }
 
-double sim_obj::concentration_from_filament(float x, float y, float z, Filament filament)
+float Simulation::concentration_from_filament(float x, float y, float z, Filament filament)
 {
     // calculate how much gas concentration does one filament contribute to the queried location
-    double sigma = filament.sigma;
-    double distance_cm = 100 * sqrt(pow(x - filament.x, 2) + pow(y - filament.y, 2) + pow(z - filament.z, 2));
+    float sigma = filament.sigma;
+    float distance_cm = 100 * sqrt(pow(x - filament.x, 2) + pow(y - filament.y, 2) + pow(z - filament.z, 2));
 
-    double num_moles_target_cm3 =
+    float num_moles_target_cm3 =
         (total_moles_in_filament / (sqrt(8 * pow(M_PI, 3)) * pow(sigma, 3))) * exp(-pow(distance_cm, 2) / (2 * pow(sigma, 2)));
 
-    double ppm = num_moles_target_cm3 / num_moles_all_gases_in_cm3 * 1000000; // parts of target gas per million
+    float ppm = num_moles_target_cm3 / num_moles_all_gases_in_cm3 * 1e6; // parts of target gas per million
 
     return ppm;
 }
 
-bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, double start_z, double end_x, double end_y, double end_z)
+bool Simulation::check_environment_for_obstacle(float start_x, float start_y, float start_z, float end_x, float end_y, float end_z)
 {
     // Check whether one of the points is outside the valid environment or is not free
     if (check_pose_with_environment(start_x, start_y, start_z) != 0)
@@ -480,24 +556,24 @@ bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, dou
     }
 
     // Calculate normal displacement vector
-    double vector_x = end_x - start_x;
-    double vector_y = end_y - start_y;
-    double vector_z = end_z - start_z;
-    double distance = sqrt(vector_x * vector_x + vector_y * vector_y + vector_z * vector_z);
+    float vector_x = end_x - start_x;
+    float vector_y = end_y - start_y;
+    float vector_z = end_z - start_z;
+    float distance = sqrt(vector_x * vector_x + vector_y * vector_y + vector_z * vector_z);
     vector_x = vector_x / distance;
     vector_y = vector_y / distance;
     vector_z = vector_z / distance;
 
     // Traverse path
     int steps = ceil(distance / environment.description.cell_size); // Make sure no two iteration steps are separated more than 1 cell
-    double increment = distance / steps;
+    float increment = distance / steps;
 
     for (int i = 1; i < steps - 1; i++)
     {
         // Determine point in space to evaluate
-        double pose_x = start_x + vector_x * increment * i;
-        double pose_y = start_y + vector_y * increment * i;
-        double pose_z = start_z + vector_z * increment * i;
+        float pose_x = start_x + vector_x * increment * i;
+        float pose_y = start_y + vector_y * increment * i;
+        float pose_z = start_z + vector_z * increment * i;
 
         // Determine cell to evaluate (some cells might get evaluated twice due to the current code
         int x_idx = floor((pose_x - environment.description.min_coord.x) / environment.description.cell_size);
@@ -515,7 +591,7 @@ bool sim_obj::check_environment_for_obstacle(double start_x, double start_y, dou
     return true;
 }
 
-int sim_obj::check_pose_with_environment(double pose_x, double pose_y, double pose_z)
+int Simulation::check_pose_with_environment(float pose_x, float pose_y, float pose_z)
 {
     // 1.1 Check that pose is within the boundingbox environment
     if (pose_x < environment.description.min_coord.x || pose_x > environment.description.max_coord.x ||
@@ -528,7 +604,7 @@ int sim_obj::check_pose_with_environment(double pose_x, double pose_y, double po
     int y_idx = (pose_y - environment.description.min_coord.y) / environment.description.cell_size;
     int z_idx = (pose_z - environment.description.min_coord.z) / environment.description.cell_size;
 
-    if (x_idx >= environment.description.num_cells.x || y_idx >= environment.description.num_cells.y || z_idx >= environment.description.num_cells.z)
+    if (x_idx >= environment.description.dimensions.x || y_idx >= environment.description.dimensions.y || z_idx >= environment.description.dimensions.z)
         return 1;
 
     // 1.2. Return cell occupancy (0=free, 1=obstacle, 2=outlet)
@@ -536,69 +612,60 @@ int sim_obj::check_pose_with_environment(double pose_x, double pose_y, double po
 }
 
 // Get Wind concentration at lcoation (x,y,z)
-void sim_obj::get_wind_value(float x, float y, float z, double& u, double& v, double& w)
+gaden::Vector3 Simulation::get_wind_value(const gaden::Vector3& location)
 {
     if (load_wind_data)
     {
         int xx, yy, zz;
-        xx = (int)ceil((x - environment.description.min_coord.x) / environment.description.cell_size);
-        yy = (int)ceil((y - environment.description.min_coord.y) / environment.description.cell_size);
-        zz = (int)ceil((z - environment.description.min_coord.z) / environment.description.cell_size);
+        xx = std::floor((location.x - environment.description.min_coord.x) / environment.description.cell_size);
+        yy = std::floor((location.y - environment.description.min_coord.y) / environment.description.cell_size);
+        zz = std::floor((location.z - environment.description.min_coord.z) / environment.description.cell_size);
 
-        if (xx < 0 || xx > environment.description.num_cells.x || yy < 0 || yy > environment.description.num_cells.y || zz < 0 ||
-            zz > environment.description.num_cells.z)
+        if (xx < 0 || xx > environment.description.dimensions.x || yy < 0 || yy > environment.description.dimensions.y || zz < 0 ||
+            zz > environment.description.dimensions.z)
         {
             GADEN_ERROR("Requested gas concentration at a point outside the environment. Are you using the correct coordinates?\n");
-            return;
+            return {};
         }
 
         // Set wind vectors from that cell
-        u = U[indexFrom3D(xx, yy, zz)];
-        v = V[indexFrom3D(xx, yy, zz)];
-        w = W[indexFrom3D(xx, yy, zz)];
+        return wind[indexFrom3D(xx, yy, zz)];
     }
     else
     {
         GADEN_WARN("Request to provide Wind information when No Wind data is available!!");
+        return {};
     }
 }
 
 // Init instances (for running multiple simulations)
-void sim_obj::configure_environment()
+void Simulation::configure_environment()
 {
-    // Resize Gas Concentration container
-    C.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
-
     // Resize Wind info container (if necessary)
     if (load_wind_data)
     {
-
-        U.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
-        V.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
-        W.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
+        wind.resize(environment.description.dimensions.x * environment.description.dimensions.y * environment.description.dimensions.z);
     }
 
-    Gaden::ReadResult result = Gaden::readEnvFile(occupancyFile, environment);
-    if (result == Gaden::ReadResult::NO_FILE)
+    gaden::ReadResult result = gaden::readEnvFile(occupancyFile, environment);
+    if (result == gaden::ReadResult::NO_FILE)
     {
-        GADEN_ERROR("No occupancy file provided to Gaden-player node!");
-        raise(SIGTRAP);
+        GADEN_FATAL("No occupancy file provided to Gaden-player node!");
     }
-    else if (result == Gaden::ReadResult::READING_FAILED)
+    else if (result == gaden::ReadResult::READING_FAILED)
     {
-        GADEN_ERROR("Something went wrong while parsing the file!");
-        raise(SIGTRAP);
+        GADEN_FATAL("Something went wrong while parsing the file!");
     }
 }
 
-void sim_obj::get_concentration_as_markers(visualization_msgs::msg::Marker& mkr_points)
+void Simulation::get_concentration_as_markers(visualization_msgs::msg::Marker& mkr_points)
 {
     for (auto it = activeFilaments.begin(); it != activeFilaments.end(); it++)
     {
         geometry_msgs::msg::Point p;    // Location of point
         std_msgs::msg::ColorRGBA color; // Color of point
 
-        Filament filament = it->second;
+        const Filament& filament = *it;
         for (int i = 0; i < 5; i++)
         {
             p.x = (filament.x) + ((std::rand() % 1000) / 1000.0 - 0.5) * filament.sigma / 200;
@@ -616,7 +683,7 @@ void sim_obj::get_concentration_as_markers(visualization_msgs::msg::Marker& mkr_
     }
 }
 
-int sim_obj::indexFrom3D(int x, int y, int z)
+int Simulation::indexFrom3D(int x, int y, int z)
 {
-    return x + y * environment.description.num_cells.x + z * environment.description.num_cells.x * environment.description.num_cells.y;
+    return x + y * environment.description.dimensions.x + z * environment.description.dimensions.x * environment.description.dimensions.y;
 }

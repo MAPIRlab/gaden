@@ -29,7 +29,7 @@ TDLAS::TDLAS() : rclcpp::Node("Simulated_tdlas")
 
     m_readingsPub = create_publisher<olfaction_msgs::msg::TDLAS>("tdlas/reading", 100);
     m_markerPub = create_publisher<visualization_msgs::msg::Marker>("tdlas/arrow", 100);
-    m_playerClient = create_client<gaden_player::srv::GasPosition>("/odor_value");
+    m_playerClient = create_client<gaden_msgs::srv::GasPosition>("/odor_value");
 
     std::string reflectorLocTopic = declare_parameter<std::string>("reflectorLocTopic", "/reflector/amcl_pose");
     m_reflectorLocSub = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
@@ -63,13 +63,13 @@ void TDLAS::run()
 void TDLAS::getEnvironment()
 {
 
-    gaden_environment::srv::Occupancy::Response::SharedPtr response{nullptr};
+    gaden_msgs::srv::Occupancy::Response::SharedPtr response{nullptr};
     {
-        auto client = create_client<gaden_environment::srv::Occupancy>("/gaden_environment/occupancyMap3D");
+        auto client = create_client<gaden_msgs::srv::Occupancy>("/gaden_environment/occupancyMap3D");
         while (rclcpp::ok() && !client->wait_for_service(5s))
             RCLCPP_INFO(get_logger(), "WAITING FOR GADEN_ENVIRONMENT/OCCUPANCY SERVICE");
 
-        auto request = std::make_shared<gaden_environment::srv::Occupancy::Request>();
+        auto request = std::make_shared<gaden_msgs::srv::Occupancy::Request>();
         rclcpp::Rate wait_rate(1);
         bool done = false;
         while (!done)
@@ -151,9 +151,9 @@ void TDLAS::updatePoseInFixedFrame()
 double TDLAS::takeMeasurement()
 {
     // run the DDA algorithm
-    Gaden::Vector3 rayOrigin = Gaden::fromGeoMSg(m_poseInFixedFrame.pose.translation);
+    gaden::Vector3 rayOrigin = gaden::fromGeoMSg(m_poseInFixedFrame.pose.translation);
 
-    Gaden::Vector3 rayDirection = m_poseInFixedFrame.forward();
+    gaden::Vector3 rayDirection = m_poseInFixedFrame.forward();
 
     static auto identity = [](const bool& b) { return b; };
 
@@ -176,10 +176,10 @@ double TDLAS::takeMeasurement()
         m_endPointLastMeasurement = rayOrigin;
 
     // Actually get the measurement
-    auto request = std::make_shared<gaden_player::srv::GasPosition::Request>();
+    auto request = std::make_shared<gaden_msgs::srv::GasPosition::Request>();
     for (const auto& pair : rayData.lengthInCell)
     {
-        Gaden::Vector3 coords = Gaden::Vector3(pair.first) * m_rayMarchResolution + m_mapOrigin;
+        gaden::Vector3 coords = gaden::Vector3(pair.first) * m_rayMarchResolution + m_mapOrigin;
         request->x.push_back(coords.x);
         request->y.push_back(coords.y);
         request->z.push_back(coords.z);
@@ -235,9 +235,9 @@ void TDLAS::publish(double measured)
         marker.color.r = 1;
         marker.color.a = 1;
 
-        marker.points.push_back(Gaden::geoMsgToPoint(m_poseInFixedFrame.pose.translation));
+        marker.points.push_back(gaden::geoMsgToPoint(m_poseInFixedFrame.pose.translation));
 
-        geometry_msgs::msg::Point endPoint = Gaden::toPoint(m_endPointLastMeasurement);
+        geometry_msgs::msg::Point endPoint = gaden::toPoint(m_endPointLastMeasurement);
 
         marker.points.push_back(endPoint);
 
@@ -252,5 +252,5 @@ void TDLAS::reflectorLocCB(const geometry_msgs::msg::PoseWithCovarianceStamped::
     pose_original_frame.pose = msg->pose.pose;
 
     geometry_msgs::msg::PoseStamped pose_fixed_frame = m_tfBuffer->transform(pose_original_frame, m_fixedFrame);
-    m_reflectorRobot.baseCenter = Gaden::fromPoint(pose_fixed_frame.pose.position);
+    m_reflectorRobot.baseCenter = gaden::fromPoint(pose_fixed_frame.pose.position);
 }

@@ -3,7 +3,7 @@
 #include <geometry_msgs/msg/point.hpp>
 #include "Vector3.h"
 
-namespace Gaden
+namespace gaden
 {
     static tf2::Vector3 toTF(const Vector3& v)
     {
@@ -58,4 +58,4 @@ namespace Gaden
         return p;
     }
 
-} // namespace Gaden
+} // namespace gaden

@@ -1,10 +1,10 @@
 
 #include "fake_anemometer.h"
 
+#include <fmt/format.h>
+#include <random>
 #include <stdlib.h> /* srand, rand */
 #include <time.h>
-#include <random>
-#include <fmt/format.h>
 
 typedef std::normal_distribution<double> NormalDistribution;
 typedef std::mt19937 RandomGenerator;
@@ -36,7 +36,7 @@ void SimulatedAnemometer::run()
     auto marker_pub = create_publisher<visualization_msgs::msg::Marker>(fmt::format("{}/{}", get_fully_qualified_name(), "WindSensor_display"), 100);
 
     // Service to request wind values to simulator
-    auto playerClient = create_client<gaden_player::srv::WindPosition>("/wind_value");
+    auto playerClient = create_client<gaden_msgs::srv::WindPosition>("/wind_value");
 
     // Init Visualization data (marker)
     //----------------------------------------------------------------
@@ -116,7 +116,7 @@ void SimulatedAnemometer::run()
         {
             // Get Wind vectors (u,v,w) at current position
             // Service request to the simulator
-            auto request = std::make_shared<gaden_player::srv::WindPosition::Request>();
+            auto request = std::make_shared<gaden_msgs::srv::WindPosition::Request>();
             request->x.push_back(anemometer_transform_map.transform.translation.x);
             request->y.push_back(anemometer_transform_map.transform.translation.y);
             request->z.push_back(anemometer_transform_map.transform.translation.z);
@@ -125,7 +125,7 @@ void SimulatedAnemometer::run()
             olfaction_msgs::msg::Anemometer anemo_msg;
 
             auto result = playerClient->async_send_request(request);
-            if (rclcpp::spin_until_future_complete(shared_this, result) == rclcpp::FutureReturnCode::SUCCESS)
+            if (rclcpp::spin_until_future_complete(shared_this, result, std::chrono::seconds(1)) == rclcpp::FutureReturnCode::SUCCESS)
             {
                 auto response = result.get();
 
@@ -237,16 +237,10 @@ void SimulatedAnemometer::run()
                 wind_point_inv.color.b = 0.0;
                 wind_point_inv.color.a = 1.0;
                 marker_pub->publish(wind_point_inv);
-
-                notified = false;
             }
             else
             {
-                if (!notified)
-                {
-                    RCLCPP_WARN(get_logger(), "[fake_anemometer] Cannot read Wind Vector from simulated data.");
-                    notified = true;
-                }
+                RCLCPP_WARN(get_logger(), "[fake_anemometer] Cannot read Wind Vector from simulated data.");
             }
 
             // Publish RVIZ sensor pose (a sphere)

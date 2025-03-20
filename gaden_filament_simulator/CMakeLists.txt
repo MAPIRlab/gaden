@@ -5,6 +5,9 @@ set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${CMAKE_CXX_FLAGS}")
 
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+    add_definitions(-DGADEN_DEBUG=1)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 

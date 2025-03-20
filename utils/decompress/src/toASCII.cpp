@@ -1,7 +1,6 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <vector>
 #include <bits/stdc++.h>
 #include <boost/format.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -14,10 +13,10 @@ struct GasData
     double total_moles_in_filament;
     double num_moles_all_gases_in_cm3;
     int gas_type;
-    Gaden::Vector3 source_position;
+    gaden::Vector3 source_position;
 };
 
-void load_logfile_version_1(std::stringstream& decompressed, Gaden::Environment& environment, GasData& gasData)
+void load_logfile_version_1(std::stringstream& decompressed, gaden::Environment& environment, GasData& gasData)
 {
     // coordinates were initially written as doubles, but we want to read them as floats now, so we need a buffer
     double bufferDoubles[5];
@@ -31,9 +30,9 @@ void load_logfile_version_1(std::stringstream& decompressed, Gaden::Environment&
     environment.description.max_coord.y = bufferDoubles[1];
     environment.description.max_coord.z = bufferDoubles[2];
 
-    decompressed.read((char*)&environment.description.num_cells.x, sizeof(int));
-    decompressed.read((char*)&environment.description.num_cells.y, sizeof(int));
-    decompressed.read((char*)&environment.description.num_cells.z, sizeof(int));
+    decompressed.read((char*)&environment.description.dimensions.x, sizeof(int));
+    decompressed.read((char*)&environment.description.dimensions.y, sizeof(int));
+    decompressed.read((char*)&environment.description.dimensions.z, sizeof(int));
 
     decompressed.read((char*)&bufferDoubles, 3 * sizeof(double));
     environment.description.cell_size = bufferDoubles[0];
@@ -49,7 +48,7 @@ void load_logfile_version_1(std::stringstream& decompressed, Gaden::Environment&
     decompressed.read((char*)&gasData.num_moles_all_gases_in_cm3, sizeof(double));
 }
 
-void load_logfile_version_2(std::stringstream& decompressed, Gaden::Environment& environment, GasData& gasData)
+void load_logfile_version_2(std::stringstream& decompressed, gaden::Environment& environment, GasData& gasData)
 {
     decompressed.read((char*)&environment.description, sizeof(environment.description));
     decompressed.read((char*)&gasData.source_position, sizeof(gasData.source_position));
@@ -78,7 +77,7 @@ int main(int argc, char* argv[])
 
     std::ofstream outFile(argv[2], std::ios::out);
 
-    Gaden::Environment environment;
+    gaden::Environment environment;
     GasData gasData;
     decompressed.read((char*)&environment.versionMajor, sizeof(int));
     if (environment.versionMajor == 1)
@@ -102,9 +101,9 @@ int main(int argc, char* argv[])
     outFile << " " << environment.description.max_coord.y;
     outFile << " " << environment.description.max_coord.z << "\n";
 
-    outFile << "NumCells_XYZ " << environment.description.num_cells.x;
-    outFile << " " << environment.description.num_cells.y;
-    outFile << " " << environment.description.num_cells.z << "\n";
+    outFile << "NumCells_XYZ " << environment.description.dimensions.x;
+    outFile << " " << environment.description.dimensions.y;
+    outFile << " " << environment.description.dimensions.z << "\n";
 
     outFile << "CellSize " << environment.description.cell_size << "\n";
 

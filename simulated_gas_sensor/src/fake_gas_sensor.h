@@ -4,13 +4,10 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <olfaction_msgs/msg/gas_sensor.hpp>
-#include <gaden_player/srv/gas_position.hpp>
+#include <gaden_msgs/srv/gas_position.hpp>
 
 #include <cstdlib>
 #include <math.h>
-#include <vector>
-#include <fstream>
-#include <iostream>
 
 class FakeGasSensor : public rclcpp::Node
 {
@@ -39,8 +36,8 @@ private:
 
     // functions:
     void loadNodeParameters();
-    float simulate_mox_as_line_loglog(std::shared_ptr<gaden_player::srv::GasPosition_Response> GT_gas_concentrations);
-    float simulate_pid(std::shared_ptr<gaden_player::srv::GasPosition_Response> GT_gas_concentrations);
+    float simulate_mox_as_line_loglog(std::shared_ptr<gaden_msgs::srv::GasPosition_Response> GT_gas_concentrations);
+    float simulate_pid(std::shared_ptr<gaden_msgs::srv::GasPosition_Response> GT_gas_concentrations);
 
     //------------------------ SENSOR CHARACTERIZATION PARAMS ----------------------------------//
 

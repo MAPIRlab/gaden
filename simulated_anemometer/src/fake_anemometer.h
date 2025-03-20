@@ -9,13 +9,10 @@
 
 #include <visualization_msgs/msg/marker.hpp>
 #include <olfaction_msgs/msg/anemometer.hpp>
-#include <gaden_player/srv/wind_position.hpp>
+#include <gaden_msgs/srv/wind_position.hpp>
 
 #include <cstdlib>
 #include <math.h>
-#include <vector>
-#include <fstream>
-#include <iostream>
 
 class SimulatedAnemometer : public rclcpp::Node
 {
@@ -33,7 +30,6 @@ private:
 
     // Vars
     bool first_reading = true;
-    bool notified = false;
 
     // functions:
     void loadNodeParameters();

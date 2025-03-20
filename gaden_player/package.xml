@@ -9,18 +9,15 @@
   <author>Javier Monroy</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-  <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
   <build_depend>rclcpp</build_depend>
   <build_depend>gaden_common</build_depend>
   <build_depend>std_msgs</build_depend>
+  <build_depend>gaden_msgs</build_depend>
 
-  <depend>rosidl_default_runtime</depend>
 
   <exec_depend>rclcpp</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
 
-  <member_of_group>rosidl_interface_packages</member_of_group>
   <export>
     <build_type>ament_cmake</build_type>
   </export>

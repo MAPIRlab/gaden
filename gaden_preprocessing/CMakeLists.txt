@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(gaden_preprocessing)
-set(CMAKE_BUILD_TYPE "None")
-set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp ${CMAKE_CXX_FLAGS}")
+set(CMAKE_VERBOSE_MAKEFILE ON) #Outputs the compiler command to the build log file
 
 
 # OPTIONS!
@@ -41,19 +40,19 @@ endif()
 foreach(Dependency IN ITEMS ${AMENT_DEPS})
   find_package(${Dependency} REQUIRED)
 endforeach()
-find_package(fmt)
-
+find_package(OpenMP)
 
 
 
 include_directories(
-  include
+  src
 )
-
-# Main Target
+    
+    # Main Target
 add_executable(preprocessing src/preprocessing.cpp)
 ament_target_dependencies(preprocessing	${AMENT_DEPS})
-
+target_link_libraries(preprocessing OpenMP::OpenMP_CXX)
+ 
 # Coppelia utils
 add_executable(configureCoppeliaSim src/configureCoppeliaSim.cpp)
 ament_target_dependencies(configureCoppeliaSim ${AMENT_DEPS})

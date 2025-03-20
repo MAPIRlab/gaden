@@ -1,51 +1,60 @@
 #pragma once
-#include <vector>
-#include <string>
-#include <stdint.h>
+#include "GadenVersion.h"
+#include "Vector3.h"
+#include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
-#include "Vector3.h"
-#include "GadenVersion.h"
+#include <stdint.h>
+#include <string>
+#include <vector>
 
-namespace Gaden
+namespace gaden
 {
-    static int indexFrom3D(const Vector3i& index, const Vector3i& num_cells_env)
+    inline size_t indexFrom3D(const Vector3i& index, const Vector3i& num_cells_env)
     {
         return index.x + index.y * num_cells_env.x + index.z * num_cells_env.x * num_cells_env.y;
     }
 
-    enum CellState : uint8_t
+    enum class CellState : uint8_t
     {
-        Free = 0,
-        Obstacle = 1,
-        Outlet = 2
+        Free = 0,       // cell is empty, gas can be here
+        Obstacle = 1,   // cell is occupied by an obstacle, no filaments can go through it
+        Outlet = 2,     // if a filament enters this cell it is removed from the simulation
+        OutOfBounds = 3 // invalid cell, position is out of the map bounds
     };
 
     struct Environment
     {
-		int versionMajor = GADEN_VERSION_MAJOR, versionMinor = GADEN_VERSION_MINOR; //version of gaden used to generate a log file. Used to figure out how to parse the binary format
-		struct Description
-		{
-			Vector3i num_cells;
-			Vector3 min_coord; //[m]
-			Vector3 max_coord; //[m]
-			float cell_size;   //[m]
-		};
-		Description description;
+        int versionMajor = gaden::version_major,
+            versionMinor = gaden::version_minor; // version of gaden used to generate a log file. Used to figure out how to parse the binary format
+        struct Description
+        {
+            Vector3i dimensions;
+            Vector3 min_coord; //[m]
+            Vector3 max_coord; //[m]
+            float cell_size;   //[m]
+        };
+        Description description;
 
         std::vector<uint8_t> Env;
 
-        CellState& at(int i, int j, int k)
+        size_t numCells() const
         {
-            return (CellState&)Env[indexFrom3D({i, j, k}, description.num_cells)];
+            return description.dimensions.x * description.dimensions.y * description.dimensions.z;
         }
 
-        Vector3 coordsOfCellCenter(const Vector3i& indices)
+        CellState& at(int i, int j, int k)
+        {
+            return (CellState&)Env[indexFrom3D({i, j, k}, description.dimensions)];
+        }
+
+        Vector3 coordsOfCellCenter(const Vector3i& indices) const
         {
             return description.min_coord + (static_cast<Vector3>(indices) + 0.5f) * description.cell_size;
         }
 
-        Vector3 coordsOfCellOrigin(const Vector3i& indices)
+        Vector3 coordsOfCellOrigin(const Vector3i& indices) const
         {
             return description.min_coord + (static_cast<Vector3>(indices)) * description.cell_size;
         }
@@ -58,9 +67,9 @@ namespace Gaden
         READING_FAILED
     };
 
-    static ReadResult readEnvFile(const std::string& filePath, Environment& environment)
+    inline ReadResult readEnvFile(const std::string& filePath, Environment& environment)
     {
-        if (filePath == "")
+        if (!std::filesystem::exists(filePath))
             return ReadResult::NO_FILE;
 
         // open file
@@ -96,11 +105,11 @@ namespace Gaden
             pos = line.find(" ");
             line.erase(0, pos + 1);
             pos = line.find(" ");
-            environment.description.num_cells.x = atoi(line.substr(0, pos).c_str());
+            environment.description.dimensions.x = atoi(line.substr(0, pos).c_str());
             line.erase(0, pos + 1);
             pos = line.find(" ");
-            environment.description.num_cells.y = atof(line.substr(0, pos).c_str());
-            environment.description.num_cells.z = atof(line.substr(pos + 1).c_str());
+            environment.description.dimensions.y = atof(line.substr(0, pos).c_str());
+            environment.description.dimensions.z = atof(line.substr(pos + 1).c_str());
 
             // Line 4 cell_size (m)
             std::getline(infile, line);
@@ -108,7 +117,7 @@ namespace Gaden
             environment.description.cell_size = atof(line.substr(pos + 1).c_str());
         }
 
-        environment.Env.resize(environment.description.num_cells.x * environment.description.num_cells.y * environment.description.num_cells.z);
+        environment.Env.resize(environment.description.dimensions.x * environment.description.dimensions.y * environment.description.dimensions.z);
 
         int x_idx = 0;
         int y_idx = 0;
@@ -117,9 +126,9 @@ namespace Gaden
         while (std::getline(infile, line))
         {
             std::stringstream ss(line);
-            if (z_idx >= environment.description.num_cells.z)
+            if (z_idx >= environment.description.dimensions.z)
             {
-                printf("Too many lines! z_idx=%d but num_cells_z=%d", z_idx, environment.description.num_cells.z);
+                printf("Too many lines! z_idx=%d but num_cells_z=%d", z_idx, environment.description.dimensions.z);
                 return ReadResult::READING_FAILED;
             }
 
@@ -138,7 +147,7 @@ namespace Gaden
                     ss >> std::skipws >> f;
                     if (!ss.fail())
                     {
-                        environment.Env[indexFrom3D(Vector3i(x_idx, y_idx, z_idx), environment.description.num_cells)] = f;
+                        environment.Env[indexFrom3D(Vector3i(x_idx, y_idx, z_idx), environment.description.dimensions)] = f;
                         y_idx++;
                     }
                 }
@@ -152,4 +161,4 @@ namespace Gaden
         return ReadResult::OK;
     }
 
-} // namespace Gaden
+} // namespace gaden

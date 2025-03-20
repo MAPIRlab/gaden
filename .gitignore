@@ -2,6 +2,7 @@ log
 .cache
 build
 .vscode
+.cache
 
 **/gas_simulations
 *_U

@@ -40,7 +40,7 @@ void Environment::run()
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr environmnet_cad_pub =
         create_publisher<visualization_msgs::msg::MarkerArray>("environment_cad_visualization", 100);
 
-    auto occupancyMapService = create_service<gaden_environment::srv::Occupancy>("gaden_environment/occupancyMap3D",
+    auto occupancyMapService = create_service<gaden_msgs::srv::Occupancy>("gaden_environment/occupancyMap3D",
                                                                                  std::bind(&Environment::occupancyMapServiceCB, this, _1, _2));
     // Subscribers
     preprocessing_done = false;
@@ -280,22 +280,22 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray& env_mark
         }
     }
 
-    Gaden::ReadResult result = Gaden::readEnvFile(occupancy3D_data, environment);
-    if (result == Gaden::ReadResult::NO_FILE)
+    gaden::ReadResult result = gaden::readEnvFile(occupancy3D_data, environment);
+    if (result == gaden::ReadResult::NO_FILE)
     {
         GADEN_ERROR("No occupancy file provided to environment node!");
         return;
     }
-    else if (result == Gaden::ReadResult::READING_FAILED)
+    else if (result == gaden::ReadResult::READING_FAILED)
     {
         GADEN_ERROR("Something went wrong while parsing the file!");
     }
 
-    for (int i = 0; i < environment.description.num_cells.x; i++)
+    for (int i = 0; i < environment.description.dimensions.x; i++)
     {
-        for (int j = 0; j < environment.description.num_cells.y; j++)
+        for (int j = 0; j < environment.description.dimensions.y; j++)
         {
-            for (int k = 0; k < environment.description.num_cells.z; k++)
+            for (int k = 0; k < environment.description.dimensions.z; k++)
             {
                 // Color
                 if (!environment.Env[indexFrom3D(i, j, k)])
@@ -334,16 +334,16 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray& env_mark
     }
 }
 
-bool Environment::occupancyMapServiceCB(gaden_environment::srv::Occupancy_Request::SharedPtr request,
-                                        gaden_environment::srv::Occupancy_Response::SharedPtr response)
+bool Environment::occupancyMapServiceCB(gaden_msgs::srv::Occupancy_Request::SharedPtr request,
+                                        gaden_msgs::srv::Occupancy_Response::SharedPtr response)
 {
     response->origin.x = environment.description.min_coord.x;
     response->origin.y = environment.description.min_coord.y;
     response->origin.z = environment.description.min_coord.z;
 
-    response->num_cells_x = environment.description.num_cells.x;
-    response->num_cells_y = environment.description.num_cells.y;
-    response->num_cells_z = environment.description.num_cells.z;
+    response->num_cells_x = environment.description.dimensions.x;
+    response->num_cells_y = environment.description.dimensions.y;
+    response->num_cells_z = environment.description.dimensions.z;
 
     response->occupancy = environment.Env;
     response->resolution = environment.description.cell_size;

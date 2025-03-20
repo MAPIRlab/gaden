@@ -1,4 +1,7 @@
 #pragma once
 
-#define GADEN_VERSION_MAJOR 2
-#define GADEN_VERSION_MINOR 4
+namespace gaden
+{
+    constexpr int version_major = 2;
+    constexpr int version_minor = 6;
+}

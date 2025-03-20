@@ -7,8 +7,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 
-#include <gaden_environment/srv/occupancy.hpp>
-#include <gaden_player/srv/gas_position.hpp>
+#include <gaden_msgs/srv/occupancy.hpp>
+#include <gaden_msgs/srv/gas_position.hpp>
 #include <olfaction_msgs/msg/tdlas.hpp>
 
 #include <gaden_common/third_party/DDA/DDA.h>
@@ -30,8 +30,8 @@ private:
 
     rclcpp::Publisher<olfaction_msgs::msg::TDLAS>::SharedPtr m_readingsPub{nullptr};
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr m_markerPub{nullptr};
-    rclcpp::Client<gaden_player::srv::GasPosition>::SharedPtr m_playerClient{nullptr};
-    rclcpp::Subscription<gaden_environment::srv::Occupancy>::SharedPtr m_mapSubscriber{nullptr};
+    rclcpp::Client<gaden_msgs::srv::GasPosition>::SharedPtr m_playerClient{nullptr};
+    rclcpp::Subscription<gaden_msgs::srv::Occupancy>::SharedPtr m_mapSubscriber{nullptr};
 
     bool m_verbose;
     std::string m_fixedFrame;
@@ -41,7 +41,7 @@ private:
     float m_rayMarchResolution;
     float m_measurementFrequency;
     std::vector<std::vector<std::vector<bool>>> m_map;
-    Gaden::Vector3 m_mapOrigin;
+    gaden::Vector3 m_mapOrigin;
 
     void getEnvironment();
     double takeMeasurement();
@@ -49,17 +49,17 @@ private:
     struct PositionAndDirection
     {
         geometry_msgs::msg::Transform pose;
-        Gaden::Vector3 forward()
+        gaden::Vector3 forward()
         {
             tf2::Quaternion quat;
             tf2::fromMsg(pose.rotation, quat);
-            return Gaden::fromTF(tf2::quatRotate(quat, tf2::Vector3{1, 0, 0}));
+            return gaden::fromTF(tf2::quatRotate(quat, tf2::Vector3{1, 0, 0}));
         }
     };
     PositionAndDirection m_poseInFixedFrame;
     void updatePoseInFixedFrame();
 
-    Gaden::Vector3 m_endPointLastMeasurement;
+    gaden::Vector3 m_endPointLastMeasurement;
     void publish(double measured);
 
     // optional reflector data. If you are using a second robot to reflect the laser off of

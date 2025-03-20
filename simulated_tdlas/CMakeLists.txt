@@ -23,6 +23,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(gaden_common REQUIRED)
 find_package(gaden_player REQUIRED)
+find_package(gaden_msgs REQUIRED)
 find_package(gaden_environment REQUIRED)
 
 
@@ -48,6 +49,7 @@ ament_target_dependencies(simulated_tdlas
     gaden_common
     gaden_player
     gaden_environment
+    gaden_msgs
 ) 
 
 
