@@ -212,7 +212,7 @@ void CFilamentSimulator::loadNodeParameters()
     // ENVIRONMENT
     //-----------
     //  Occupancy gridmap 3D location
-    occupancy3D_data = declare_parameter<std::string>("occupancy3D_data", "");
+    occupancy3D_filepath = declare_parameter<std::string>("occupancy3D_data", "");
 
     // fixed frame (to disaply the gas particles on RVIZ)
     fixed_frame = declare_parameter<std::string>("fixed_frame", "map");
@@ -263,37 +263,29 @@ void CFilamentSimulator::initSimulator()
         GADEN_INFO("Initializing Simulator... Please Wait!");
 
     // 1. Load Environment and Configure Matrices
-    if (std::filesystem::exists(occupancy3D_data))
+    if (verbose)
+        GADEN_INFO("Loading 3D Occupancy GridMap");
+
+    gaden::ReadResult result = gaden::readEnvFile(occupancy3D_filepath, environment);
+    if (result == gaden::ReadResult::NO_FILE)
     {
-        if (verbose)
-            GADEN_INFO("Loading 3D Occupancy GridMap");
-
-        gaden::ReadResult result = gaden::readEnvFile(occupancy3D_data, environment);
-        if (result == gaden::ReadResult::NO_FILE)
-        {
-            GADEN_WARN("No occupancy file provided to filament-simulator node!");
-            return;
-        }
-        else if (result == gaden::ReadResult::READING_FAILED)
-        {
-            GADEN_WARN("Something went wrong while parsing the file!");
-        }
-
-        if (verbose)
-            GADEN_INFO("Env dimensions ({:.2f},{:.2f},{:.2f}) to ({:.2f},{:.2f},{:.2f})", environment.description.min_coord.x,
-                       environment.description.min_coord.y, environment.description.min_coord.z, environment.description.max_coord.x,
-                       environment.description.max_coord.y, environment.description.max_coord.z);
-        if (verbose)
-            GADEN_INFO("Env size in cells	 ({},{},{}) - with cell size {} [m]", environment.description.dimensions.x,
-                       environment.description.dimensions.y, environment.description.dimensions.z, environment.description.cell_size);
-
-        // Reserve memory for the 3D matrices: U,V,W,C and Env, according to provided num_cells of the environment.
-        // It also init them to 0.0 values
-        wind.resize(environment.numCells());
-        environment.Env.resize(environment.numCells());
+        GADEN_FATAL("File provided to filament-simulator node '{}' does not exist!", occupancy3D_filepath);
     }
-    else
-        GADEN_WARN("File {} Does Not Exist!", occupancy3D_data);
+    else if (result == gaden::ReadResult::READING_FAILED)
+        GADEN_FATAL("Something went wrong while parsing the file!");
+
+    if (verbose)
+        GADEN_INFO("Env dimensions ({:.2f},{:.2f},{:.2f}) to ({:.2f},{:.2f},{:.2f})", environment.description.min_coord.x,
+                   environment.description.min_coord.y, environment.description.min_coord.z, environment.description.max_coord.x,
+                   environment.description.max_coord.y, environment.description.max_coord.z);
+    if (verbose)
+        GADEN_INFO("Env size in cells	 ({},{},{}) - with cell size {} [m]", environment.description.dimensions.x,
+                   environment.description.dimensions.y, environment.description.dimensions.z, environment.description.cell_size);
+
+    // Reserve memory for the 3D matrices: U,V,W,C and Env, according to provided num_cells of the environment.
+    // It also init them to 0.0 values
+    wind.resize(environment.numCells());
+    environment.Env.resize(environment.numCells());
 
     // 2. Load the first Wind snapshot from file (all 3 components U,V,W)
     read_wind_snapshot(current_simulation_step);

@@ -2,6 +2,7 @@
 #include "GadenVersion.h"
 #include "Vector3.h"
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <stdint.h>
@@ -68,7 +69,7 @@ namespace gaden
 
     inline ReadResult readEnvFile(const std::string& filePath, Environment& environment)
     {
-        if (filePath == "")
+        if (!std::filesystem::exists(filePath))
             return ReadResult::NO_FILE;
 
         // open file

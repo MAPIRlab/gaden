@@ -73,7 +73,7 @@ public:
     int loop_to_step;
 
     // Enviroment
-    std::string occupancy3D_data; // Location of the 3D Occupancy GridMap of the environment
+    std::string occupancy3D_filepath; // Location of the 3D Occupancy GridMap of the environment
     std::string fixed_frame;      // Frame where to publish the markers
     gaden::Environment environment;
 
