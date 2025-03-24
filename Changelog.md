@@ -1,6 +1,6 @@
 ## Current
 ### Minor changes
-- Added "topic" param to simulated gas sensor.
+- Added "topic" param to simulated gas sensor and anemometer.
 
 ## 2.6.1
 # Bug Fixes

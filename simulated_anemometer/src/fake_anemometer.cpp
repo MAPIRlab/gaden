@@ -20,7 +20,8 @@ int main(int argc, char** argv)
     return 0;
 }
 
-SimulatedAnemometer::SimulatedAnemometer() : rclcpp::Node("Simulated_anemometer")
+SimulatedAnemometer::SimulatedAnemometer()
+    : rclcpp::Node("Simulated_anemometer")
 {}
 
 void SimulatedAnemometer::run()
@@ -30,9 +31,8 @@ void SimulatedAnemometer::run()
     loadNodeParameters();
 
     // Publishers
-    // rclcpp::Publisher sensor_read_pub = n.advertise<std_msgs::Float32MultiArray>("WindSensor_reading", 500);
-    auto sensor_read_pub =
-        create_publisher<olfaction_msgs::msg::Anemometer>(fmt::format("{}/{}", get_fully_qualified_name(), "WindSensor_reading"), 500);
+    std::string topic = declare_parameter<std::string>("topic", fmt::format("{}/{}", get_fully_qualified_name(), "WindSensor_reading"));
+    auto sensor_read_pub = create_publisher<olfaction_msgs::msg::Anemometer>(topic, 500);
     auto marker_pub = create_publisher<visualization_msgs::msg::Marker>(fmt::format("{}/{}", get_fully_qualified_name(), "WindSensor_display"), 100);
 
     // Service to request wind values to simulator
