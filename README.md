@@ -42,5 +42,3 @@ Although GADEN is a self-contained pkg, the also included "simulated_sensor_pkgs
 See the [tutorial](GADEN_tutorial.md) for instructions on how to set up a simulation of your own or use the included [test environments](test_env).
 
 Users who want to test their algorithms in complex environments but do not need to simulate any specific scenario can find an extensive repository of existing simulations in the [VGR dataset](https://mapir.isa.uma.es/mapirwebsite/?p=1708), which features simulations in 3D models of real houses, along with the configuration files and intermediate data.
-
-New features and changes will be here before they make their way to the main branch. This is mainly for internal use only, and you can expect it to be somewhat unstable.
