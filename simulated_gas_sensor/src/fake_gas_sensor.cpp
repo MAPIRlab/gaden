@@ -30,8 +30,9 @@ void FakeGasSensor::run()
     // Read parameters
     loadNodeParameters();
 
+    std::string topic = declare_parameter<std::string>("topic", fmt::format("{}/{}", get_fully_qualified_name(), "Sensor_reading"));
     // Publishers
-    auto sensor_read_pub = create_publisher<olfaction_msgs::msg::GasSensor>(fmt::format("{}/{}", get_fully_qualified_name(), "Sensor_reading"), 500);
+    auto sensor_read_pub = create_publisher<olfaction_msgs::msg::GasSensor>(topic, 500);
     auto marker_pub = create_publisher<visualization_msgs::msg::Marker>(fmt::format("{}/{}", get_fully_qualified_name(), "Sensor_display"), 100);
 
     // Service to request gas concentration

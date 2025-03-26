@@ -1,3 +1,7 @@
+## Current
+### Minor changes
+- Added "topic" param to simulated gas sensor and anemometer.
+
 ## 2.6.1
 # Bug Fixes
 - Fixed a bug with file parsing in previous commit
