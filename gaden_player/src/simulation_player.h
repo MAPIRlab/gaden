@@ -48,6 +48,7 @@ private:
     int num_simulators;
     bool verbose;
     std::vector<std::string> simulation_data;
+    std::vector<std_msgs::msg::ColorRGBA> gas_display_colors;
     std::vector<Simulation> player_instances; // To handle N simulations at a time.
 
     int initial_iteration, loop_from_iteration, loop_to_iteration;
@@ -72,7 +73,7 @@ private:
 class Simulation
 {
 public:
-    Simulation(std::string filepath, bool load_wind_info, std::string occupancy_filepath);
+    Simulation(std::string filepath, bool load_wind_info, std::string occupancy_filePath, std_msgs::msg::ColorRGBA display_color);
     ~Simulation();
 
     std::string gas_type;
@@ -80,6 +81,7 @@ public:
     std::string occupancyFile;
     gaden::Environment environment;
     float source_pos_x, source_pos_y, source_pos_z;
+    std_msgs::msg::ColorRGBA gas_display_color;
 
     bool load_wind_data;
     std::vector<gaden::Vector3> wind;
