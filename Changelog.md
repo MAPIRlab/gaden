@@ -1,6 +1,7 @@
-## Current
+## 2.6.2
 ### Minor changes
-- Added "topic" param to simulated gas sensor and anemometer.
+- Added `topic` param to simulated gas sensor and anemometer.
+- Added optional `gas_display_color_{i}` param to player node to control the color of the gas markers.
 
 ## 2.6.1
 # Bug Fixes
