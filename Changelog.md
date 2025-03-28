@@ -4,7 +4,7 @@
 - Added optional `gas_display_color_{i}` param to player node to control the color of the gas markers.
 
 ## 2.6.1
-# Bug Fixes
+### Bug Fixes
 - Fixed a bug with file parsing in previous commit
 
 ## 2.6.0
