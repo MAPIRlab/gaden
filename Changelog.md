@@ -1,3 +1,5 @@
+## Current
+
 ## 2.6.2
 ### Minor changes
 - Added `topic` param to simulated gas sensor and anemometer.
