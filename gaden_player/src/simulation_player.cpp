@@ -177,6 +177,20 @@ void Player::loadNodeParameters()
             GADEN_INFO("simulation_data_{}:  {}", i, simulation_data[i].c_str());
     }
 
+    gas_display_colors.resize(num_simulators);
+    for (int i = 0; i < num_simulators; i++)
+    {
+        // Get location of simulation data for instance (i)
+        std::string paramName = fmt::format("gas_display_color_{}", i);
+        auto colorAsVec = declare_parameter<std::vector<float>>(paramName.c_str(), {0,1,0});
+        gas_display_colors.at(i).r = colorAsVec.at(0);
+        gas_display_colors.at(i).g = colorAsVec.at(1);
+        gas_display_colors.at(i).b = colorAsVec.at(2);
+        gas_display_colors.at(i).a = 1;
+        if (verbose)
+            GADEN_INFO("simulation_data_{}:  {}", i, simulation_data[i].c_str());
+    }
+
     // Initial iteration
     initial_iteration = declare_parameter<int>("initial_iteration", 1);
     occupancyFile = declare_parameter<std::string>("occupancyFile", "");
@@ -193,13 +207,13 @@ void Player::init_all_simulation_instances()
     GADEN_INFO("Initializing {} instances", num_simulators);
 
     // At least one instance is needed which loads the wind field data!
-    Simulation so(simulation_data[0], true, occupancyFile);
+    Simulation so(simulation_data[0], true, occupancyFile, gas_display_colors[0]);
     player_instances.push_back(so);
 
     // Create other instances, but do not save wind information! It is the same for all instances
     for (int i = 1; i < num_simulators; i++)
     {
-        Simulation so(simulation_data[i], false, occupancyFile);
+        Simulation so(simulation_data[i], false, occupancyFile, gas_display_colors[i]);
         player_instances.push_back(so);
     }
 
@@ -235,8 +249,8 @@ void Player::display_current_gas_distribution()
 //==================================== SIM_OBJ ==============================//
 
 // Constructor
-Simulation::Simulation(std::string filepath, bool load_wind_info, std::string occupancy_filePath)
-    : occupancyFile(occupancy_filePath)
+Simulation::Simulation(std::string filepath, bool load_wind_info, std::string occupancy_filePath, std_msgs::msg::ColorRGBA display_color)
+    : occupancyFile(occupancy_filePath), gas_display_color(display_color)
 {
     gas_type = "unknown";
     simulation_filename = filepath;
@@ -663,7 +677,6 @@ void Simulation::get_concentration_as_markers(visualization_msgs::msg::Marker& m
     for (auto it = activeFilaments.begin(); it != activeFilaments.end(); it++)
     {
         geometry_msgs::msg::Point p;    // Location of point
-        std_msgs::msg::ColorRGBA color; // Color of point
 
         const Filament& filament = *it;
         for (int i = 0; i < 5; i++)
@@ -672,13 +685,9 @@ void Simulation::get_concentration_as_markers(visualization_msgs::msg::Marker& m
             p.y = (filament.y) + ((std::rand() % 1000) / 1000.0 - 0.5) * filament.sigma / 200;
             p.z = (filament.z) + ((std::rand() % 1000) / 1000.0 - 0.5) * filament.sigma / 200;
 
-            color.a = 1;
-            color.r = 0;
-            color.g = 1;
-            color.b = 0;
             // Add particle marker
             mkr_points.points.push_back(p);
-            mkr_points.colors.push_back(color);
+            mkr_points.colors.push_back(gas_display_color);
         }
     }
 }
