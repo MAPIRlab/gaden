@@ -2,6 +2,10 @@
 ### Minor changes
 - Reduced outgoing message queue size for simulated sensors.
 
+## 2.6.3
+### Minor changes
+- Fixed a problem where the preprocessing launch file in `test_env` would throw an error if `coppelia_ros2_pkg` could not be found, even when `generateCoppeliaScene` was set to `False`.
+
 ## 2.6.2
 ### Minor changes
 - Added `topic` param to simulated gas sensor and anemometer.
