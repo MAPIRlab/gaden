@@ -1,4 +1,6 @@
 ## Current
+### Minor changes
+- Reduced outgoing message queue size for simulated sensors.
 
 ## 2.6.2
 ### Minor changes
