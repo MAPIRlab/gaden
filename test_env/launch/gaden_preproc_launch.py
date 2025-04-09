@@ -69,31 +69,31 @@ def launch_setup(context, *args, **kwargs):
                 {"generateCoppeliaScene": generateCoppeliaScene},
             ],
         )
-
-    coppelia = IncludeLaunchDescription(
-                FrontendLaunchDescriptionSource(
-                    os.path.join(
-                        get_package_share_directory("coppelia_ros2_pkg"),
-                        "launch/coppeliaSim.launch",
-                    )
-                ),
-                launch_arguments={
-                    "coppelia_scene_path": PathJoinSubstitution(
-                        [
-                            pkg_dir,
-                            "navigation_config",
-                            "resources",
-                            "default_coppelia_scene.ttt",
-                        ]
-                    ),
-                    "coppelia_headless": "True",
-                    "autoplay": "False",
-                }.items(),
-            )
-    
-    
     returnList = [preprocessing]
+
     if generateCoppeliaScene:
+        coppelia = IncludeLaunchDescription(
+                    FrontendLaunchDescriptionSource(
+                        os.path.join(
+                            get_package_share_directory("coppelia_ros2_pkg"),
+                            "launch/coppeliaSim.launch",
+                        )
+                    ),
+                    launch_arguments={
+                        "coppelia_scene_path": PathJoinSubstitution(
+                            [
+                                pkg_dir,
+                                "navigation_config",
+                                "resources",
+                                "default_coppelia_scene.ttt",
+                            ]
+                        ),
+                        "coppelia_headless": "True",
+                        "autoplay": "False",
+                    }.items(),
+                )
+    
+    
         returnList.append(coppelia)
 
     return returnList
