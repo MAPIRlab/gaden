@@ -19,11 +19,11 @@ int main(int argc, char** argv)
 
 void Gaden_preprocessing::Run()
 {
-    float cellSize = getParam<float>(shared_from_this(), "cell_size", 0.1);
+    float cellSize = GadenUtils::getParam<float>(shared_from_this(), "cell_size", 0.1);
     Vector3 emptyPoint = {
-        getParam<float>(shared_from_this(), "empty_point_x", 0),
-        getParam<float>(shared_from_this(), "empty_point_y", 0),
-        getParam<float>(shared_from_this(), "empty_point_z", 0)};
+        GadenUtils::getParam<float>(shared_from_this(), "empty_point_x", 0),
+        GadenUtils::getParam<float>(shared_from_this(), "empty_point_y", 0),
+        GadenUtils::getParam<float>(shared_from_this(), "empty_point_z", 0)};
 
     auto models = GetModels("model");
     auto outletModels = GetModels("outlet_model");
@@ -33,12 +33,7 @@ void Gaden_preprocessing::Run()
     WindSequence sequence = GetWindSequence(env);
 
     // generate output
-    std::filesystem::path outputFolder = getParam<std::string>(shared_from_this(), "output_path", "");
-    if (!std::filesystem::exists(outputFolder))
-    {
-        GADEN_ERROR("Output folder '{}' does not exist!", outputFolder.c_str());
-        return;
-    }
+    std::filesystem::path outputFolder = GadenUtils::getParam<std::string>(shared_from_this(), "output_path", "");
 
     GADEN_INFO_COLOR(fmt::terminal_color::blue, "Writing output to folder '{}'", outputFolder);
     EnvironmentConfiguration config{.environment = env,
@@ -46,10 +41,10 @@ void Gaden_preprocessing::Run()
                                     .path = outputFolder};
     config.WriteToDirectory();
 
-    float floorHeight = getParam<float>(shared_from_this(), "floor_height", 0.0);
+    float floorHeight = GadenUtils::getParam<float>(shared_from_this(), "floor_height", 0.0);
     env.Write2DSlicePGM(outputFolder / "occupancy.pgm",
                         floorHeight,
-                        getParam<bool>(shared_from_this(), "block_outlets", false));
+                        GadenUtils::getParam<bool>(shared_from_this(), "block_outlets", false));
 
     env.WriteROSOccupancyYAML(outputFolder / "occupancy.yaml", floorHeight);
     env.printBasicSimYaml(outputFolder / "BasicSimScene.yaml", emptyPoint);
@@ -71,7 +66,7 @@ std::vector<std::filesystem::path> Gaden_preprocessing::GetModels(const std::str
         while (true)
         {
             std::string numbered_param_name = fmt::format("{}_{}", parameter_name, i);
-            std::string value = getParam<std::string>(shared_from_this(), numbered_param_name, "");
+            std::string value = GadenUtils::getParam<std::string>(shared_from_this(), numbered_param_name, "");
             if (value != "")
                 stlModels.push_back(value);
             else
@@ -84,15 +79,15 @@ std::vector<std::filesystem::path> Gaden_preprocessing::GetModels(const std::str
     }
     GADEN_INFO("Number of {}s: {}", parameter_name, stlModels.size());
 
-    return AsPaths(stlModels);
+    return GadenUtils::AsPaths(stlModels);
 }
 
 WindSequence Gaden_preprocessing::GetWindSequence(const gaden::Environment& env)
 {
-    bool uniformWind = getParam<bool>(shared_from_this(), "uniformWind", false);
+    bool uniformWind = GadenUtils::getParam<bool>(shared_from_this(), "uniformWind", false);
 
     // path to the point cloud files with the wind data
-    std::string windFileName = getParam<std::string>(shared_from_this(), "wind_files", "");
+    std::string windFileName = GadenUtils::getParam<std::string>(shared_from_this(), "wind_files", "");
 
     if (uniformWind)
     {
@@ -127,20 +122,11 @@ WindSequence Gaden_preprocessing::GetWindSequence(const gaden::Environment& env)
     }
     else
     {
-        std::string filename = fmt::format("{}_0.csv", windFileName);
-        if (!std::filesystem::exists(filename))
-        {
-            GADEN_WARN("File '{}' does not exist", filename.c_str());
-            return {};
-        }
-
-        size_t idx = 0;
-        std::vector<std::filesystem::path> paths;
-        for (; std::filesystem::exists(filename); filename = fmt::format("{}_{}.csv", windFileName, idx))
-        {
-            paths.emplace_back(filename);
-            idx++;
-        }
+        std::vector<std::filesystem::path> paths = GadenUtils::GetWindFiles([](std::string const& path, size_t idx)
+                                                                {
+                                                                    return fmt::format("{}_{}.csv", path, idx);
+                                                                },
+                                                                windFileName);
         return Preprocessing::ParseOpenFoamVectorCloud(paths, env, {});
     }
 }

@@ -3,15 +3,14 @@ project(gaden_preprocessing)
 
 
 
-set(CMAKE_BUILD_TYPE "Release") 
+set(CMAKE_BUILD_TYPE "Debug") 
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS}")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS_DEBUG "-glldb -O0 ${CMAKE_CXX_FLAGS}")
 
 
 set(CMAKE_CXX_STANDARD 20)
 
 # Ament dependencies
-find_package(OpenMP)
 find_package(ament_cmake_auto REQUIRED)
 find_package(ament_cmake REQUIRED)
 ament_auto_find_build_dependencies()

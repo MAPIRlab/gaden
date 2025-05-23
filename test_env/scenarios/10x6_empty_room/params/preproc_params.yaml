@@ -24,4 +24,4 @@ gaden_preprocessing:
     wind_files: "$(var pkg_dir)/scenarios/$(var scenario)/wind_simulations/$(var wind_sim_path)"
     
     # Where to write the output files
-    output_path: "$(var pkg_dir)/scenarios/$(var scenario)"
+    output_path: "$(var pkg_dir)/scenarios/$(var scenario)/$(var simulation)"
