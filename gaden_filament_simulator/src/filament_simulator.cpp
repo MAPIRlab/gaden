@@ -53,8 +53,6 @@ int main(int argc, char** argv)
         GADEN_INFO_COLOR(fmt::terminal_color::blue, "Filament simulator finished correctly! Ran for {:.2f}s", stopwatch.ellapsed());
 }
 
-
-
 void FilamentSimulator::Run()
 {
     float maxSimTime = parameter("sim_time", 300.f);
@@ -85,7 +83,7 @@ void FilamentSimulator::Run()
         .from = static_cast<size_t>(parameter("loop_from_step", 1)),
         .to = static_cast<size_t>(parameter("loop_to_step", 100))};
     EnvironmentConfiguration envConfig;
-    envConfig.environment.ReadFromFile(parameter<std::string>("occupancy3D_data", ""));
+    GADEN_VERIFY(envConfig.environment.ReadFromFile(parameter<std::string>("occupancy3D_data", "")));
     envConfig.windSequence.Initialize(GetWindFilePaths(), envConfig.environment.numCells(), loopConfig);
     envConfig.path = parameter<std::string>("results_location", "");
 
@@ -96,7 +94,8 @@ void FilamentSimulator::Run()
     while (rclcpp::ok() && sim.GetCurrentTime() < maxSimTime)
     {
         sim.AdvanceTimestep();
-        auto filaments = sim.GetFilaments();
+        const auto& filaments = sim.GetFilaments();
+        publishMarkers(filaments);
 
         if (runRate > 0)
             rate.sleep();
@@ -112,7 +111,8 @@ void FilamentSimulator::publishMarkers(std::vector<Filament> const& filaments)
     filament_marker.points.clear();
     filament_marker.colors.clear();
     filament_marker.header.stamp = now();
-    filament_marker.pose.orientation.w = 1.0;
+    filament_marker.header.frame_id = "map";
+    filament_marker.type = filament_marker.POINTS;
 
     // width of points: scale.x is point width, scale.y is point height
     filament_marker.scale.x = 0.02;
