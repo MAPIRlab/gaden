@@ -7,7 +7,7 @@
 #include <vector>
 #include <boost/format.hpp>
 #include <gaden_msgs/srv/occupancy.hpp>
-#include <gaden_common/ReadEnvironment.h>
+#include <gaden/Environment.hpp>
 
 class Environment : public rclcpp::Node
 {
@@ -56,10 +56,6 @@ private:
     // Methods
     void loadNodeParameters();
     void loadEnvironment(visualization_msgs::msg::MarkerArray& env_marker);
-    int indexFrom3D(int x, int y, int z)
-    {
-        return gaden::indexFrom3D(gaden::Vector3i(x, y, z), environment.description.dimensions);
-    }
 
     bool occupancyMapServiceCB(gaden_msgs::srv::Occupancy_Request::SharedPtr request,
                                gaden_msgs::srv::Occupancy_Response::SharedPtr response);

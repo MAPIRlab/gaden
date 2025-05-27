@@ -11,10 +11,10 @@
 #include <gaden_msgs/srv/gas_position.hpp>
 #include <olfaction_msgs/msg/tdlas.hpp>
 
-#include <gaden_common/third_party/DDA/DDA.h>
+#include <DDA/DDA.h>
 #include <vector>
 
-#include <gaden_common/Vector_conversions.h>
+#include <gaden_common/VectorConversions.hpp>
 
 class TDLAS : public rclcpp::Node
 {

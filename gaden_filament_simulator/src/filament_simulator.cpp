@@ -83,7 +83,7 @@ void FilamentSimulator::Run()
         .from = static_cast<size_t>(parameter("loop_from_step", 1)),
         .to = static_cast<size_t>(parameter("loop_to_step", 100))};
     EnvironmentConfiguration envConfig;
-    GADEN_VERIFY(envConfig.environment.ReadFromFile(parameter<std::string>("occupancy3D_data", "")));
+    GADEN_CHECK_RESULT(envConfig.environment.ReadFromFile(parameter<std::string>("occupancy3D_data", "")));
     envConfig.windSequence.Initialize(GetWindFilePaths(), envConfig.environment.numCells(), loopConfig);
     envConfig.path = parameter<std::string>("results_location", "");
 

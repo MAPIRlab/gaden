@@ -6,18 +6,8 @@
     Parameters:
         @param scenario - The scenario where dispersal takes place
         @param simulation - The wind flow actuating in the scenario
-        @param source_(xyz) - The 3D position of the release point
 """
 
-"""
-    Launch file to run GADEN gas dispersion simulator.
-    IMPORTANT: GADEN_preprocessing should be called before!
-
-    Parameters:
-        @param scenario - The scenario where dispersal takes place
-        @param simulation - The wind flow actuating in the scenario
-        @param source_(xyz) - The 3D position of the release point
-"""
 import os
 
 from launch import LaunchDescription
@@ -40,7 +30,7 @@ def launch_arguments():
     return [
         DeclareLaunchArgument(
             "scenario",
-            default_value=["10x6_central_obstacle"],
+            default_value=["10x6_empty_room"],
             description="scenario to simulate",
         ),
         DeclareLaunchArgument(

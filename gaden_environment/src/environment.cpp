@@ -5,10 +5,10 @@
  * 2. Displays the Gas-Source Location as two cylinders.
  */
 
-#include "environment/environment.h"
 #define GADEN_LOGGER_ID "Environment"
-#include <gaden_common/Logging.h>
-#include <gaden_common/Utils.h>
+#include "environment/environment.h"
+#include <gaden/core/Logging.hpp>
+#include <gaden_common/Utils.hpp>
 
 // ===============================//
 //              MAIN              //
@@ -23,7 +23,8 @@ int main(int argc, char** argv)
     environment->run();
 }
 
-Environment::Environment() : rclcpp::Node("gaden_environment")
+Environment::Environment()
+    : rclcpp::Node("gaden_environment")
 {
 }
 
@@ -41,7 +42,7 @@ void Environment::run()
         create_publisher<visualization_msgs::msg::MarkerArray>("environment_cad_visualization", 100);
 
     auto occupancyMapService = create_service<gaden_msgs::srv::Occupancy>("gaden_environment/occupancyMap3D",
-                                                                                 std::bind(&Environment::occupancyMapServiceCB, this, _1, _2));
+                                                                          std::bind(&Environment::occupancyMapServiceCB, this, _1, _2));
     // Subscribers
     preprocessing_done = false;
     auto sub = create_subscription<std_msgs::msg::Bool>("preprocessing_done", 1, std::bind(&Environment::PreprocessingCB, this, _1));
@@ -192,24 +193,24 @@ void Environment::loadNodeParameters()
 
         if (verbose)
             GADEN_INFO("Gas_source({}): pos=[{:.2f} {:.2f} {:.2f}] scale={:.2f}color=[{:.2f} {:.2f} {:.2f}]", i, gas_source_pos_x[i],
-                        gas_source_pos_y[i], gas_source_pos_z[i], gas_source_scale[i], gas_source_color[i][0], gas_source_color[i][1],
-                        gas_source_color[i][2]);
+                       gas_source_pos_y[i], gas_source_pos_z[i], gas_source_scale[i], gas_source_color[i][0], gas_source_color[i][1],
+                       gas_source_color[i][2]);
     }
 
     // CAD MODELS
     //-------------
     // CAD model files
-    auto CAD_strings = getParam<std::vector<std::string>>(shared_from_this(), "CAD_models", std::vector<std::string>{});
+    auto CAD_strings = GadenUtils::getParam<std::vector<std::string>>(shared_from_this(), "CAD_models", std::vector<std::string>{});
 
-    if(CAD_strings.empty()) //try the old style, with numbered parameters instead of a single list
+    if (CAD_strings.empty()) // try the old style, with numbered parameters instead of a single list
     {
         int i = 0;
         while (true)
         {
             std::string param_name = fmt::format("CAD_{}", i);
             std::string paramColor = fmt::format("CAD_{}_color", i);
-            std::string model = getParam<std::string>(shared_from_this(), param_name, "");
-            auto color = getParam<std::vector<double>>(shared_from_this(), paramColor.c_str(), {0, 0, 0});
+            std::string model = GadenUtils::getParam<std::string>(shared_from_this(), param_name, "");
+            auto color = GadenUtils::getParam<std::vector<double>>(shared_from_this(), paramColor.c_str(), {0, 0, 0});
             if (model != "")
             {
                 CAD_models.emplace_back(model, color);
@@ -218,23 +219,23 @@ void Environment::loadNodeParameters()
                 break;
             i++;
         }
-        if(i>0)
+        if (i > 0)
             GADEN_WARN("Specifying models through numbered parameters is deprecated. You should use a single list parameter instead (see test_env for examples)");
     }
     else
     {
         std_msgs::msg::ColorRGBA lastColor;
-        //set default color
+        // set default color
         {
             lastColor.r = 1.0;
             lastColor.g = 1.0;
             lastColor.b = 1.0;
             lastColor.a = 1.0;
         }
-    
-        for(const std::string& str : CAD_strings)
+
+        for (const std::string& str : CAD_strings)
         {
-            if(str.find("!color") != std::string::npos)
+            if (str.find("!color") != std::string::npos)
                 lastColor = parseColor(str);
             else
                 CAD_models.emplace_back(str, lastColor);
@@ -280,7 +281,7 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray& env_mark
         }
     }
 
-    gaden::ReadResult result = gaden::readEnvFile(occupancy3D_data, environment);
+    gaden::ReadResult result = environment.ReadFromFile(occupancy3D_data);
     if (result == gaden::ReadResult::NO_FILE)
     {
         GADEN_ERROR("No occupancy file provided to environment node!");
@@ -298,30 +299,31 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray& env_mark
             for (int k = 0; k < environment.description.dimensions.z; k++)
             {
                 // Color
-                if (!environment.Env[indexFrom3D(i, j, k)])
+                size_t idx = environment.indexFrom3D(gaden::Vector3i(i, j, k));
+                if (environment.cells.at(idx) == gaden::Environment::CellState::Obstacle)
                 {
                     // Add a new cube marker for this occupied cell
                     visualization_msgs::msg::Marker new_marker;
                     new_marker.header.frame_id = fixed_frame;
                     new_marker.header.stamp = now();
                     new_marker.ns = "environment_visualization";
-                    new_marker.id = indexFrom3D(i, j, k); // unique identifier
+                    new_marker.id = idx; // unique identifier
                     new_marker.type = visualization_msgs::msg::Marker::CUBE;
                     new_marker.action = visualization_msgs::msg::Marker::ADD;
 
                     // Center of the cell
-                    new_marker.pose.position.x = environment.description.min_coord.x + ((i + 0.5) * environment.description.cell_size);
-                    new_marker.pose.position.y = environment.description.min_coord.y + ((j + 0.5) * environment.description.cell_size);
-                    new_marker.pose.position.z = environment.description.min_coord.z + ((k + 0.5) * environment.description.cell_size);
+                    new_marker.pose.position.x = environment.description.minCoord.x + ((i + 0.5) * environment.description.cellSize);
+                    new_marker.pose.position.y = environment.description.minCoord.y + ((j + 0.5) * environment.description.cellSize);
+                    new_marker.pose.position.z = environment.description.minCoord.z + ((k + 0.5) * environment.description.cellSize);
                     new_marker.pose.orientation.x = 0.0;
                     new_marker.pose.orientation.y = 0.0;
                     new_marker.pose.orientation.z = 0.0;
                     new_marker.pose.orientation.w = 1.0;
 
                     // Size of the cell
-                    new_marker.scale.x = environment.description.cell_size;
-                    new_marker.scale.y = environment.description.cell_size;
-                    new_marker.scale.z = environment.description.cell_size;
+                    new_marker.scale.x = environment.description.cellSize;
+                    new_marker.scale.y = environment.description.cellSize;
+                    new_marker.scale.z = environment.description.cellSize;
 
                     new_marker.color.r = 0.9f;
                     new_marker.color.g = 0.1f;
@@ -337,26 +339,29 @@ void Environment::loadEnvironment(visualization_msgs::msg::MarkerArray& env_mark
 bool Environment::occupancyMapServiceCB(gaden_msgs::srv::Occupancy_Request::SharedPtr request,
                                         gaden_msgs::srv::Occupancy_Response::SharedPtr response)
 {
-    response->origin.x = environment.description.min_coord.x;
-    response->origin.y = environment.description.min_coord.y;
-    response->origin.z = environment.description.min_coord.z;
+    response->origin.x = environment.description.minCoord.x;
+    response->origin.y = environment.description.minCoord.y;
+    response->origin.z = environment.description.minCoord.z;
 
     response->num_cells_x = environment.description.dimensions.x;
     response->num_cells_y = environment.description.dimensions.y;
     response->num_cells_z = environment.description.dimensions.z;
 
-    response->occupancy = environment.Env;
-    response->resolution = environment.description.cell_size;
+    response->occupancy.resize(environment.cells.size());
+#pragma omp parallel for
+    for (size_t i = 0; i < environment.cells.size(); i++)
+        response->occupancy.at(i) = static_cast<uint8_t>(environment.cells.at(i));
+    
+    response->resolution = environment.description.cellSize;
 
     return true;
 }
-
 
 std_msgs::msg::ColorRGBA Environment::parseColor(const std::string& str)
 {
     std_msgs::msg::ColorRGBA color;
     color.a = 1.0;
-    
+
     std::stringstream ss(str);
     ss >> std::skipws;
 
@@ -368,8 +373,8 @@ std_msgs::msg::ColorRGBA Environment::parseColor(const std::string& str)
     ss >> color.b;
 
     ss.ignore(256, ',');
-    if(!ss.eof())
+    if (!ss.eof())
         ss >> color.a;
-    
+
     return color;
 }
