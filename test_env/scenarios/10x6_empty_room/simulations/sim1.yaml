@@ -2,8 +2,6 @@ source_x: 2.0
 source_y: 3.0
 source_z: 0.50
 
-wind_sim_path: "dynamic/wind_at_cell_centers" # _i.csv automatically appended
-
 sim_time: 300.0                    
 time_step: 0.1                    
 num_filaments_sec: 10             

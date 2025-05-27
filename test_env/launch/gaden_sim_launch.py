@@ -33,6 +33,11 @@ def launch_arguments():
         ),
         DeclareLaunchArgument(
             "simulation",
+            default_value=["config1"],
+            description="name of the configuration yaml file",
+        ), 
+        DeclareLaunchArgument(
+            "simulation",
             default_value=["sim1"],
             description="name of the simulation yaml file",
         ),

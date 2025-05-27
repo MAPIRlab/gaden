@@ -40,8 +40,9 @@ private:
     float m_maxRayDistance;
     float m_rayMarchResolution;
     float m_measurementFrequency;
-    std::vector<std::vector<std::vector<bool>>> m_map;
+    std::vector<uint8_t> m_map;
     gaden::Vector3 m_mapOrigin;
+    gaden::Vector3i m_mapDimensions;
 
     void getEnvironment();
     double takeMeasurement();
