@@ -1,0 +1,21 @@
+# CAD models of the enviroment (.stl)
+models: 
+  - "!color [0.92, 0.96, 0.96]"
+  - "../../cad_models/10x6_walls.stl"
+
+# CAD model of the outlets (.stl)
+outlets_models: 
+  - "!color [0.96, 0.17, 0.3]"
+  - "../../cad_models/10x6_door_left.stl"
+  - "../../cad_models/10x6_door_right.stl"
+
+cell_size: 0.1
+
+# 3D Location of a point in free-space
+empty_point_x: 1.0      ### (m)
+empty_point_y: 1.0      ### (m)
+empty_point_z: 0.5      ### (m)
+
+# Wind Data (the node will append _i.csv to the name that is specified here)
+uniformWind: false
+unprocessed_wind_files: "../../wind_simulations/dynamic/wind_at_cell_centers" # _i.csv automatically appended

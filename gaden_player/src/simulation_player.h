@@ -20,7 +20,7 @@ private:
 
     void displayCurrentGasDistribution();
     void loadNodeParameters();
-    void initSimulations(size_t initialIteration);
+    void initSimulations();
     size_t FillMarkerArray(std::vector<geometry_msgs::msg::Point>& marker, std::vector<gaden::Filament> const& filaments);
 
 private:

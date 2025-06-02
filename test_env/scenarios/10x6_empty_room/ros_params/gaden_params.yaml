@@ -1,0 +1,23 @@
+# PARAMETERS FOR GADEN #
+# ===================== #
+
+# ================
+gaden_preprocessing:
+  ros__parameters:
+    projectPath: $(var pkg_dir)/scenarios/$(var scenario)/environment_configurations/$(var configuration)
+
+# ================
+gaden_environment:
+  ros__parameters:
+    projectPath: $(var pkg_dir)/scenarios/$(var scenario)/environment_configurations/$(var configuration)
+
+
+# ================
+gaden_filament_simulator:
+  ros__parameters:
+    projectPath: $(var pkg_dir)/scenarios/$(var scenario)/environment_configurations/$(var configuration)
+
+# ================
+gaden_player:
+  ros__parameters:
+    projectPath: $(var pkg_dir)/scenarios/$(var scenario)/environment_configurations/$(var configuration)

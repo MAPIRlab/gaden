@@ -9,7 +9,8 @@
 #include "simulation_player.h"
 #include "gaden/core/Assertions.hpp"
 #include "gaden/internal/Time.hpp"
-#include "gaden/internal/Utils.hpp"
+#include "gaden/internal/PathUtils.hpp"
+#include "gaden/internal/MathUtils.hpp"
 
 int main(int argc, char** argv)
 {
@@ -83,13 +84,11 @@ bool Player::GetWindValue_srv(gaden_msgs::srv::WindPosition::Request::SharedPtr 
 //------------------------ MAIN --------------------------//
 void Player::run()
 {
-    int iteration_counter = declare_parameter<int>("initial_iteration", 1);
-
     // Read Node Parameters
     loadNodeParameters();
 
     // Init variables
-    initSimulations(iteration_counter);
+    initSimulations();
     rclcpp::Time time_last_loaded_file = now();
     srand(time(NULL)); // initialize random seed
 
@@ -117,12 +116,8 @@ void Player::run()
                 sim.AdvanceTimestep();
 
             displayCurrentGasDistribution(); // Rviz visualization
-            iteration_counter++;
 
             // Looping?
-            if (loopConfig.loop)
-                if (iteration_counter >= loopConfig.to)
-                    iteration_counter = loopConfig.from;
             time_last_loaded_file = now();
             countdown.Restart();
         }
@@ -145,12 +140,14 @@ void Player::loadNodeParameters()
     // FilePath for simulated data
     params.resize(num_simulators);
     GADEN_VERIFY(num_simulators >= 1, "Must have at least one simulation to play back!");
+    int initial_iteration = declare_parameter<int>("initial_iteration", 1);
 
     for (int i = 0; i < num_simulators; i++)
     {
         // Get location of simulation data for instance (i)
         std::string paramName = fmt::format("simulation_data_{}", i);
         params[i].simulationDirectory = declare_parameter<std::string>(paramName.c_str(), "");
+        params[i].startIteration = initial_iteration;
         GADEN_INFO("simulation_data_{}: {}", i, params[i].simulationDirectory);
     }
 
@@ -176,7 +173,7 @@ void Player::loadNodeParameters()
     loopConfig.to = declare_parameter<int>("loop_to_iteration", 1);
 }
 
-void Player::initSimulations(size_t initialIteration)
+void Player::initSimulations()
 {
     // Find the wind files
     // We only need to find them once, since the wind is assumed to be identical for all simulation instances
@@ -191,12 +188,12 @@ void Player::initSimulations(size_t initialIteration)
     if (std::filesystem::exists(pathNewProjects))
     {
         GADEN_INFO("Found wind files at '{}'", pathNewProjects);
-        windFiles = gaden::GetAllFilesInDirectory(pathNewProjects);
+        windFiles = gaden::paths::GetAllFilesInDirectory(pathNewProjects);
     }
     else if (std::filesystem::exists(pathOldProjects))
     {
         GADEN_INFO("Found wind files at '{}'", pathOldProjects);
-        windFiles = gaden::GetAllFilesInDirectory(pathOldProjects);
+        windFiles = gaden::paths::GetAllFilesInDirectory(pathOldProjects);
     }
     else
     {
@@ -204,12 +201,11 @@ void Player::initSimulations(size_t initialIteration)
         GADEN_TERMINATE;
     }
 
-    environmentConfig.windSequence.Initialize(windFiles, environmentConfig.environment.numCells(), loopConfig);
+    environmentConfig.windSequence.Initialize(windFiles, environmentConfig.environment.numCells(), {});
 
     for (size_t i = 0; i < params.size(); i++)
     {
-        params.at(i).startIteration = initialIteration;
-        simulations.emplace_back(params.at(i), environmentConfig);
+        simulations.emplace_back(params.at(i), environmentConfig, loopConfig);
     }
 }
 

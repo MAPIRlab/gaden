@@ -1,6 +1,4 @@
-source_x: 2.0
-source_y: 3.0
-source_z: 0.50
+sourcePosition: [2.0, 3.0, 0.50]
 
 sim_time: 300.0                    
 time_step: 0.1                    
@@ -13,3 +11,10 @@ filament_growth_gamma: 10.0
 filament_noise_std: 0.02           
 gas_type: 0
 temperature: 298.0                 
+pressure: 1.0                
+
+# Wind Loop options
+wind_looping:
+  loop: true
+  from: 0
+  to: 24

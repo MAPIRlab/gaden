@@ -4,6 +4,7 @@
 #include "gaden/EnvironmentConfiguration.hpp"
 #include "gaden/Preprocessing.hpp"
 #include "gaden/core/Logging.hpp"
+#include "gaden/internal/PathUtils.hpp"
 #include "gaden_common/Utils.hpp"
 #include <fstream>
 using namespace gaden;
@@ -19,35 +20,61 @@ int main(int argc, char** argv)
 
 void Gaden_preprocessing::Run()
 {
-    float cellSize = GadenUtils::getParam<float>(shared_from_this(), "cell_size", 0.1);
-    Vector3 emptyPoint = {
-        GadenUtils::getParam<float>(shared_from_this(), "empty_point_x", 0),
-        GadenUtils::getParam<float>(shared_from_this(), "empty_point_y", 0),
-        GadenUtils::getParam<float>(shared_from_this(), "empty_point_z", 0)};
+    // if there is a gaden project directory, we will just parse those files instead of reading everything from ROS params
+    std::filesystem::path projectPath = GadenUtils::getParam<std::string>(shared_from_this(), "projectPath", "");
+    if (std::filesystem::exists(projectPath))
+    {
+        gadenProject.emplace(projectPath);
+        GADEN_CHECK_RESULT(gadenProject->Read());
+    }
 
-    auto models = GetModels("model");
-    auto outletModels = GetModels("outlet_model");
+    // These variables can be passed through ROS parameters (as always) or read from the gaden project files (new)
+    //--------------------------------------------------------
+    float cellSize;
+    Vector3 emptyPoint;
+    std::filesystem::path outputFolder;
+    EnvironmentConfiguration config;
+    std::vector<std::filesystem::path> models;
+    std::vector<std::filesystem::path> outletModels;
+
+    if (gadenProject)
+    {
+        cellSize = gadenProject->envMetadata.cellSize;
+        emptyPoint = gadenProject->envMetadata.emptyPoint;
+        outputFolder = projectPath;
+        models = Project::EnvConfigurationMetadata::GetPaths(gadenProject->envMetadata.envModels);
+        outletModels = Project::EnvConfigurationMetadata::GetPaths(gadenProject->envMetadata.outletModels);
+    }
+    else
+    {
+        cellSize = GadenUtils::getParam<float>(shared_from_this(), "cell_size", 0.1);
+        emptyPoint = {
+            GadenUtils::getParam<float>(shared_from_this(), "empty_point_x", 0),
+            GadenUtils::getParam<float>(shared_from_this(), "empty_point_y", 0),
+            GadenUtils::getParam<float>(shared_from_this(), "empty_point_z", 0)};
+        outputFolder = GadenUtils::getParam<std::string>(shared_from_this(), "output_path", "");
+        models = GetModels("model");
+        outletModels = GetModels("outlet_model");
+    }
+    //--------------------------------------------------------
+
     GADEN_INFO("Parsing geometry files...");
-    Environment env = Preprocessing::ParseSTLModels(models, outletModels, cellSize, emptyPoint);
+    config.environment = Preprocessing::ParseSTLModels(models, outletModels, cellSize, emptyPoint);
     GADEN_INFO("Parsing wind files...");
-    WindSequence sequence = GetWindSequence(env);
+    config.windSequence = gadenProject ? GetWindSequenceProject(config.environment) : GetWindSequenceROSParams(config.environment);
 
     // generate output
-    std::filesystem::path outputFolder = GadenUtils::getParam<std::string>(shared_from_this(), "output_path", "");
-
     GADEN_INFO_COLOR(fmt::terminal_color::blue, "Writing output to folder '{}'", outputFolder);
-    EnvironmentConfiguration config{.environment = env,
-                                    .windSequence = sequence,
-                                    .path = outputFolder};
-    config.WriteToDirectory();
+
+    config.WriteToDirectory(outputFolder);
 
     float floorHeight = GadenUtils::getParam<float>(shared_from_this(), "floor_height", 0.0);
-    env.Write2DSlicePGM(outputFolder / "occupancy.pgm",
-                        floorHeight,
-                        GadenUtils::getParam<bool>(shared_from_this(), "block_outlets", false));
+    config.environment.Write2DSlicePGM(outputFolder / "occupancy.pgm",
+                                       floorHeight,
+                                       GadenUtils::getParam<bool>(shared_from_this(), "block_outlets", false));
 
-    env.WriteROSOccupancyYAML(outputFolder / "occupancy.yaml", floorHeight);
-    env.printBasicSimYaml(outputFolder / "BasicSimScene.yaml", emptyPoint);
+    config.environment.WriteROSOccupancyYAML(outputFolder / "occupancy.yaml", floorHeight);
+    config.environment.printBasicSimYaml(outputFolder / "BasicSimScene.yaml", emptyPoint);
 
     // notify we are done!
     GADEN_INFO_COLOR(fmt::terminal_color::blue, "Preprocessing done");
@@ -59,6 +86,13 @@ void Gaden_preprocessing::Run()
 std::vector<std::filesystem::path> Gaden_preprocessing::GetModels(const std::string& parameter_name)
 {
     std::vector<std::string> stlModels = declare_parameter<std::vector<std::string>>(fmt::format("{}s", parameter_name.data()), std::vector<std::string>{});
+
+    // delete special lines (starting with '!') which are used to specify colors for the environment node
+    for (size_t i = stlModels.size() - 1; i >= 0; i--)
+    {
+        if (stlModels.at(i).at(0) == '!')
+            stlModels.erase(stlModels.begin() + i);
+    }
 
     if (stlModels.empty()) // try the old style, with numbered parameters instead of a single list
     {
@@ -79,10 +113,10 @@ std::vector<std::filesystem::path> Gaden_preprocessing::GetModels(const std::str
     }
     GADEN_INFO("Number of {}s: {}", parameter_name, stlModels.size());
 
-    return GadenUtils::AsPaths(stlModels);
+    return gaden::paths::AsPaths(stlModels);
 }
 
-WindSequence Gaden_preprocessing::GetWindSequence(const gaden::Environment& env)
+WindSequence Gaden_preprocessing::GetWindSequenceROSParams(const gaden::Environment& env)
 {
     bool uniformWind = GadenUtils::getParam<bool>(shared_from_this(), "uniformWind", false);
 
@@ -91,42 +125,24 @@ WindSequence Gaden_preprocessing::GetWindSequence(const gaden::Environment& env)
 
     if (uniformWind)
     {
-        // the file just containes a list of vectors, where each vector is shared by all the cells in a particular timestep
-
-        std::vector<std::vector<gaden::Vector3>> windMaps;
-        std::ifstream infile(windFileName);
-        std::string line;
-
-        std::vector<gaden::Vector3> timestep(env.numCells(), Vector3{0, 0, 0});
-        while (std::getline(infile, line))
-        {
-            Vector3 v;
-            for (int i = 0; i < 3; i++)
-            {
-                size_t pos = line.find(",");
-                v[i] = (atof(line.substr(0, pos).c_str()));
-                line.erase(0, pos + 1);
-            }
-
-            for (size_t i = 0; i < timestep.size(); i++)
-                if (env.cells[i] == Environment::CellState::Free)
-                    timestep[i] = v;
-
-            windMaps.push_back(timestep);
-        }
-        infile.close();
-
-        WindSequence seq;
-        seq.Initialize(windMaps, env.numCells(), {});
-        return seq;
+        // the file just contains a list of vectors, where each vector is shared by all the cells in a particular timestep
+        return WindSequence::CreateUniformWind(windFileName, env.numCells());
     }
     else
     {
         std::vector<std::filesystem::path> paths = GadenUtils::GetWindFiles([](std::string const& path, size_t idx)
-                                                                {
-                                                                    return fmt::format("{}_{}.csv", path, idx);
-                                                                },
-                                                                windFileName);
+                                                                            {
+                                                                                return fmt::format("{}_{}.csv", path, idx);
+                                                                            },
+                                                                            windFileName);
         return Preprocessing::ParseOpenFoamVectorCloud(paths, env, {});
     }
+}
+
+gaden::WindSequence Gaden_preprocessing::GetWindSequenceProject(const gaden::Environment& env)
+{
+    if (gadenProject->envMetadata.uniformWind)
+        return WindSequence::CreateUniformWind(gadenProject->envMetadata.unprocessedWindFilePaths[0], env.numCells());
+    else
+        return Preprocessing::ParseOpenFoamVectorCloud(gadenProject->envMetadata.unprocessedWindFilePaths, env, {});
 }

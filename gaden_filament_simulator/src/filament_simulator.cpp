@@ -74,20 +74,20 @@ void FilamentSimulator::Run()
         .filament_noise_std = parameter("filament_noise_std", 0.1f),
         .numFilaments_sec = static_cast<float>(parameter("num_filaments_sec", 100)),
         .expectedNumIterations = static_cast<size_t>(std::ceil(maxSimTime / params.deltaTime)),
+        .windLoop = LoopConfig{.loop = parameter("allow_looping", false),                   //
+                               .from = static_cast<size_t>(parameter("loop_from_step", 1)), //
+                               .to = static_cast<size_t>(parameter("loop_to_step", 100))},
         .saveResults = static_cast<bool>(parameter("save_results", 1)),
         .saveDeltaTime = parameter("results_time_step", 0.5f),
-        .simulationID = parameter<std::string>("simulationID", "sim")};
+        .saveDataDirectory = parameter<std::string>("results_location", ""),
+        .simulationID = parameter<std::string>("simulationID", "sim"),
+    };
 
-    LoopConfig loopConfig{
-        .loop = parameter("allow_looping", false),
-        .from = static_cast<size_t>(parameter("loop_from_step", 1)),
-        .to = static_cast<size_t>(parameter("loop_to_step", 100))};
     EnvironmentConfiguration envConfig;
     GADEN_CHECK_RESULT(envConfig.environment.ReadFromFile(parameter<std::string>("occupancy3D_data", "")));
-    envConfig.windSequence.Initialize(GetWindFilePaths(), envConfig.environment.numCells(), loopConfig);
-    envConfig.path = parameter<std::string>("results_location", "");
+    envConfig.windSequence.Initialize(GetWindFilePaths(), envConfig.environment.numCells(), params.windLoop);
 
-    RunningSimulation sim(params, envConfig, loopConfig);
+    RunningSimulation sim(params, envConfig);
 
     float runRate = parameter("runRate", 0);
     rclcpp::Rate rate(runRate);

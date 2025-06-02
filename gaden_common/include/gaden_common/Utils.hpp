@@ -15,15 +15,6 @@ namespace GadenUtils
             return node->declare_parameter<T>(name, defaultValue);
     }
 
-    inline std::vector<std::filesystem::path> AsPaths(const std::vector<std::string>& strs)
-    {
-        std::vector<std::filesystem::path> paths;
-        paths.reserve(strs.size());
-        for (const auto& str : strs)
-            paths.emplace_back(str);
-        return paths;
-    }
-
     // takes fmt formatting that expects [common part of file path] [index] as dynamic parameters
     inline std::vector<std::filesystem::path> GetWindFiles(std::function<std::string(std::string const&, size_t)> fmt, std::string const& commonPath)
     {
