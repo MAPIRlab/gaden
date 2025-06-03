@@ -1,8 +1,8 @@
-#ifndef CFilamentSimulator_H
-#define CFilamentSimulator_H
+#pragma once
 
 #include <gaden/datatypes/Filament.hpp>
 #include <gaden_common/Utils.hpp>
+#include <gaden/Project.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 class FilamentSimulator : public rclcpp::Node
@@ -16,12 +16,14 @@ public:
 private:
     void publishMarkers(std::vector<gaden::Filament> const& filaments);
     template <typename T>
-    T parameter(std::string const& name, T defaultValue)
+    T getParameter(std::string const& name, T defaultValue)
     {
         return GadenUtils::getParam<T>(shared_from_this(), name, defaultValue);
     }
 
-    std::vector<std::filesystem::path> GetWindFilePaths();
+    std::vector<std::filesystem::path> GetWindFilePaths(std::filesystem::path const& windFilesLocation);
+
+private:
+    std::optional<gaden::Project> gadenProject;
 };
 
-#endif

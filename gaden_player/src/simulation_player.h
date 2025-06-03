@@ -1,3 +1,4 @@
+#include <gaden/Project.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 
@@ -20,6 +21,7 @@ private:
 
     void displayCurrentGasDistribution();
     void loadNodeParameters();
+    void loadGadenProject();
     void initSimulations();
     size_t FillMarkerArray(std::vector<geometry_msgs::msg::Point>& marker, std::vector<gaden::Filament> const& filaments);
 
@@ -30,5 +32,5 @@ private:
 
     gaden::EnvironmentConfiguration environmentConfig;
     gaden::LoopConfig loopConfig;
-
+    std::optional<gaden::Project> gadenProject;
 };

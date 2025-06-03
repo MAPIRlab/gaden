@@ -4,7 +4,8 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Environment_CAD1
+        - /Environment_CAD1/Status1
+        - /Environment_CAD1/Topic1
         - /Map1
         - /Map1/Topic1
         - /RobotModel1/Description Topic1
@@ -32,7 +33,7 @@ Visualization Manager:
       Enabled: true
       Name: Source
       Namespaces:
-        gas_source_visualization: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -44,7 +45,7 @@ Visualization Manager:
       Enabled: true
       Name: Filaments
       Namespaces:
-        {}
+        "": true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -85,9 +86,10 @@ Visualization Manager:
       Namespaces:
         part_0: true
         part_1: true
+        part_2: true
       Topic:
         Depth: 5
-        Durability Policy: Volatile
+        Durability Policy: Transient Local
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /environment_cad_visualization
@@ -232,56 +234,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        PioneerP3DX_base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_body:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_green_button:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_head:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_hokuyo_front:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_left_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_neck:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_red_button:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_right_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_screen:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -364,7 +316,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4797964096069336
+      Pitch: 1.4747964143753052
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
       Yaw: 4.700453281402588

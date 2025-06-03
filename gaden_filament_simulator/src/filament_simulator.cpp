@@ -55,41 +55,60 @@ int main(int argc, char** argv)
 
 void FilamentSimulator::Run()
 {
-    float maxSimTime = parameter("sim_time", 300.f);
+    float maxSimTime = getParameter("sim_time", 300.f);
 
-    RunningSimulation::Parameters params{
-        .gasType = static_cast<GasType>(parameter("gas_type", 0)),
-        .sourcePosition = Vector3{
-            parameter("source_position_x", 0.0),
-            parameter("source_position_y", 0.0),
-            parameter("source_position_z", 0.0),
-        },
-        .deltaTime = parameter("time_step", 0.1f),
-        .windIterationDeltaTime = parameter("wind_time_step", 1.0f),
-        .temperature = parameter("wind_time_step", 298.0f),
-        .pressure = parameter("wind_time_step", 1.0f),
-        .filament_ppm_center = parameter("ppm_filament_center", 20.0f),
-        .filament_initial_sigma = parameter("filament_initial_std", 1.5f),
-        .filament_growth_gamma = parameter("filament_growth_gamma", 10.0f),
-        .filament_noise_std = parameter("filament_noise_std", 0.1f),
-        .numFilaments_sec = static_cast<float>(parameter("num_filaments_sec", 100)),
-        .expectedNumIterations = static_cast<size_t>(std::ceil(maxSimTime / params.deltaTime)),
-        .windLoop = LoopConfig{.loop = parameter("allow_looping", false),                   //
-                               .from = static_cast<size_t>(parameter("loop_from_step", 1)), //
-                               .to = static_cast<size_t>(parameter("loop_to_step", 100))},
-        .saveResults = static_cast<bool>(parameter("save_results", 1)),
-        .saveDeltaTime = parameter("results_time_step", 0.5f),
-        .saveDataDirectory = parameter<std::string>("results_location", ""),
-        .simulationID = parameter<std::string>("simulationID", "sim"),
-    };
-
+    RunningSimulation::Parameters params;
     EnvironmentConfiguration envConfig;
-    GADEN_CHECK_RESULT(envConfig.environment.ReadFromFile(parameter<std::string>("occupancy3D_data", "")));
-    envConfig.windSequence.Initialize(GetWindFilePaths(), envConfig.environment.numCells(), params.windLoop);
+    std::vector<std::filesystem::path> windFiles;
+    std::filesystem::path environmentFile;
+
+    std::filesystem::path projectPath = GadenUtils::getParam<std::string>(shared_from_this(), "projectPath", "");
+    if (std::filesystem::exists(projectPath))
+    {
+        gadenProject.emplace(projectPath);
+        GADEN_CHECK_RESULT(gadenProject->Read());
+        params = gadenProject->simulations.at(getParameter<std::string>("simulationID", "sim"));
+        windFiles = GetWindFilePaths(projectPath / "wind");
+        environmentFile = projectPath / "OccupancyGrid3D.csv";
+    }
+
+    // if we don't have a gaden project directory (using old configurations) read the info from ros parameters
+    if (!gadenProject)
+    {
+        params = {
+            .gasType = static_cast<GasType>(getParameter("gas_type", 0)),
+            .sourcePosition = Vector3{
+                getParameter("source_position_x", 0.0),
+                getParameter("source_position_y", 0.0),
+                getParameter("source_position_z", 0.0),
+            },
+            .deltaTime = getParameter("time_step", 0.1f),
+            .windIterationDeltaTime = getParameter("wind_time_step", 1.0f),
+            .temperature = getParameter("wind_time_step", 298.0f),
+            .pressure = getParameter("wind_time_step", 1.0f),
+            .filament_ppm_center = getParameter("ppm_filament_center", 20.0f),
+            .filament_initial_sigma = getParameter("filament_initial_std", 1.5f),
+            .filament_growth_gamma = getParameter("filament_growth_gamma", 10.0f),
+            .filament_noise_std = getParameter("filament_noise_std", 0.1f),
+            .numFilaments_sec = static_cast<float>(getParameter("num_filaments_sec", 100)),
+            .expectedNumIterations = static_cast<size_t>(std::ceil(maxSimTime / params.deltaTime)),
+            .windLoop = LoopConfig{.loop = getParameter("allow_looping", false),                   //
+                                   .from = static_cast<size_t>(getParameter("loop_from_step", 1)), //
+                                   .to = static_cast<size_t>(getParameter("loop_to_step", 100))},
+            .saveResults = static_cast<bool>(getParameter("save_results", 1)),
+            .saveDeltaTime = getParameter("results_time_step", 0.5f),
+            .saveDataDirectory = getParameter<std::string>("results_location", ""),
+        };
+        windFiles = GetWindFilePaths(getParameter<std::string>("wind_data", ""));
+        environmentFile = getParameter<std::string>("occupancy3D_data", "");
+    }
+
+    GADEN_CHECK_RESULT(envConfig.environment.ReadFromFile(environmentFile));
+    envConfig.windSequence.Initialize(windFiles, envConfig.environment.numCells(), params.windLoop);
 
     RunningSimulation sim(params, envConfig);
 
-    float runRate = parameter("runRate", 0);
+    float runRate = getParameter("runRate", 0); // 0 means as fast as possible
     rclcpp::Rate rate(runRate);
     while (rclcpp::ok() && sim.GetCurrentTime() < maxSimTime)
     {
@@ -145,17 +164,16 @@ void FilamentSimulator::publishMarkers(std::vector<Filament> const& filaments)
     publisher->publish(filament_marker);
 }
 
-std::vector<std::filesystem::path> FilamentSimulator::GetWindFilePaths()
+std::vector<std::filesystem::path> FilamentSimulator::GetWindFilePaths(std::filesystem::path const& windFilesLocation)
 {
-    std::string windFilesLocation = declare_parameter<std::string>("wind_data", "");
     std::vector<std::filesystem::path> paths;
     GADEN_INFO_COLOR(fmt::terminal_color::blue, "Parameter 'wind_data': '{}'", windFilesLocation);
 
     // post 3.0
-    GADEN_INFO("Trying to load wind files with pattern '{}_i'", windFilesLocation);
+    GADEN_INFO("Trying to load wind files with pattern '{}/wind_iteration_i'", windFilesLocation);
     paths = GadenUtils::GetWindFiles([](std::string const& path, size_t idx)
                                      {
-                                         return fmt::format("{}_{}", path, idx);
+                                         return fmt::format("{}/wind_iteration_{}", path, idx);
                                      },
                                      windFilesLocation);
     if (!paths.empty())

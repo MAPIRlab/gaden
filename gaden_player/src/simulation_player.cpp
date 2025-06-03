@@ -8,9 +8,9 @@
 
 #include "simulation_player.h"
 #include "gaden/core/Assertions.hpp"
-#include "gaden/internal/Time.hpp"
-#include "gaden/internal/PathUtils.hpp"
 #include "gaden/internal/MathUtils.hpp"
+#include "gaden/internal/PathUtils.hpp"
+#include "gaden/internal/Time.hpp"
 
 int main(int argc, char** argv)
 {
@@ -84,8 +84,19 @@ bool Player::GetWindValue_srv(gaden_msgs::srv::WindPosition::Request::SharedPtr 
 //------------------------ MAIN --------------------------//
 void Player::run()
 {
+    // if there is a gaden project directory, we will just parse those files instead of reading everything from ROS params
+    std::filesystem::path projectPath = declare_parameter<std::string>("projectPath", "");
+    if (std::filesystem::exists(projectPath))
+    {
+        gadenProject.emplace(projectPath);
+        GADEN_CHECK_RESULT(gadenProject->Read());
+    }
+
     // Read Node Parameters
-    loadNodeParameters();
+    if (gadenProject)
+        loadGadenProject();
+    else
+        loadNodeParameters();
 
     // Init variables
     initSimulations();
@@ -105,7 +116,7 @@ void Player::run()
     // playback frequency
     float player_freq = declare_parameter<float>("player_freq", 1); // Hz
     GADEN_INFO("player_freq {:.2f} Hz", player_freq);
-    gaden::Utils::Time::Countdown countdown(1 / player_freq);
+    gaden::Utils::Time::Countdown countdown(1.f / player_freq);
 
     while (rclcpp::ok())
     {
@@ -146,9 +157,9 @@ void Player::loadNodeParameters()
     {
         // Get location of simulation data for instance (i)
         std::string paramName = fmt::format("simulation_data_{}", i);
-        params[i].simulationDirectory = declare_parameter<std::string>(paramName.c_str(), "");
+        params[i].resultsDirectory = declare_parameter<std::string>(paramName.c_str(), "");
         params[i].startIteration = initial_iteration;
-        GADEN_INFO("simulation_data_{}: {}", i, params[i].simulationDirectory);
+        GADEN_INFO("simulation_data_{}: {}", i, params[i].resultsDirectory);
     }
 
     gasDisplayColors.resize(num_simulators);
@@ -173,12 +184,38 @@ void Player::loadNodeParameters()
     loopConfig.to = declare_parameter<int>("loop_to_iteration", 1);
 }
 
+void Player::loadGadenProject()
+{
+    std::string playbackID = declare_parameter<std::string>("playbackID", "");
+    try
+    {
+        gaden::Project::PlaybackMetadata metadata = gadenProject->playbacks.at(playbackID);
+        params = metadata.params;
+        gasDisplayColors.resize(metadata.gasDisplayColor.size());
+        for (size_t i = 0; i < gasDisplayColors.size(); i++)
+        {
+            gasDisplayColors[i].r = metadata.gasDisplayColor[i].r;
+            gasDisplayColors[i].g = metadata.gasDisplayColor[i].g;
+            gasDisplayColors[i].b = metadata.gasDisplayColor[i].b;
+            gasDisplayColors[i].a = metadata.gasDisplayColor[i].a;
+        }
+        std::filesystem::path occupancyFile = gadenProject->rootDirectory / "OccupancyGrid3D.csv";
+        GADEN_CHECK_RESULT(environmentConfig.environment.ReadFromFile(occupancyFile));
+        loopConfig = metadata.loop;
+    }
+    catch (std::exception const& e)
+    {
+        GADEN_ERROR("Could not find a playback configuration with the name '{}'", playbackID);
+        GADEN_TERMINATE;
+    }
+}
+
 void Player::initSimulations()
 {
     // Find the wind files
     // We only need to find them once, since the wind is assumed to be identical for all simulation instances
-    std::filesystem::path pathOldProjects = params.at(0).simulationDirectory / "wind";                             // in projects generated pre-3.0 the wind is in a subdirectory of gas_simulations
-    std::filesystem::path pathNewProjects = params.at(0).simulationDirectory.parent_path().parent_path() / "wind"; // in projects generated post-3.0 the wind is in a subdirectory of the environment configuration, above gas_simulations 
+    std::filesystem::path pathOldProjects = params.at(0).resultsDirectory / "wind";                                           // in projects generated pre-3.0 the wind is in a subdirectory of gas_simulations
+    std::filesystem::path pathNewProjects = params.at(0).resultsDirectory.parent_path().parent_path().parent_path() / "wind"; // in projects generated post-3.0 the wind is in a subdirectory of the environment configuration, above gas_simulations
     std::vector<std::filesystem::path> windFiles;
     GADEN_INFO("Looking for wind files in:\n"
                "\t-'{}'\n"
@@ -251,9 +288,9 @@ size_t Player::FillMarkerArray(std::vector<geometry_msgs::msg::Point>& points, s
         const gaden::Filament& filament = *it;
         for (int i = 0; i < 5; i++)
         {
-            p.x = (filament.position.x) + gaden::uniformRandom(-filament.sigma / 200, filament.sigma / 200);
-            p.y = (filament.position.y) + gaden::uniformRandom(-filament.sigma / 200, filament.sigma / 200);
-            p.z = (filament.position.z) + gaden::uniformRandom(-filament.sigma / 200, filament.sigma / 200);
+            p.x = (filament.position.x) + gaden::uniformRandom(-filament.sigma / 50, filament.sigma / 50);
+            p.y = (filament.position.y) + gaden::uniformRandom(-filament.sigma / 50, filament.sigma / 50);
+            p.z = (filament.position.z) + gaden::uniformRandom(-filament.sigma / 50, filament.sigma / 50);
 
             // Add particle marker
             points.push_back(p);

@@ -16,12 +16,6 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterFile
 from ament_index_python.packages import get_package_share_directory
 
-# Internal gaden utilities
-import sys
-sys.path.append(get_package_share_directory('gaden_common'))
-from gaden_internal_py.utils import read_sim_yaml
-
-
 
 #===========================
 def launch_arguments():
@@ -32,14 +26,14 @@ def launch_arguments():
             description="scenario to simulate",
         ),
         DeclareLaunchArgument(
-            "simulation",
+            "configuration",
             default_value=["config1"],
-            description="name of the configuration yaml file",
+            description="name of the configuration",
         ), 
         DeclareLaunchArgument(
             "simulation",
             default_value=["sim1"],
-            description="name of the simulation yaml file",
+            description="name of the simulation",
         ),
     ]
 #==========================
@@ -50,10 +44,8 @@ def launch_setup(context, *args, **kwargs):
     pkg_dir = LaunchConfiguration("pkg_dir").perform(context)
 
     params_yaml_file = os.path.join(
-        pkg_dir, "scenarios", scenario, "params", "gaden_params.yaml"
+        pkg_dir, "scenarios", scenario, "ros_params", "gaden_params.yaml"
     )
-    
-    read_sim_yaml(context)
     
     return [
         Node(
@@ -95,6 +87,7 @@ def generate_launch_description():
             name="pkg_dir",
             value=[get_package_share_directory("test_env")],
         ),
+        SetLaunchConfiguration(name="playback", value="none"),
     ]
     
     launch_description.extend(launch_arguments())

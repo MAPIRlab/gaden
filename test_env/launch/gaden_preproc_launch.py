@@ -16,9 +16,6 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterFile
 from ament_index_python.packages import get_package_share_directory
 
-# Internal gaden utilities
-import sys
-
 
 
 #===========================
@@ -34,11 +31,6 @@ def launch_arguments():
             default_value=["config1"],
             description="name of the configuration yaml file",
         ), 
-        DeclareLaunchArgument(
-            "simulation",
-            default_value=["sim1"],
-            description="name of the simulation yaml file",
-        ),
         DeclareLaunchArgument(
             "generateCoppeliaScene",
             default_value=["False"],
@@ -111,6 +103,8 @@ def generate_launch_description():
             name="pkg_dir",
             value=[get_package_share_directory("test_env")],
         ),
+        SetLaunchConfiguration(name="simulation", value="none"),
+        SetLaunchConfiguration(name="playback", value="none"),
     ]
     
     launch_description.extend(launch_arguments())
