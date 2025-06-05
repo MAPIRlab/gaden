@@ -66,7 +66,7 @@ void FilamentSimulator::Run()
     if (std::filesystem::exists(projectPath))
     {
         gadenProject.emplace(projectPath);
-        GADEN_CHECK_RESULT(gadenProject->Read());
+        GADEN_CHECK_RESULT(gadenProject->ReadDirectory());
         params = gadenProject->simulations.at(getParameter<std::string>("simulationID", "sim"));
         windFiles = GetWindFilePaths(projectPath / "wind");
         environmentFile = projectPath / "OccupancyGrid3D.csv";

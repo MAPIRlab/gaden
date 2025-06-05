@@ -2,7 +2,7 @@
 
 #include <gaden/datatypes/Filament.hpp>
 #include <gaden_common/Utils.hpp>
-#include <gaden/Project.hpp>
+#include <gaden/EnvironmentConfigMetadata.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 class FilamentSimulator : public rclcpp::Node
@@ -24,6 +24,6 @@ private:
     std::vector<std::filesystem::path> GetWindFilePaths(std::filesystem::path const& windFilesLocation);
 
 private:
-    std::optional<gaden::Project> gadenProject;
+    std::optional<gaden::EnvironmentConfigMetadata> gadenProject;
 };
 

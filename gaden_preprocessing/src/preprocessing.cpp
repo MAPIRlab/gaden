@@ -6,7 +6,6 @@
 #include "gaden/core/Logging.hpp"
 #include "gaden/internal/PathUtils.hpp"
 #include "gaden_common/Utils.hpp"
-#include <fstream>
 using namespace gaden;
 
 int main(int argc, char** argv)
@@ -25,7 +24,7 @@ void Gaden_preprocessing::Run()
     if (std::filesystem::exists(projectPath))
     {
         gadenProject.emplace(projectPath);
-        GADEN_CHECK_RESULT(gadenProject->Read());
+        GADEN_CHECK_RESULT(gadenProject->ReadDirectory());
     }
 
     // These variables can be passed through ROS parameters (as always) or read from the gaden project files (new)
@@ -39,11 +38,11 @@ void Gaden_preprocessing::Run()
 
     if (gadenProject)
     {
-        cellSize = gadenProject->envMetadata.cellSize;
-        emptyPoint = gadenProject->envMetadata.emptyPoint;
+        cellSize = gadenProject->cellSize;
+        emptyPoint = gadenProject->emptyPoint;
         outputFolder = projectPath;
-        models = Project::EnvConfigurationMetadata::GetPaths(gadenProject->envMetadata.envModels);
-        outletModels = Project::EnvConfigurationMetadata::GetPaths(gadenProject->envMetadata.outletModels);
+        models = EnvironmentConfigMetadata::GetPaths(gadenProject->envModels);
+        outletModels = EnvironmentConfigMetadata::GetPaths(gadenProject->outletModels);
     }
     else
     {
@@ -141,8 +140,8 @@ WindSequence Gaden_preprocessing::GetWindSequenceROSParams(const gaden::Environm
 
 gaden::WindSequence Gaden_preprocessing::GetWindSequenceProject(const gaden::Environment& env)
 {
-    if (gadenProject->envMetadata.uniformWind)
-        return WindSequence::CreateUniformWind(gadenProject->envMetadata.unprocessedWindFilePaths[0], env.numCells());
+    if (gadenProject->uniformWind)
+        return WindSequence::CreateUniformWind(gadenProject->GetWindFiles()[0], env.numCells());
     else
-        return Preprocessing::ParseOpenFoamVectorCloud(gadenProject->envMetadata.unprocessedWindFilePaths, env, {});
+        return Preprocessing::ParseOpenFoamVectorCloud(gadenProject->GetWindFiles(), env, {});
 }

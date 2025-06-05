@@ -89,7 +89,7 @@ void Player::run()
     if (std::filesystem::exists(projectPath))
     {
         gadenProject.emplace(projectPath);
-        GADEN_CHECK_RESULT(gadenProject->Read());
+        GADEN_CHECK_RESULT(gadenProject->ReadDirectory());
     }
 
     // Read Node Parameters
@@ -189,7 +189,7 @@ void Player::loadGadenProject()
     std::string playbackID = declare_parameter<std::string>("playbackID", "");
     try
     {
-        gaden::Project::PlaybackMetadata metadata = gadenProject->playbacks.at(playbackID);
+        gaden::EnvironmentConfigMetadata::PlaybackMetadata metadata = gadenProject->playbacks.at(playbackID);
         params = metadata.params;
         gasDisplayColors.resize(metadata.gasDisplayColor.size());
         for (size_t i = 0; i < gasDisplayColors.size(); i++)

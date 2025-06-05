@@ -5,7 +5,7 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <gaden_msgs/srv/occupancy.hpp>
 #include <gaden/Environment.hpp>
-#include <gaden/Project.hpp>
+#include <gaden/EnvironmentConfigMetadata.hpp>
 #include <gaden_common/Utils.hpp>
 
 class Environment : public rclcpp::Node
@@ -24,7 +24,7 @@ private:
     std::string fixed_frame;      // Frame where to publish the markers
     gaden::Environment environment;
 
-    std::optional<gaden::Project> gadenProject;
+    std::optional<gaden::EnvironmentConfigMetadata> gadenProject;
 
     // Methods
     void loadNodeParameters();

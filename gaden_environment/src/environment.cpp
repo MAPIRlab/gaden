@@ -38,7 +38,7 @@ void Environment::run()
     if (std::filesystem::exists(projectPath))
     {
         gadenProject.emplace(projectPath);
-        GADEN_CHECK_RESULT(gadenProject->Read());
+        GADEN_CHECK_RESULT(gadenProject->ReadDirectory());
     }
 
     if (!gadenProject)
@@ -186,8 +186,8 @@ void Environment::loadNodeParameters()
 
 void Environment::loadGadenProject()
 {
-    std::copy(gadenProject->envMetadata.envModels.begin(), gadenProject->envMetadata.envModels.end(), std::back_inserter(CAD_models));
-    std::copy(gadenProject->envMetadata.outletModels.begin(), gadenProject->envMetadata.outletModels.end(), std::back_inserter(CAD_models));
+    std::copy(gadenProject->envModels.begin(), gadenProject->envModels.end(), std::back_inserter(CAD_models));
+    std::copy(gadenProject->outletModels.begin(), gadenProject->outletModels.end(), std::back_inserter(CAD_models));
 
     occupancy3D_data = getParameter<std::string>("projectPath", "") + "/OccupancyGrid3D.csv";
 }

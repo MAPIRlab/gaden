@@ -1,4 +1,4 @@
-#include <gaden/Project.hpp>
+#include <gaden/EnvironmentConfigMetadata.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 
@@ -32,5 +32,5 @@ private:
 
     gaden::EnvironmentConfiguration environmentConfig;
     gaden::LoopConfig loopConfig;
-    std::optional<gaden::Project> gadenProject;
+    std::optional<gaden::EnvironmentConfigMetadata> gadenProject;
 };

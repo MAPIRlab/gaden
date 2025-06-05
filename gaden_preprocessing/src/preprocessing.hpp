@@ -5,7 +5,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <gaden/core/Vectors.hpp>
-#include <gaden/Project.hpp>
+#include <gaden/EnvironmentConfigMetadata.hpp>
 
 class Gaden_preprocessing : public rclcpp::Node
 {
@@ -25,5 +25,5 @@ private:
 
 private:
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr jobDone_pub;
-    std::optional<gaden::Project> gadenProject;
+    std::optional<gaden::EnvironmentConfigMetadata> gadenProject;
 };
