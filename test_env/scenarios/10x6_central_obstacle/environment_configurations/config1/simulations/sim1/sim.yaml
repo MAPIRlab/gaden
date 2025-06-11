@@ -1,0 +1,21 @@
+gasType: -1
+sourcePosition:
+  - 1.75
+  - 2.95
+  - 0.7
+deltaTime: 0.1
+windIterationDeltaTime: 1
+temperature: 298
+pressure: 1
+filament_ppm_center: 20
+filament_initial_sigma: 1.5
+filament_growth_gamma: 10
+filament_noise_std: 0.1
+numFilaments_sec: 10
+expectedNumIterations: 600
+saveResults: true
+saveDeltaTime: 0.5
+wind_looping:
+  loop: false
+  from: 0
+  to: 0
