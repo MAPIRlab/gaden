@@ -173,7 +173,7 @@ void Environment::loadNodeParameters()
         for (const std::string& str : CAD_strings)
         {
             if (str.find("!color") != std::string::npos)
-                lastColor = parseColor(str);
+                lastColor = gaden::Color::Parse(str);
             else
                 CAD_models.push_back({str, lastColor});
         }
@@ -264,26 +264,4 @@ bool Environment::occupancyMapServiceCB(gaden_msgs::srv::Occupancy_Request::Shar
     response->resolution = environment.description.cellSize;
 
     return true;
-}
-
-gaden::Color Environment::parseColor(const std::string& str)
-{
-    gaden::Color color;
-    color.a = 1.0;
-
-    std::stringstream ss(str);
-    ss >> std::skipws;
-
-    ss.ignore(256, '[');
-    ss >> color.r;
-    ss.ignore(256, ',');
-    ss >> color.g;
-    ss.ignore(256, ',');
-    ss >> color.b;
-
-    ss.ignore(256, ',');
-    if (!ss.eof())
-        ss >> color.a;
-
-    return color;
 }

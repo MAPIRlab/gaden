@@ -34,7 +34,6 @@ private:
     bool occupancyMapServiceCB(gaden_msgs::srv::Occupancy_Request::SharedPtr request,
                                gaden_msgs::srv::Occupancy_Response::SharedPtr response);
     
-    static gaden::Color parseColor(const std::string& str);
 
     template <typename T>
     T getParameter(std::string const& name, T defaultValue)
