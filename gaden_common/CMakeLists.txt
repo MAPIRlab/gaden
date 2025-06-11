@@ -8,13 +8,20 @@ set(CMAKE_CXX_FLAGS_DEBUG "-glldb -O0 ${CMAKE_CXX_FLAGS}")
 find_package(ament_cmake REQUIRED)
 find_package(fmt REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(ament_imgui REQUIRED)
 
+# Compile the backend (gaden_core) library
+#--------------------------------------------------------
 add_subdirectory(third_party/gaden_core)
-add_subdirectory(third_party/gaden_gui)
-target_compile_definitions(gaden PUBLIC GADEN_ROS=1)
+target_compile_definitions(gaden PUBLIC GADEN_ROS=1) # to make sure rclcpp is used for logging
 ament_target_dependencies(gaden rclcpp)
 
+# Optional! You can comment out this line to disable compilation of the gaden_gui executable
+#--------------------------------------------------------
+include(cmake/gui.cmake)
+
+
+# set up the libraries / includes for downstream packages
+#--------------------------------------------------------
 ament_export_libraries(
 	fmt
     gaden
@@ -28,9 +35,11 @@ ament_export_include_directories(
 ament_export_definitions(GADEN_ROS=1)
 
 
+# Install libraries / include dirs
+#--------------------------------------------------------
 #Library
 install(
-    TARGETS gaden gaden_gui
+    TARGETS gaden 
     DESTINATION lib/${PROJECT_NAME}
 )
 
