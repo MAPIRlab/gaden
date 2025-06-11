@@ -17,12 +17,9 @@ gaden_filament_simulator:
   ros__parameters:
     projectPath: $(var pkg_dir)/scenarios/$(var scenario)/environment_configurations/$(var configuration)
     simulationID: $(var simulation)
-    maxSimTime: 300
-    runRate: 0
 
 # ================
 gaden_player:
   ros__parameters:
     projectPath: $(var pkg_dir)/scenarios/$(var scenario)/environment_configurations/$(var configuration)
     playbackID: "$(var playback)"
-    player_freq: 2.0

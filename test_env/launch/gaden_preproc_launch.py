@@ -40,7 +40,7 @@ def launch_setup(context, *args, **kwargs):
     pkg_dir = LaunchConfiguration("pkg_dir").perform(context)
 
     params_yaml_file = os.path.join(
-        pkg_dir, "scenarios", scenario, "ros_params", "gaden_params.yaml"
+        pkg_dir, "ros_params", "gaden_params.yaml"
     )
     
 

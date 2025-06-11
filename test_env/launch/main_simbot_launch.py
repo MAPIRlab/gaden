@@ -18,7 +18,6 @@ def launch_arguments():
         DeclareLaunchArgument("configuration", default_value="config1"),
         DeclareLaunchArgument("simulation", default_value="sim1"),
         DeclareLaunchArgument("namespace", default_value="PioneerP3DX"),
-        DeclareLaunchArgument("robot_simulator", default_value="BasicSim"),  # supported [BasicSim, Coppelia]
     ]
 # ==========================
 
@@ -44,44 +43,18 @@ def launch_setup(context, *args, **kwargs):
         ),
     ]
 
-    robot_simulator = []
-    simulator_mode = str(LaunchConfiguration("robot_simulator").perform(context))
-    if simulator_mode == "Coppelia":
-        robot_simulator = [
-            IncludeLaunchDescription(
-                FrontendLaunchDescriptionSource(
-                    os.path.join(
-                        get_package_share_directory("coppelia_ros2_pkg"),
-                        "launch/coppeliaSim.launch",
-                    )
-                ),
-                launch_arguments={
-                    "coppelia_scene_path": PathJoinSubstitution(
-                        [
-                            get_package_share_directory("test_env"),
-                            "scenarios",
-                            scenario,
-                            "coppeliaScene.ttt",
-                        ]
-                    ),
-                    "coppelia_headless": "True",
-                    "autoplay": "True",
-                }.items(),
-            )
-        ]
-    elif simulator_mode == "BasicSim":
-        robot_simulator = [
-            Node(
-                package="basic_sim",
-                executable="basic_sim",
-                prefix="xterm -hold -e",
-                parameters=[
-                    {"deltaTime": 0.1},
-                    {"speed": 1.0},
-                    {"worldFile": os.path.join(share_dir, "scenarios", scenario, simulation, "BasicSimScene.yaml")}
-                ],
-            )
-        ]
+    robot_simulator = [
+        Node(
+            package="basic_sim",
+            executable="basic_sim",
+            prefix="xterm -hold -e",
+            parameters=[
+                {"deltaTime": 0.1},
+                {"speed": 1.0},
+                {"worldFile": os.path.join(share_dir, "scenarios", scenario, simulation, "BasicSimScene.yaml")}
+            ],
+        )
+    ]
 
     gaden_player = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(

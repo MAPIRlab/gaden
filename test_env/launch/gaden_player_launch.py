@@ -19,7 +19,7 @@ from launch_ros.parameter_descriptions import ParameterFile
 from ament_index_python.packages import get_package_share_directory
 
 
-#===========================
+# ===========================
 def launch_arguments():
     return [
         DeclareLaunchArgument(
@@ -31,7 +31,7 @@ def launch_arguments():
             "configuration",
             default_value=["config1"],
             description="name of the configuration yaml file",
-        ), 
+        ),
         DeclareLaunchArgument(
             "playback",
             default_value=["scene1"],
@@ -43,7 +43,7 @@ def launch_arguments():
             description="",
         ),
     ]
-#==========================
+# ==========================
 
 
 def launch_setup(context, *args, **kwargs):
@@ -51,9 +51,9 @@ def launch_setup(context, *args, **kwargs):
     pkg_dir = LaunchConfiguration("pkg_dir").perform(context)
 
     params_yaml_file = os.path.join(
-        pkg_dir, "scenarios", scenario, "ros_params", "gaden_params.yaml"
+        pkg_dir, "ros_params", "gaden_params.yaml"
     )
-    
+
     return [
         Node(
             condition=IfCondition(LaunchConfiguration("use_rviz")),
@@ -78,7 +78,7 @@ def launch_setup(context, *args, **kwargs):
             name='gaden_environment',
             output='screen',
             parameters=[ParameterFile(params_yaml_file, allow_substs=True)]
-            ),
+        ),
 
         # gaden_player
         Node(
@@ -86,7 +86,9 @@ def launch_setup(context, *args, **kwargs):
             executable="player",
             name="gaden_player",
             output="screen",
-            parameters=[ParameterFile(params_yaml_file, allow_substs=True)],
+            parameters=[ParameterFile(params_yaml_file, allow_substs=True),
+                        {"player_freq": 2.0}
+                        ],
         ),
     ]
 
@@ -104,8 +106,8 @@ def generate_launch_description():
         ),
         SetLaunchConfiguration(name="simulation", value="none"),
     ]
-    
+
     launch_description.extend(launch_arguments())
     launch_description.append(OpaqueFunction(function=launch_setup))
-    
-    return  LaunchDescription(launch_description)
+
+    return LaunchDescription(launch_description)
