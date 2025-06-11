@@ -1,3 +1,0 @@
-[submodule "gaden_common/third_party/gaden_core"]
-	path = gaden_common/third_party/gaden_core
-	url = git@github.com:PepeOjeda/gaden_core.git
