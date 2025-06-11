@@ -1,3 +1,6 @@
 [submodule "gaden_common/third_party/gaden_core"]
 	path = gaden_common/third_party/gaden_core
 	url = git@github.com:MAPIRlab/gaden_core.git
+[submodule "gaden_common/third_party/gaden_gui"]
+	path = gaden_common/third_party/gaden_gui
+	url = git@github.com:MAPIRlab/gaden_gui.git

@@ -3,6 +3,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(gaden)
 
+
+add_subdirectory(../gaden_common build/gaden_common)
 add_subdirectory(../gaden_environment build/gaden_environment)
 add_subdirectory(../gaden_filament_simulator build/gaden_filament_simulator)
 add_subdirectory(../gaden_player build/gaden_player)
