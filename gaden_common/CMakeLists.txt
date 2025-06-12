@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 project(gaden_common)
 
-set(CMAKE_BUILD_TYPE "Debug") 
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS}")
-set(CMAKE_CXX_FLAGS_DEBUG "-glldb -O0 ${CMAKE_CXX_FLAGS}")
-
 find_package(ament_cmake REQUIRED)
 find_package(fmt REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -40,7 +36,7 @@ ament_export_definitions(GADEN_ROS=1)
 #Library
 install(
     TARGETS gaden 
-    DESTINATION lib/${PROJECT_NAME}
+    DESTINATION lib
 )
 
 # include directories
