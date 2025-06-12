@@ -1,6 +1,5 @@
 #pragma once
 #include "gaden/core/Logging.hpp"
-#include "gaden/core/ReadResult.hpp"
 #include <filesystem>
 #include <fmt/format.h>
 #include <rclcpp/rclcpp.hpp>

@@ -1,11 +1,11 @@
 models:
-  - /mnt/HDD/colcon_ws/src/gaden/test_env/scenarios/10x6_central_obstacle/cad_models/10x6_central_obstacle.stl
-  - /mnt/HDD/colcon_ws/src/gaden/test_env/scenarios/10x6_central_obstacle/cad_models/10x6_walls.stl
+  - ../../cad_models/10x6_central_obstacle.stl
+  - ../../cad_models/10x6_walls.stl
 outlets_models:
-  - "!color [0.90, 0.10, 0.10, 1.00]"
-  - /mnt/HDD/colcon_ws/src/gaden/test_env/scenarios/10x6_central_obstacle/cad_models/10x6_door_left.stl
-  - /mnt/HDD/colcon_ws/src/gaden/test_env/scenarios/10x6_central_obstacle/cad_models/10x6_door_right.stl
-unprocessed_wind_files: /mnt/HDD/colcon_ws/src/gaden/test_env/scenarios/10x6_central_obstacle/wind_simulations/05ms/wind_at_cell_centers
+  - "!color [0.86, 0.24, 0.24, 1.00]"
+  - ../../cad_models/10x6_door_left.stl
+  - ../../cad_models/10x6_door_right.stl
+unprocessed_wind_files: ../../wind_simulations/01ms/wind_at_cell_centers
 empty_point_x: 1.65
 empty_point_y: 2.1
 empty_point_z: 0

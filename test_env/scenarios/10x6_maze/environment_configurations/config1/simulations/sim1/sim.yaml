@@ -1,8 +1,8 @@
 gasType: -1
 sourcePosition:
-  - 1.8
+  - 0.85
   - 3
-  - 0.45
+  - 0.4
 deltaTime: 0.1
 windIterationDeltaTime: 1
 temperature: 298
