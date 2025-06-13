@@ -4,8 +4,8 @@
  * It supports loading several simulations at a time, which allows multiple gas sources and gas types
  * It also generates a point cloud representing the gas concentration [ppm] on the 3D environment
  --------------------------------------------------------------------------------*/
-#include <gaden_common/Utils.hpp>
 #define GADEN_LOGGER_ID "GadenPlayer"
+#include <gaden_common/Utils.hpp>
 
 #include "simulation_player.h"
 #include "gaden/core/Assertions.hpp"
