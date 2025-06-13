@@ -26,8 +26,10 @@
  ---------------------------------------------------------------------------------------*/
 
 #include "filament_simulator.h"
+#include "gaden/AirflowDisturbance.hpp"
 #include "gaden/RunningSimulation.hpp"
 #include "gaden/core/Logging.hpp"
+#include "gaden/internal/PathUtils.hpp"
 #include "gaden/internal/Time.hpp"
 #include <visualization_msgs/msg/marker.hpp>
 
@@ -55,6 +57,9 @@ int main(int argc, char** argv)
 
 void FilamentSimulator::Run()
 {
+    rotorPositionSub = create_subscription<geometry_msgs::msg::PointStamped>("/gaden/rotorPosition", 1,
+                                                                             std::bind(&FilamentSimulator::AddAirflowDisturbance, this, std::placeholders::_1));
+
     float maxSimTime = getParameter("sim_time", 300.f);
 
     RunningSimulation::Parameters params;
@@ -75,6 +80,8 @@ void FilamentSimulator::Run()
     // if we don't have a gaden project directory (using old configurations) read the info from ros parameters
     if (!gadenProject)
     {
+        GadenUtils::OldProjectWarning();
+
         params = {
             .gasType = static_cast<GasType>(getParameter("gas_type", 0)),
             .sourcePosition = Vector3{
@@ -99,26 +106,63 @@ void FilamentSimulator::Run()
             .saveDeltaTime = getParameter("results_time_step", 0.5f),
             .saveDataDirectory = getParameter<std::string>("results_location", ""),
         };
-        windFiles = GetWindFilePaths(getParameter<std::string>("wind_data", ""));
+        gaden::paths::TryCreateDirectory(params.saveDataDirectory);
+
+        std::string wind_data = getParameter<std::string>("wind_data", "");
+        windFiles = GetWindFilePaths(wind_data);
+
+        // some *really* old launch files (like VGR) followed this annoying convention where the parameter ended with an underscore
+        if (windFiles.empty() && wind_data.back() == '_')
+        {
+            GADEN_WARN("Trying to find wind files with the naming convention of old projects (pre gaden 2.0)");
+            std::string old_wind_data = wind_data;
+            old_wind_data.erase(old_wind_data.size() - 1);
+            windFiles = GetWindFilePaths(old_wind_data);
+        }
+
         environmentFile = getParameter<std::string>("occupancy3D_data", "");
     }
 
     GADEN_CHECK_RESULT(envConfig.environment.ReadFromFile(environmentFile));
     envConfig.windSequence.Initialize(windFiles, envConfig.environment.numCells(), params.windLoop);
 
-    RunningSimulation sim(params, envConfig);
+    // old launch files require the wind data to be copied inside the results folder
+    if (!gadenProject)
+        envConfig.windSequence.WriteToFiles(params.saveDataDirectory / "wind", "wind_iteration");
 
+    // Start the simulation
+    //--------------------------
+    sim.emplace(params, envConfig);
     float runRate = getParameter("runRate", 0); // 0 means as fast as possible
     rclcpp::Rate rate(runRate);
-    while (rclcpp::ok() && sim.GetCurrentTime() < maxSimTime)
+    while (rclcpp::ok() && sim->GetCurrentTime() < maxSimTime)
     {
-        sim.AdvanceTimestep();
-        const auto& filaments = sim.GetFilaments();
+        sim->AdvanceTimestep();
+        const auto& filaments = sim->GetFilaments();
         publishMarkers(filaments);
 
         if (runRate > 0)
+        {
+            rclcpp::spin_some(shared_from_this());
             rate.sleep();
+        }
     }
+    sim = std::nullopt;
+}
+
+void FilamentSimulator::AddAirflowDisturbance(const geometry_msgs::msg::PointStamped::SharedPtr rotorPosition)
+{
+    if (!sim)
+        return;
+
+    Vector3 dronePosition(rotorPosition->point.x, rotorPosition->point.y, rotorPosition->point.z);
+    gaden::Airflow::QuadrotorDisturbance::ModifyField(
+        dronePosition,
+        sim->localAirflowDisturbances,
+        sim->config.environment,
+        0.12, 0.23, 0.07,
+        sim->GetParameters().pressure,
+        sim->GetParameters().temperature);
 }
 
 void FilamentSimulator::publishMarkers(std::vector<Filament> const& filaments)

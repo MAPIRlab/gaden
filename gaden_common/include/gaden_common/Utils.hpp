@@ -6,6 +6,13 @@
 
 namespace GadenUtils
 {
+    inline void OldProjectWarning()
+    {
+        GADEN_WARN("You are using ROS parameters to specify the Gaden configuration. This is now considered deprecated (though, for now, still valid).\n"
+                   "You should update your configuration to use a gaden project (see test_env for examples).\n"
+                   "You can make easily configure a gaden project with 'ros2 run gaden_common gaden_gui'");
+    }
+
     template <typename T> T getParam(rclcpp::Node::SharedPtr node, const std::string& name, T defaultValue)
     {
         if (node->has_parameter(name))

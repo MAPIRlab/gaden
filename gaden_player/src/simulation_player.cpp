@@ -4,6 +4,7 @@
  * It supports loading several simulations at a time, which allows multiple gas sources and gas types
  * It also generates a point cloud representing the gas concentration [ppm] on the 3D environment
  --------------------------------------------------------------------------------*/
+#include <gaden_common/Utils.hpp>
 #define GADEN_LOGGER_ID "GadenPlayer"
 
 #include "simulation_player.h"
@@ -143,6 +144,8 @@ void Player::run()
 // Load Node parameters
 void Player::loadNodeParameters()
 {
+    GadenUtils::OldProjectWarning();
+
     // Number of simulators to load (For simulating multiple gases and multiple sources)
     int num_simulators = declare_parameter<int>("num_simulators", 1);
 

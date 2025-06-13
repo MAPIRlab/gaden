@@ -107,7 +107,6 @@ void Environment::run()
         loadEnvironment(environment);
 
     // Publish CAD Markers
-    environment_cad_pub->publish(CAD_model_markers);
 
     // Publish 3D Occupancy
     if (occupancy3D_data != "")
@@ -120,6 +119,7 @@ void Environment::run()
     auto shared_this = shared_from_this();
     while (rclcpp::ok())
     {
+        environment_cad_pub->publish(CAD_model_markers);
         rclcpp::spin_some(shared_this);
         r.sleep();
     }
@@ -130,6 +130,8 @@ void Environment::run()
 // ===============================//
 void Environment::loadNodeParameters()
 {
+    GadenUtils::OldProjectWarning();
+
     // CAD MODELS
     //-------------
     // CAD model files

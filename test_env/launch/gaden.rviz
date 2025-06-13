@@ -4,11 +4,11 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Environment_CAD1/Status1
         - /Environment_CAD1/Topic1
-        - /Map1
         - /Map1/Topic1
         - /RobotModel1/Description Topic1
+        - /PointStamped1
+        - /PointStamped1/Status1
       Splitter Ratio: 0.6309859156608582
     Tree Height: 429
   - Class: rviz_common/Selection
@@ -255,6 +255,21 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /WindSensor_display
       Value: true
+    - Alpha: 1
+      Class: rviz_default_plugins/PointStamped
+      Color: 204; 41; 204
+      Enabled: true
+      History Length: 1
+      Name: PointStamped
+      Radius: 0.20000000298023224
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /gaden/rotorPosition
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 183; 194; 217
@@ -301,7 +316,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 19.894922256469727
+      Distance: 13.532696723937988
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -316,10 +331,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4747964143753052
+      Pitch: 0.9247969388961792
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.700453281402588
+      Yaw: 4.715453624725342
     Saved: ~
 Window Geometry:
   Displays:

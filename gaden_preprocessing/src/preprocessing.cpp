@@ -46,6 +46,7 @@ void Gaden_preprocessing::Run()
     }
     else
     {
+        GadenUtils::OldProjectWarning();
         cellSize = GadenUtils::getParam<float>(shared_from_this(), "cell_size", 0.1);
         emptyPoint = {
             GadenUtils::getParam<float>(shared_from_this(), "empty_point_x", 0),
@@ -53,7 +54,7 @@ void Gaden_preprocessing::Run()
             GadenUtils::getParam<float>(shared_from_this(), "empty_point_z", 0)};
         outputFolder = GadenUtils::getParam<std::string>(shared_from_this(), "output_path", "");
         models = GetModels("model");
-        outletModels = GetModels("outlet_model");
+        outletModels = GetModels("outlets_model");
     }
     //--------------------------------------------------------
 
@@ -65,7 +66,18 @@ void Gaden_preprocessing::Run()
     // generate output
     GADEN_INFO_COLOR(fmt::terminal_color::blue, "Writing output to folder '{}'", outputFolder);
 
-    config.WriteToDirectory(outputFolder);
+
+    // this is needed for compatibility with old launch files, which do not respect the structure of gaden projects
+    // in those, store the wind data back into the folder with the unprocessed files
+    if (gadenProject)
+        config.WriteToDirectory(outputFolder);
+    else
+    {
+        config.environment.WriteToFile(outputFolder / "OccupancyGrid3D.csv");
+        std::string windFileName = GadenUtils::getParam<std::string>(shared_from_this(), "wind_files", "");
+        std::filesystem::create_directories(windFileName);
+        config.windSequence.WriteToFiles(windFileName, "wind_iteration");
+    }
 
     float floorHeight = GadenUtils::getParam<float>(shared_from_this(), "floor_height", 0.0);
     config.environment.Write2DSlicePGM(outputFolder / "occupancy.pgm",
@@ -87,7 +99,7 @@ std::vector<std::filesystem::path> Gaden_preprocessing::GetModels(const std::str
     std::vector<std::string> stlModels = declare_parameter<std::vector<std::string>>(fmt::format("{}s", parameter_name.data()), std::vector<std::string>{});
 
     // delete special lines (starting with '!') which are used to specify colors for the environment node
-    for (size_t i = stlModels.size() - 1; i >= 0; i--)
+    for (int i = stlModels.size() - 1; i >= 0; i--)
     {
         if (stlModels.at(i).at(0) == '!')
             stlModels.erase(stlModels.begin() + i);

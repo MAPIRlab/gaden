@@ -3,6 +3,7 @@
 #include <gaden/datatypes/Filament.hpp>
 #include <gaden_common/Utils.hpp>
 #include <gaden/EnvironmentConfigMetadata.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 class FilamentSimulator : public rclcpp::Node
@@ -14,6 +15,8 @@ public:
     void Run();
 
 private:
+    void AddAirflowDisturbance(const geometry_msgs::msg::PointStamped::SharedPtr rotorPosition);
+
     void publishMarkers(std::vector<gaden::Filament> const& filaments);
     template <typename T>
     T getParameter(std::string const& name, T defaultValue)
@@ -25,5 +28,8 @@ private:
 
 private:
     std::optional<gaden::EnvironmentConfigMetadata> gadenProject;
+    std::optional<gaden::RunningSimulation> sim;
+
+    rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr rotorPositionSub;
 };
 
