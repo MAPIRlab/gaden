@@ -2,7 +2,7 @@
 initial_iteration: 0
 
 playback_loop:
-  loop: true
+  loop: false
   from: 0
   to: 100
 

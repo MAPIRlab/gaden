@@ -1,4 +1,4 @@
-gasType: -1
+gasType: 1
 sourcePosition:
   - 1.8
   - 3
@@ -9,7 +9,7 @@ temperature: 298
 pressure: 1
 filament_ppm_center: 20
 filament_initial_sigma: 1.5
-filament_growth_gamma: 10
+filament_growth_gamma: 15
 filament_noise_std: 0.1
 numFilaments_sec: 10
 expectedNumIterations: 600
