@@ -188,8 +188,7 @@ double TDLAS::takeMeasurement()
         {
             for (int g = 0; g < response->gas_type.size(); g++)
             {
-                // TODO add a hashmap that maps gas type to strength of sensor response for other gases
-                if (response->gas_type[g] == "methane")
+                // if (response->gas_type[g] == "methane")
                 {
                     totalMeasured += response->positions[i].concentration[g] * rayData.lengthInCell[i].second;
                 }

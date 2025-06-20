@@ -282,7 +282,7 @@ size_t Player::FillMarkerArray(std::vector<geometry_msgs::msg::Point>& points, s
         for (int i = 0; i < 5; i++)
         {
             geometry_msgs::msg::Point p; // Location of point
-            float distance = filament.sigma / 50;
+            float distance = filament.sigma / 100;
             p.x = (filament.position.x) + gaden::uniformRandom(-distance, distance);
             p.y = (filament.position.y) + gaden::uniformRandom(-distance, distance);
             p.z = (filament.position.z) + gaden::uniformRandom(-distance, distance);
