@@ -38,7 +38,10 @@ gaden_msgs::msg::GasInCell Player::GetAllGasesSingleCell(float x, float y, float
     // Configure Response
     gaden_msgs::msg::GasInCell response;
     for (int i = 0; i < gas_types.size(); i++)
-        response.concentration.push_back(concentrations.at(gas_types.at(i)));
+    {
+        float conc = concentrations.at(gas_types.at(i));
+        response.concentration.push_back(conc);
+    }
 
     return response;
 }

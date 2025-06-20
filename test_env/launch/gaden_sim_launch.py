@@ -22,7 +22,7 @@ def launch_arguments():
     return [
         DeclareLaunchArgument(
             "scenario",
-            default_value=["10x6_empty_room"],
+            default_value=["10x6_central_obstacle"],
             description="scenario to simulate",
         ),
         DeclareLaunchArgument(
@@ -72,8 +72,8 @@ def launch_setup(context, *args, **kwargs):
             name='gaden_filament_simulator',
             output='screen',
             parameters=[ParameterFile(params_yaml_file, allow_substs=True),
-                        {"maxSimTime": 300},
-                        {"runRate": 0}
+                        {"sim_time": 300.0},
+                        {"runRate": 0.0}
                         ]
         )
     ]

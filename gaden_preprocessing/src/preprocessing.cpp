@@ -85,7 +85,7 @@ void Gaden_preprocessing::Run()
                                        GadenUtils::getParam<bool>(shared_from_this(), "block_outlets", false));
 
     config.environment.WriteROSOccupancyYAML(outputFolder / "occupancy.yaml", floorHeight);
-    config.environment.printBasicSimYaml(outputFolder / "BasicSimScene.yaml", emptyPoint);
+    config.environment.printBasicSimYaml(outputFolder / "BasicSimScene.yaml", gaden::Vector3(emptyPoint.x, emptyPoint.y, floorHeight));
 
     // notify we are done!
     GADEN_INFO_COLOR(fmt::terminal_color::blue, "Preprocessing done");

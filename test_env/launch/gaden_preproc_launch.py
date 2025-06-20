@@ -23,7 +23,7 @@ def launch_arguments():
     return [
         DeclareLaunchArgument(
             "scenario",
-            default_value=["10x6_empty_room"],
+            default_value=["10x6_central_obstacle"],
             description="scenario to preprocess",
         ),
         DeclareLaunchArgument(

@@ -133,7 +133,7 @@ void FilamentSimulator::Run()
     sim.emplace(params, envConfig);
     sim->gasDisplayColor = {.r = 0, .g = 0, .b = 1, .a = 1}; // do we want to bother reading this as a parameter?
 
-    float runRate = getParameter("runRate", 0); // 0 means as fast as possible
+    float runRate = getParameter("runRate", 0.0); // 0 means as fast as possible
     rclcpp::Rate rate(runRate);
     while (rclcpp::ok() && sim->GetCurrentTime() < maxSimTime)
     {

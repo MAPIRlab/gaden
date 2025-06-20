@@ -14,7 +14,7 @@ import xacro
 
 def launch_arguments():
     return [
-        DeclareLaunchArgument("scenario", default_value="10x6_empty_room"),
+        DeclareLaunchArgument("scenario", default_value="10x6_central_obstacle"),
         DeclareLaunchArgument("configuration", default_value="config1"),
         DeclareLaunchArgument("simulation", default_value="sim1"),
         DeclareLaunchArgument("namespace", default_value="PioneerP3DX"),
@@ -27,6 +27,7 @@ def launch_setup(context, *args, **kwargs):
     namespace = LaunchConfiguration("namespace").perform(context)
     scenario = LaunchConfiguration("scenario").perform(context)
     simulation = LaunchConfiguration("simulation").perform(context)
+    configuration = LaunchConfiguration("configuration").perform(context)
 
     # robot description for state_publisher
     robot_desc = xacro.process_file(
@@ -49,9 +50,9 @@ def launch_setup(context, *args, **kwargs):
             executable="basic_sim",
             prefix="xterm -hold -e",
             parameters=[
-                {"deltaTime": 0.1},
+                {"deltaTime": 0.03},
                 {"speed": 1.0},
-                {"worldFile": os.path.join(share_dir, "scenarios", scenario, simulation, "BasicSimScene.yaml")}
+                {"worldFile": os.path.join(share_dir, "scenarios", scenario, "environment_configurations", configuration, "BasicSimScene.yaml")}
             ],
         )
     ]
@@ -68,8 +69,9 @@ def launch_setup(context, *args, **kwargs):
         ),
         launch_arguments={
             "use_rviz": "True",
-            "scenario": LaunchConfiguration("scenario").perform(context),
-            "simulation": LaunchConfiguration("simulation").perform(context)
+            "scenario": scenario,
+            "configuration": configuration,
+            "simulation": simulation
         }.items(),
     )
 
@@ -144,6 +146,7 @@ def launch_setup(context, *args, **kwargs):
                 {"fixed_frame": "map"},
                 {"noise_std": 20.1},
                 {'use_sim_time': True},
+                {'verbose': True},
             ]
         ),
         Node(
