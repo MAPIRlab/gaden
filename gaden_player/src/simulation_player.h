@@ -6,7 +6,7 @@
 #include <gaden_msgs/srv/gas_position.hpp>
 #include <gaden_msgs/srv/wind_position.hpp>
 
-#include <gaden/PlaybackSimulation.hpp>
+#include <gaden/PlaybackScene.hpp>
 
 class Player : public rclcpp::Node
 {
@@ -15,7 +15,7 @@ public:
     void run();
 
 private:
-    gaden_msgs::msg::GasInCell GetAllGasesSingleCell(float x, float y, float z, const std::vector<std::string>& gas_types);
+    gaden_msgs::msg::GasInCell GetAllGasesSingleCell(float x, float y, float z, const std::vector<gaden::GasType>& gas_types);
     bool GetGasValue_srv(gaden_msgs::srv::GasPosition::Request::SharedPtr req, gaden_msgs::srv::GasPosition::Response::SharedPtr res);
     bool GetWindValue_srv(gaden_msgs::srv::WindPosition::Request::SharedPtr req, gaden_msgs::srv::WindPosition::Response::SharedPtr res);
 
@@ -26,11 +26,9 @@ private:
     size_t FillMarkerArray(std::vector<geometry_msgs::msg::Point>& marker, std::vector<gaden::Filament> const& filaments);
 
 private:
-    std::vector<gaden::PlaybackSimulation::Parameters> params;
-    std::vector<gaden::PlaybackSimulation> simulations;
-    std::vector<std_msgs::msg::ColorRGBA> gasDisplayColors;
+    gaden::PlaybackSceneMetadata playbackMetadata;
+    std::optional<gaden::PlaybackScene> playbackScene;
 
     gaden::EnvironmentConfiguration environmentConfig;
-    gaden::LoopConfig loopConfig;
     std::optional<gaden::EnvironmentConfigMetadata> gadenProject;
 };

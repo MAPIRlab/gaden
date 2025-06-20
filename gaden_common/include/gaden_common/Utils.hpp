@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <fmt/format.h>
 #include <rclcpp/rclcpp.hpp>
+#include <gaden/datatypes/Color.hpp>
+#include <std_msgs/msg/color_rgba.hpp>
 
 namespace GadenUtils
 {
@@ -42,5 +44,15 @@ namespace GadenUtils
             idx++;
         }
         return paths;
+    }
+
+    inline std_msgs::msg::ColorRGBA toRosColor(gaden::Color color)
+    {
+        std_msgs::msg::ColorRGBA col;
+        col.r = color.r;
+        col.g = color.g;
+        col.b = color.b;
+        col.a = color.a;
+        return col;
     }
 } // namespace GadenUtils
