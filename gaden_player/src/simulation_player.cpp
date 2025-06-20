@@ -12,6 +12,7 @@
 #include "gaden/internal/PathUtils.hpp"
 #include "gaden/internal/Time.hpp"
 #include "simulation_player.h"
+#include <gaden_common/Visualization.hpp>
 
 int main(int argc, char** argv)
 {
@@ -51,10 +52,10 @@ bool Player::GetGasValue_srv(gaden_msgs::srv::GasPosition::Request::SharedPtr re
         gasNames.push_back(gaden::to_string(gasTypes.at(i)));
 
     res->gas_type = gasNames;
-    
+
     for (int i = 0; i < req->x.size(); i++)
         res->positions.push_back(GetAllGasesSingleCell(req->x[i], req->y[i], req->z[i], gasTypes));
-    
+
     return true;
 }
 
@@ -228,33 +229,43 @@ void Player::initSimulations()
 // Display in RVIZ the gas distribution
 void Player::displayCurrentGasDistribution()
 {
-    static auto markerPub = create_publisher<visualization_msgs::msg::Marker>("Gas_Distribution", 1);
-    static visualization_msgs::msg::Marker marker;
-    marker.header.frame_id = "map";
-    marker.header.stamp = now();
-    marker.ns = "Gas_Dispersion";
-    marker.action = visualization_msgs::msg::Marker::ADD;
-    marker.type = visualization_msgs::msg::Marker::POINTS; // Marker type
-    marker.id = 0;                                         // One marker with multiple points.
-    marker.scale.x = 0.025;
-    marker.scale.y = 0.025;
-    marker.scale.z = 0.025;
+    if (!sourceMarkerPub)
+    {
+        sourceMarkerPub = create_publisher<visualization_msgs::msg::MarkerArray>("source_visualization", 1);
+        gasMarkerPub = create_publisher<visualization_msgs::msg::Marker>("Gas_Distribution", 1);
+    }
 
-    // Remove previous data points
-    marker.points.clear();
-    marker.colors.clear();
+    visualization_msgs::msg::Marker gasMarker;
+    {
+        gasMarker.header.frame_id = "map";
+        gasMarker.header.stamp = now();
+        gasMarker.ns = "Gas_Dispersion";
+        gasMarker.action = visualization_msgs::msg::Marker::ADD;
+        gasMarker.type = visualization_msgs::msg::Marker::POINTS; // Marker type
+        gasMarker.id = 0;                                         // One marker with multiple points.
+        gasMarker.scale.x = 0.025;
+        gasMarker.scale.y = 0.025;
+        gasMarker.scale.z = 0.025;
+    }
+
+    visualization_msgs::msg::MarkerArray sourceMarkerArray;
 
     const auto& simulations = playbackScene->GetSimulations();
     for (int i = 0; i < simulations.size(); i++)
     {
+        // gas distribution marker
         auto const& filaments = simulations[i].GetFilaments();
-        size_t count = FillMarkerArray(marker.points, filaments);
+        size_t count = FillMarkerArray(gasMarker.points, filaments);
         for (size_t pointIdx = 0; pointIdx < count; pointIdx++)
-            marker.colors.push_back(GadenUtils::toRosColor(playbackScene->GetColors().at(i)));
+            gasMarker.colors.push_back(GadenUtils::toRosColor(playbackScene->GetColors().at(i)));
+
+        visualization_msgs::msg::Marker sourceMarker = GadenUtils::MarkerSourcePosition(this, simulations[i]);
+        sourceMarkerArray.markers.push_back(sourceMarker);
     }
 
     // Display particles
-    markerPub->publish(marker);
+    gasMarkerPub->publish(gasMarker);
+    sourceMarkerPub->publish(sourceMarkerArray);
 }
 
 //==================================== SIM_OBJ ==============================//
@@ -264,14 +275,14 @@ size_t Player::FillMarkerArray(std::vector<geometry_msgs::msg::Point>& points, s
     size_t count = 0;
     for (auto it = filaments.begin(); it != filaments.end(); it++)
     {
-        geometry_msgs::msg::Point p; // Location of point
-
         const gaden::Filament& filament = *it;
         for (int i = 0; i < 5; i++)
         {
-            p.x = (filament.position.x) + gaden::uniformRandom(-filament.sigma / 50, filament.sigma / 50);
-            p.y = (filament.position.y) + gaden::uniformRandom(-filament.sigma / 50, filament.sigma / 50);
-            p.z = (filament.position.z) + gaden::uniformRandom(-filament.sigma / 50, filament.sigma / 50);
+            geometry_msgs::msg::Point p; // Location of point
+            float distance = filament.sigma / 50;
+            p.x = (filament.position.x) + gaden::uniformRandom(-distance, distance);
+            p.y = (filament.position.y) + gaden::uniformRandom(-distance, distance);
+            p.z = (filament.position.z) + gaden::uniformRandom(-distance, distance);
 
             // Add particle marker
             points.push_back(p);

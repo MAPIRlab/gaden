@@ -1,6 +1,7 @@
 #include <gaden/EnvironmentConfigMetadata.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 
 #include <gaden_msgs/msg/gas_in_cell.hpp>
 #include <gaden_msgs/srv/gas_position.hpp>
@@ -31,4 +32,7 @@ private:
 
     gaden::EnvironmentConfiguration environmentConfig;
     std::optional<gaden::EnvironmentConfigMetadata> gadenProject;
+
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr sourceMarkerPub;
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr gasMarkerPub;
 };

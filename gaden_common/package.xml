@@ -12,6 +12,7 @@
 
   <depend>rclcpp</depend>
   <depend>std_msgs</depend> 
+  <depend>visualization_msgs</depend> 
 
   <!--Optional dependency (only if you are compiling the GUI), but it must be listed here for compilation ordering-->
   <!--Also, if you *are* compiling the GUI, but don't have this installed, it will be downloaded from git automatically-->

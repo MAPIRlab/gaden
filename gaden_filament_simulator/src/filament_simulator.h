@@ -1,10 +1,14 @@
 #pragma once
 
+#include <gaden/EnvironmentConfigMetadata.hpp>
 #include <gaden/datatypes/Filament.hpp>
 #include <gaden_common/Utils.hpp>
-#include <gaden/EnvironmentConfigMetadata.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+
+using visualization_msgs::msg::Marker;
+using visualization_msgs::msg::MarkerArray;
 
 class FilamentSimulator : public rclcpp::Node
 {
@@ -31,5 +35,7 @@ private:
     std::optional<gaden::RunningSimulation> sim;
 
     rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr rotorPositionSub;
-};
 
+    rclcpp::Publisher<Marker>::SharedPtr gasPublisher;
+    rclcpp::Publisher<MarkerArray>::SharedPtr sourcePublisher;
+};

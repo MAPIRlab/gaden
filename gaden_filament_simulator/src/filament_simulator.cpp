@@ -1,23 +1,23 @@
 #define GADEN_LOGGER_ID "FilamentSimulator"
 /*---------------------------------------------------------------------------------------
- * MAIN Node for the simulation of gas dispersal using a Filament-based approach.
- * This node loads the wind field (usually from CFD simulation), and simulates over it
- * different filaments to spread gas particles.
- *
- * Each filament is composed of a fixed number of gas molecules (Q)
- * Each filament is determined by its center position and width.
- * The width of a filament increases over time (Turbulent and molecular difussion)
- * The position of a filament is updated with the wind.
- *
- * The gas concentration at a given point is the sum of the concentration of all filaments.
- *
- * Thus, the gas concentration at the source location is determined by the number of molecules/filament and the number of filaments.
- *
- * A log file is recorded for every snapshot (time-step) with information about the gas
- * concentration and wind vector for every cell (3D) of the environment.
- *
- * The node implements the filament-base gas dispersal simulation. At each time step, the puffs
- * of filaments are sequentially released at a source location. Each puff is composed of n filaments.
+* MAIN Node for the simulation of gas dispersal using a Filament-based approach.
+* This node loads the wind field (usually from CFD simulation), and simulates over it
+* different filaments to spread gas particles.
+*
+* Each filament is composed of a fixed number of gas molecules (Q)
+* Each filament is determined by its center position and width.
+* The width of a filament increases over time (Turbulent and molecular difussion)
+* The position of a filament is updated with the wind.
+*
+* The gas concentration at a given point is the sum of the concentration of all filaments.
+*
+* Thus, the gas concentration at the source location is determined by the number of molecules/filament and the number of filaments.
+*
+* A log file is recorded for every snapshot (time-step) with information about the gas
+* concentration and wind vector for every cell (3D) of the environment.
+*
+* The node implements the filament-base gas dispersal simulation. At each time step, the puffs
+* of filaments are sequentially released at a source location. Each puff is composed of n filaments.
  * Filaments are affected by turbulence and molecular diffusion along its path while being transported
  * by advection with the wind. The 3-dimensional positions of these filaments are represented by the points
  * of the “visualization msgs/markers”. At each time step, “Dispersal_Simulation” node calculates or
@@ -31,11 +31,9 @@
 #include "gaden/core/Logging.hpp"
 #include "gaden/internal/PathUtils.hpp"
 #include "gaden/internal/Time.hpp"
-#include <visualization_msgs/msg/marker.hpp>
+#include <gaden_common/Visualization.hpp>
 
 using namespace gaden;
-using std::vector;
-using visualization_msgs::msg::Marker;
 
 //==============================//
 //			MAIN                //
@@ -133,6 +131,8 @@ void FilamentSimulator::Run()
     // Start the simulation
     //--------------------------
     sim.emplace(params, envConfig);
+    sim->gasDisplayColor = {.r = 0, .g = 0, .b = 1, .a = 1}; // do we want to bother reading this as a parameter?
+
     float runRate = getParameter("runRate", 0); // 0 means as fast as possible
     rclcpp::Rate rate(runRate);
     while (rclcpp::ok() && sim->GetCurrentTime() < maxSimTime)
@@ -167,12 +167,14 @@ void FilamentSimulator::AddAirflowDisturbance(const geometry_msgs::msg::PointSta
 
 void FilamentSimulator::publishMarkers(std::vector<Filament> const& filaments)
 {
-    static Marker filament_marker;
-    static auto publisher = create_publisher<Marker>("filament_visualization", 1);
+    Marker filament_marker;
+    if (!gasPublisher)
+    {
+        gasPublisher = create_publisher<Marker>("filament_visualization", 1);
+        sourcePublisher = create_publisher<MarkerArray>("source_visualization", 1);
+    }
 
     // 1. Clean old markers
-    filament_marker.points.clear();
-    filament_marker.colors.clear();
     filament_marker.header.stamp = now();
     filament_marker.header.frame_id = "map";
     filament_marker.type = filament_marker.POINTS;
@@ -194,10 +196,7 @@ void FilamentSimulator::publishMarkers(std::vector<Filament> const& filaments)
         point.z = filaments[i].position.z;
 
         // Set filament color
-        color.a = 1;
-        color.r = 0;
-        color.g = 0;
-        color.b = 1;
+        color = GadenUtils::toRosColor(sim->gasDisplayColor);
 
         // Add marker
         filament_marker.points.push_back(point);
@@ -205,7 +204,10 @@ void FilamentSimulator::publishMarkers(std::vector<Filament> const& filaments)
     }
 
     // Publish marker of the filaments
-    publisher->publish(filament_marker);
+    gasPublisher->publish(filament_marker);
+
+    Marker sourceMarker = GadenUtils::MarkerSourcePosition(this, *sim);
+    sourcePublisher->publish(MarkerArray().set__markers({sourceMarker}));
 }
 
 // at different times, gaden has employed multiple rules for where to store / how to name wind files
