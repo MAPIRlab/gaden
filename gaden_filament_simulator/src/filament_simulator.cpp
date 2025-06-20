@@ -156,7 +156,7 @@ void FilamentSimulator::AddAirflowDisturbance(const geometry_msgs::msg::PointSta
         return;
 
     Vector3 dronePosition(rotorPosition->point.x, rotorPosition->point.y, rotorPosition->point.z);
-    gaden::Airflow::QuadrotorDisturbance::ModifyField(
+    gaden::Airflow::QuadrotorDisturbanceFarField::ModifyField(
         dronePosition,
         sim->localAirflowDisturbances,
         sim->config.environment,
@@ -208,6 +208,9 @@ void FilamentSimulator::publishMarkers(std::vector<Filament> const& filaments)
     publisher->publish(filament_marker);
 }
 
+// at different times, gaden has employed multiple rules for where to store / how to name wind files
+// that means, if we want to still support old projects, we need to account for the different ways in which the path could be specified
+// in theory, we could just require that old projects are re-configured with the new, much easier to use tools, but that would be annoying for users
 std::vector<std::filesystem::path> FilamentSimulator::GetWindFilePaths(std::filesystem::path const& windFilesLocation)
 {
     std::vector<std::filesystem::path> paths;
