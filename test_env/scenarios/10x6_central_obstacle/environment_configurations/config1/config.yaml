@@ -5,7 +5,7 @@ outlets_models:
   - "!color [0.86, 0.24, 0.24, 1.00]"
   - ../../cad_models/10x6_door_left.stl
   - ../../cad_models/10x6_door_right.stl
-unprocessed_wind_files: ../../wind_simulations/01ms/wind_at_cell_centers
+unprocessed_wind_files: ../../wind_simulations/05ms/wind_at_cell_centers
 empty_point_x: 1.65
 empty_point_y: 2.1
 empty_point_z: 0
