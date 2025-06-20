@@ -8,7 +8,7 @@ windIterationDeltaTime: 1
 temperature: 298
 pressure: 1
 filament_ppm_center: 20
-filament_initial_sigma: 1.5
+filament_initial_sigma: 10
 filament_growth_gamma: 15
 filament_noise_std: 0.02
 numFilaments_sec: 10

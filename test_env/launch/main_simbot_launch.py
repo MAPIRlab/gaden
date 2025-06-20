@@ -153,7 +153,7 @@ def launch_setup(context, *args, **kwargs):
             package='tf2_ros',
             executable='static_transform_publisher',
             name='pid_tf_pub',
-            arguments=['0', '0', '0.5', '1.0', '0.0', '0', '0', 
+            arguments=['0', '0', '0.75', '1.0', '0.0', '0', '0', 
                        parse_substitution('$(var namespace)_base_link'), 
                        parse_substitution('tdlas_frame')],
             parameters=[{'use_sim_time': True}]
