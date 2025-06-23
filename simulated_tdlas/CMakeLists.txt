@@ -28,7 +28,7 @@ find_package(gaden_environment REQUIRED)
 
 
 include_directories(
-	include 
+	src 
 )
 
 set(SOURCES_FILES 
