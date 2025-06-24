@@ -1,0 +1,4 @@
+# Gaden Project
+versionMajor: 3
+versionMinor: 0
+configurationsDirectory: environment_configurations
