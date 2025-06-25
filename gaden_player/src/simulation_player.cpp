@@ -33,7 +33,7 @@ Player::Player()
 
 gaden_msgs::msg::GasInCell Player::GetAllGasesSingleCell(float x, float y, float z, const std::vector<gaden::GasType>& gas_types)
 {
-    std::map<gaden::GasType, float> concentrations = playbackScene->SampleConcentrations(gaden::Vector3(x, y, z));
+    std::map<gaden::GasType, float> concentrations = Scene->SampleConcentrations(gaden::Vector3(x, y, z));
 
     // Configure Response
     gaden_msgs::msg::GasInCell response;
@@ -48,7 +48,7 @@ gaden_msgs::msg::GasInCell Player::GetAllGasesSingleCell(float x, float y, float
 
 bool Player::GetGasValue_srv(gaden_msgs::srv::GasPosition::Request::SharedPtr req, gaden_msgs::srv::GasPosition::Response::SharedPtr res)
 {
-    std::vector<gaden::GasType> gasTypes = playbackScene->GetGasTypes();
+    std::vector<gaden::GasType> gasTypes = Scene->GetGasTypes();
     std::vector<std::string> gasNames;
 
     for (int i = 0; i < gasTypes.size(); i++)
@@ -67,7 +67,7 @@ bool Player::GetWindValue_srv(gaden_msgs::srv::WindPosition::Request::SharedPtr 
     // Since the wind fields are identical among different instances, return just the information from instance[0]
     for (int i = 0; i < req->x.size(); i++)
     {
-        gaden::Vector3 windVec = playbackScene->SampleWind(gaden::Vector3{req->x[i], req->y[i], req->z[i]});
+        gaden::Vector3 windVec = Scene->SampleWind(gaden::Vector3{req->x[i], req->y[i], req->z[i]});
         res->u.push_back(windVec.x);
         res->v.push_back(windVec.y);
         res->w.push_back(windVec.z);
@@ -117,7 +117,7 @@ void Player::run()
         if (countdown.isDone())
         {
             // Read Gas and Wind data from log_files
-            playbackScene->AdvanceTimestep();
+            Scene->AdvanceTimestep();
 
             displayCurrentGasDistribution(); // Rviz visualization
 
@@ -226,7 +226,7 @@ void Player::initSimulations()
     }
 
     environmentConfig.windSequence.Initialize(windFiles, environmentConfig.environment.numCells(), {});
-    playbackScene.emplace(playbackMetadata, environmentConfig);
+    Scene.emplace(playbackMetadata, environmentConfig);
 }
 
 // Display in RVIZ the gas distribution
@@ -253,16 +253,16 @@ void Player::displayCurrentGasDistribution()
 
     visualization_msgs::msg::MarkerArray sourceMarkerArray;
 
-    const auto& simulations = playbackScene->GetSimulations();
+    const auto& simulations = Scene->GetSimulations();
     for (int i = 0; i < simulations.size(); i++)
     {
         // gas distribution marker
-        auto const& filaments = simulations[i].GetFilaments();
+        auto const& filaments = simulations[i]->GetFilaments();
         size_t count = FillMarkerArray(gasMarker.points, filaments);
         for (size_t pointIdx = 0; pointIdx < count; pointIdx++)
-            gasMarker.colors.push_back(GadenUtils::toRosColor(playbackScene->GetColors().at(i)));
+            gasMarker.colors.push_back(GadenUtils::toRosColor(Scene->GetColors().at(i)));
 
-        visualization_msgs::msg::Marker sourceMarker = GadenUtils::MarkerSourcePosition(this, simulations[i]);
+        visualization_msgs::msg::Marker sourceMarker = GadenUtils::MarkerSourcePosition(this, *simulations[i]);
         sourceMarkerArray.markers.push_back(sourceMarker);
     }
 

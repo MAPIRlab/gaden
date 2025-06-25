@@ -7,7 +7,7 @@
 #include <gaden_msgs/srv/gas_position.hpp>
 #include <gaden_msgs/srv/wind_position.hpp>
 
-#include <gaden/PlaybackScene.hpp>
+#include <gaden/Scene.hpp>
 
 class Player : public rclcpp::Node
 {
@@ -28,7 +28,7 @@ private:
 
 private:
     gaden::PlaybackSceneMetadata playbackMetadata;
-    std::optional<gaden::PlaybackScene> playbackScene;
+    std::optional<gaden::Scene> Scene;
 
     gaden::EnvironmentConfiguration environmentConfig;
     std::optional<gaden::EnvironmentConfigMetadata> gadenProject;
