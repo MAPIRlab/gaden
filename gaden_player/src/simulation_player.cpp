@@ -111,6 +111,9 @@ void Player::run()
     float player_freq = declare_parameter<float>("player_freq", 1); // Hz
     GADEN_INFO("player_freq {:.2f} Hz", player_freq);
     gaden::Utils::Time::Countdown countdown(1.f / player_freq);
+    
+    //load the first timestep immediately
+    Scene->AdvanceTimestep();
 
     while (rclcpp::ok())
     {

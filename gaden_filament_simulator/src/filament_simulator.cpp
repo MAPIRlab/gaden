@@ -29,6 +29,7 @@
 #include "gaden/AirflowDisturbance.hpp"
 #include "gaden/RunningSimulation.hpp"
 #include "gaden/core/Logging.hpp"
+#include "gaden/datatypes/sources/PointSource.hpp"
 #include "gaden/internal/PathUtils.hpp"
 #include "gaden/internal/Time.hpp"
 #include <gaden_common/Visualization.hpp>
@@ -81,20 +82,15 @@ void FilamentSimulator::Run()
         GadenUtils::OldProjectWarning();
 
         params = {
-            .gasType = static_cast<GasType>(getParameter("gas_type", 0)),
-            .sourcePosition = Vector3{
-                getParameter("source_position_x", 0.0),
-                getParameter("source_position_y", 0.0),
-                getParameter("source_position_z", 0.0),
-            },
+            .source = std::make_shared<gaden::PointSource>(),
             .deltaTime = getParameter("time_step", 0.1f),
             .windIterationDeltaTime = getParameter("wind_time_step", 1.0f),
             .temperature = getParameter("wind_time_step", 298.0f),
             .pressure = getParameter("wind_time_step", 1.0f),
-            .filament_ppm_center = getParameter("ppm_filament_center", 20.0f),
-            .filament_initial_sigma = getParameter("filament_initial_std", 1.5f),
-            .filament_growth_gamma = getParameter("filament_growth_gamma", 10.0f),
-            .filament_noise_std = getParameter("filament_noise_std", 0.1f),
+            .filamentPPMcenter = getParameter("ppm_filament_center", 20.0f),
+            .filamentInitialSigma = getParameter("filament_initial_std", 1.5f),
+            .filamentGrowthGamma = getParameter("filament_growth_gamma", 10.0f),
+            .filamentNoise_std = getParameter("filament_noise_std", 0.1f),
             .numFilaments_sec = static_cast<float>(getParameter("num_filaments_sec", 100)),
             .expectedNumIterations = static_cast<size_t>(std::ceil(maxSimTime / params.deltaTime)),
             .windLoop = LoopConfig{.loop = getParameter("allow_looping", false),                   //
@@ -104,6 +100,14 @@ void FilamentSimulator::Run()
             .saveDeltaTime = getParameter("results_time_step", 0.5f),
             .saveDataDirectory = getParameter<std::string>("results_location", ""),
         };
+        
+        params.source->gasType = static_cast<GasType>(getParameter("gas_type", 0));
+        params.source->sourcePosition = Vector3{
+            getParameter("source_position_x", 0.0),
+            getParameter("source_position_y", 0.0),
+            getParameter("source_position_z", 0.0),
+        };
+
         gaden::paths::TryCreateDirectory(params.saveDataDirectory);
 
         std::string wind_data = getParameter<std::string>("wind_data", "");
