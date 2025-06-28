@@ -187,7 +187,7 @@ void Player::loadGadenProject()
     std::string playbackID = declare_parameter<std::string>("playbackID", "");
     try
     {
-        playbackMetadata = gadenProject->playbacks.at(playbackID);
+        playbackMetadata = gadenProject->scenes.at(playbackID);
         playbackMetadata.gasDisplayColors.resize(playbackMetadata.gasDisplayColors.size());
 
         std::filesystem::path occupancyFile = gadenProject->rootDirectory / "OccupancyGrid3D.csv";
