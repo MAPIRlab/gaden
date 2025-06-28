@@ -11,4 +11,7 @@ build
 
 *COLCON_IGNORE
 *__pycache__*
-utils/OccupancyGridToSTL/build
+
+result
+OccupancyGrid3D.csv
+wind
