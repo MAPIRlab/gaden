@@ -25,6 +25,7 @@ private:
     void loadGadenProject();
     void initSimulations();
     size_t FillMarkerArray(std::vector<geometry_msgs::msg::Point>& marker, std::vector<gaden::Filament> const& filaments);
+    size_t FillMarkerArrayConcentrations(std::vector<geometry_msgs::msg::Point>& points, const std::shared_ptr<gaden::Simulation> sim);
 
 private:
     gaden::PlaybackSceneMetadata playbackMetadata;

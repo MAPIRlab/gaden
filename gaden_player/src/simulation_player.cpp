@@ -111,8 +111,8 @@ void Player::run()
     float player_freq = declare_parameter<float>("player_freq", 1); // Hz
     GADEN_INFO("player_freq {:.2f} Hz", player_freq);
     gaden::Utils::Time::Countdown countdown(1.f / player_freq);
-    
-    //load the first timestep immediately
+
+    // load the first timestep immediately
     Scene->AdvanceTimestep();
 
     while (rclcpp::ok())
@@ -259,12 +259,25 @@ void Player::displayCurrentGasDistribution()
     const auto& simulations = Scene->GetSimulations();
     for (int i = 0; i < simulations.size(); i++)
     {
-        // gas distribution marker
-        auto const& filaments = simulations[i]->GetFilaments();
-        size_t count = FillMarkerArray(gasMarker.points, filaments);
+        gaden::PlaybackSimulation::Mode mode = As<gaden::PlaybackSimulation>(simulations[i])->GetMode();
+        size_t count = 0;
+
+        // fill the gas marker, depending on whether it's a filament list simulation or a concentration map simulation
+        if (mode == gaden::PlaybackSimulation::Mode::Filaments)
+        {
+            auto const& filaments = simulations[i]->GetFilaments();
+            count = FillMarkerArray(gasMarker.points, filaments);
+        }
+        else if (mode == gaden::PlaybackSimulation::Mode::Concentration)
+        {
+            count = FillMarkerArrayConcentrations(gasMarker.points, simulations[i]);
+        }
+
+        // add the gas colors
         for (size_t pointIdx = 0; pointIdx < count; pointIdx++)
             gasMarker.colors.push_back(GadenUtils::toRosColor(Scene->GetColors().at(i)));
 
+        // source marker
         visualization_msgs::msg::Marker sourceMarker = GadenUtils::MarkerSourcePosition(this, *simulations[i]);
         sourceMarkerArray.markers.push_back(sourceMarker);
     }
@@ -291,6 +304,29 @@ size_t Player::FillMarkerArray(std::vector<geometry_msgs::msg::Point>& points, s
             p.z = (filament.position.z) + gaden::uniformRandom(-distance, distance);
 
             // Add particle marker
+            points.push_back(p);
+            count++;
+        }
+    }
+    return count;
+}
+
+size_t Player::FillMarkerArrayConcentrations(std::vector<geometry_msgs::msg::Point>& points, const std::shared_ptr<gaden::Simulation> sim)
+{
+    size_t count = 0;
+    auto const& env = sim->config.environment;
+
+    for (size_t i = 0; i < env.numCells(); i++)
+    {
+        gaden::Vector3 point = env.coordsOfCellCenter(env.indicesFrom1D(i));
+        float conc = sim->SampleConcentration(point);
+        for (size_t n = 0; n < std::round(conc * 0.001); n++)
+        {
+            geometry_msgs::msg::Point p; // Location of point
+            p.x = point.x + gaden::uniformRandom(-env.description.cellSize, env.description.cellSize);
+            p.y = point.y + gaden::uniformRandom(-env.description.cellSize, env.description.cellSize);
+            p.z = point.z + gaden::uniformRandom(-env.description.cellSize, env.description.cellSize);
+
             points.push_back(p);
             count++;
         }

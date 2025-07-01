@@ -87,7 +87,7 @@ void FilamentSimulator::Run()
             .windIterationDeltaTime = getParameter("wind_time_step", 1.0f),
             .temperature = getParameter("wind_time_step", 298.0f),
             .pressure = getParameter("wind_time_step", 1.0f),
-            .filamentPPMcenter = getParameter("ppm_filament_center", 20.0f),
+            .filamentPPMcenter_initial = getParameter("ppm_filament_center", 20.0f),
             .filamentInitialSigma = getParameter("filament_initial_std", 1.5f),
             .filamentGrowthGamma = getParameter("filament_growth_gamma", 10.0f),
             .filamentNoise_std = getParameter("filament_noise_std", 0.1f),

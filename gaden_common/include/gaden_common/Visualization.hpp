@@ -2,6 +2,7 @@
 #include "Utils.hpp"
 #include "gaden/Simulation.hpp"
 #include "gaden/datatypes/sources/BoxSource.hpp"
+#include "gaden/datatypes/sources/CylinderSource.hpp"
 #include "gaden/datatypes/sources/LineSource.hpp"
 #include "gaden/datatypes/sources/SphereSource.hpp"
 #include "gaden/internal/Pointers.hpp"
@@ -45,7 +46,7 @@ namespace GadenUtils
             else if (sourceType == "sphere")
             {
                 sourceMarker.type = visualization_msgs::msg::Marker::SPHERE;
-                float r = As<gaden::SphereSource>(sim.simulationMetadata.source)->GetRadius();
+                float r = As<gaden::SphereSource>(sim.simulationMetadata.source)->radius;
                 sourceMarker.scale.x = r * 2.;
                 sourceMarker.scale.y = r * 2.;
                 sourceMarker.scale.z = r * 2.;
@@ -69,6 +70,15 @@ namespace GadenUtils
                 sourceMarker.pose = geometry_msgs::msg::Pose();
                 sourceMarker.scale.x = .05f;
                 sourceMarker.colors.push_back(sourceMarker.color); // necessary because the only line marker is a list :(
+            }
+            else if (sourceType == "cylinder")
+            {
+                sourceMarker.type = visualization_msgs::msg::Marker::CYLINDER;
+                float r = As<gaden::CylinderSource>(sim.simulationMetadata.source)->radius;
+                float h = As<gaden::CylinderSource>(sim.simulationMetadata.source)->height;
+                sourceMarker.scale.x = r * 2.;
+                sourceMarker.scale.y = h;
+                sourceMarker.scale.z = r * 2.;
             }
         }
         return sourceMarker;
