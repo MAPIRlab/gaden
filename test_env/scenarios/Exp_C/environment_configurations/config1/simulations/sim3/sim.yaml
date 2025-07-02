@@ -1,9 +1,11 @@
 source:
-  sourceType: cylinder
-  radius: 0.4
-  height: 1.45
-  position: [0.95, 8.4, 1.7]
-  gasType: 0
+  sourceType: line
+  lineEnd:
+    - 8.7
+    - 7.15
+    - 2.35
+  position: [7.2, 5.4, 0]
+  gasType: 2
 deltaTime: 0.1
 windIterationDeltaTime: 1
 temperature: 298
@@ -11,7 +13,7 @@ pressure: 1
 filamentPPMcenter: 20
 filamentInitialSigma: 10
 filamentGrowthGamma: 10
-filamentNoise_std: 0.01
+filamentNoise_std: 0.04
 numFilaments_sec: 10
 expectedNumIterations: 600
 saveResults: true

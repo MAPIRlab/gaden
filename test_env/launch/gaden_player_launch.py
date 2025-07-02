@@ -24,7 +24,7 @@ def launch_arguments():
     return [
         DeclareLaunchArgument(
             "scenario",
-            default_value=["10x6_central_obstacle"],
+            default_value=["Exp_C"],
             description="scenario to simulate",
         ),
         DeclareLaunchArgument(

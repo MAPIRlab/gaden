@@ -249,9 +249,9 @@ void Player::displayCurrentGasDistribution()
         gasMarker.action = visualization_msgs::msg::Marker::ADD;
         gasMarker.type = visualization_msgs::msg::Marker::POINTS; // Marker type
         gasMarker.id = 0;                                         // One marker with multiple points.
-        gasMarker.scale.x = 0.025;
-        gasMarker.scale.y = 0.025;
-        gasMarker.scale.z = 0.025;
+        gasMarker.scale.x = 0.035;
+        gasMarker.scale.y = 0.035;
+        gasMarker.scale.z = 0.035;
     }
 
     visualization_msgs::msg::MarkerArray sourceMarkerArray;
@@ -279,6 +279,7 @@ void Player::displayCurrentGasDistribution()
 
         // source marker
         visualization_msgs::msg::Marker sourceMarker = GadenUtils::MarkerSourcePosition(this, *simulations[i]);
+        sourceMarker.id = i;
         sourceMarkerArray.markers.push_back(sourceMarker);
     }
 
@@ -295,7 +296,7 @@ size_t Player::FillMarkerArray(std::vector<geometry_msgs::msg::Point>& points, s
     for (auto it = filaments.begin(); it != filaments.end(); it++)
     {
         const gaden::Filament& filament = *it;
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 3; i++)
         {
             geometry_msgs::msg::Point p; // Location of point
             float distance = filament.sigma / 100;
