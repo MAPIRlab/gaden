@@ -77,8 +77,8 @@ namespace GadenUtils
                 float r = As<gaden::CylinderSource>(sim.simulationMetadata.source)->radius;
                 float h = As<gaden::CylinderSource>(sim.simulationMetadata.source)->height;
                 sourceMarker.scale.x = r * 2.;
-                sourceMarker.scale.y = h;
-                sourceMarker.scale.z = r * 2.;
+                sourceMarker.scale.y = r * 2.;
+                sourceMarker.scale.z = h;
             }
         }
         return sourceMarker;

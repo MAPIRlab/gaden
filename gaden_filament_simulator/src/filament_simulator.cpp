@@ -34,6 +34,10 @@
 #include "gaden/internal/Time.hpp"
 #include <gaden_common/Visualization.hpp>
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 using namespace gaden;
 
 //==============================//
@@ -41,6 +45,13 @@ using namespace gaden;
 //==============================//
 int main(int argc, char** argv)
 {
+#ifdef TRACY_ENABLE
+    GADEN_WARN("Profiling is enabled. Waiting for connection with tracy server...");
+    while (!TracyIsConnected)
+        ;
+    GADEN_INFO("Server ready, let's go.");
+#endif
+
     // Init ROS-NODE
     rclcpp::init(argc, argv);
 
@@ -100,7 +111,7 @@ void FilamentSimulator::Run()
             .saveDeltaTime = getParameter("results_time_step", 0.5f),
             .saveDataDirectory = getParameter<std::string>("results_location", ""),
         };
-        
+
         params.source->gasType = static_cast<GasType>(getParameter("gas_type", 0));
         params.source->sourcePosition = Vector3{
             getParameter("source_position_x", 0.0),
