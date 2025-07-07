@@ -317,19 +317,23 @@ size_t Player::FillMarkerArrayConcentrations(std::vector<geometry_msgs::msg::Poi
     size_t count = 0;
     auto const& env = sim->config.environment;
 
+#pragma omp parallel for
     for (size_t i = 0; i < env.numCells(); i++)
     {
         gaden::Vector3 point = env.coordsOfCellCenter(env.indicesFrom1D(i));
         float conc = sim->SampleConcentration(point);
-        for (size_t n = 0; n < std::round(conc * 0.001); n++)
+        for (size_t n = 0; n < std::round(conc * 0.1); n++)
         {
             geometry_msgs::msg::Point p; // Location of point
             p.x = point.x + gaden::uniformRandom(-env.description.cellSize, env.description.cellSize);
             p.y = point.y + gaden::uniformRandom(-env.description.cellSize, env.description.cellSize);
             p.z = point.z + gaden::uniformRandom(-env.description.cellSize, env.description.cellSize);
 
-            points.push_back(p);
-            count++;
+#pragma omp critical
+            {
+                points.push_back(p);
+                count++;
+            }
         }
     }
     return count;
