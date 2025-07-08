@@ -55,11 +55,10 @@ int main(int argc, char** argv)
     // Init ROS-NODE
     rclcpp::init(argc, argv);
 
-    gaden::Utils::Time::Stopwatch stopwatch;
-
     // Create simulator obj and initialize it
     auto sim = std::make_shared<FilamentSimulator>();
-
+    
+    gaden::Utils::Time::Stopwatch stopwatch;
     sim->Run();
     if (rclcpp::ok())
         GADEN_INFO_COLOR(fmt::terminal_color::blue, "Filament simulator finished correctly! Ran for {:.2f}s", stopwatch.ellapsed());
@@ -139,15 +138,15 @@ void FilamentSimulator::Run()
     GADEN_CHECK_RESULT(envConfig.environment.ReadFromFile(environmentFile));
     envConfig.windSequence.Initialize(windFiles, envConfig.environment.numCells(), params.windLoop);
 
+    sim.emplace(params, envConfig);
+    sim->gasDisplayColor = {.r = 0, .g = 0, .b = 1, .a = 1}; // do we want to bother reading this as a parameter?
+
     // old launch files require the wind data to be copied inside the results folder
     if (!gadenProject)
         envConfig.windSequence.WriteToFiles(params.saveDataDirectory / "wind", "wind_iteration");
 
     // Start the simulation
     //--------------------------
-    sim.emplace(params, envConfig);
-    sim->gasDisplayColor = {.r = 0, .g = 0, .b = 1, .a = 1}; // do we want to bother reading this as a parameter?
-
     float runRate = getParameter("runRate", 0.0); // 0 means as fast as possible
     rclcpp::Rate rate(runRate);
     while (rclcpp::ok() && sim->GetCurrentTime() < maxSimTime)

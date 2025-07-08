@@ -1,9 +1,9 @@
 source:
-  sourceType: cylinder
+  sourceType: point
   radius: 1
   height: 0.5
-  position: [1.45, 3, 1.5]
-  gasType: 10
+  position: [1.45, 3, 0.5]
+  gasType: 0
 deltaTime: 0.1
 windIterationDeltaTime: 1
 temperature: 298
@@ -11,12 +11,11 @@ pressure: 1
 filamentPPMcenter: 20
 filamentInitialSigma: 10
 filamentGrowthGamma: 10
-filamentNoise_std: 0.01
+filamentNoise_std: 0.02
 numFilaments_sec: 10
-expectedNumIterations: 600
 saveResults: true
 saveDeltaTime: 0.5
-preCalculateConcentrations: false
+preCalculateConcentrations: true
 windLooping:
   loop: false
   from: 0

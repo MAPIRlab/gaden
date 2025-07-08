@@ -9,7 +9,7 @@ pressure: 1
 filamentPPMcenter: 20
 filamentInitialSigma: 10
 filamentGrowthGamma: 10
-filamentNoise_std: 0.01
+filamentNoise_std: 0.02
 numFilaments_sec: 10
 expectedNumIterations: 600
 saveResults: true
