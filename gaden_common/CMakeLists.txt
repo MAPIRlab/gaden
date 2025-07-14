@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.13)
 project(gaden_common)
 
+set(PROFILING ON)
+
 find_package(ament_cmake REQUIRED)
 find_package(fmt REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -31,7 +33,9 @@ ament_export_include_directories(
 )
 
 ament_export_definitions(GADEN_ROS=1)
-
+if(${PROFILING})
+    ament_export_definitions(TRACY_ENABLE)
+endif()
 
 # Install libraries / include dirs
 #--------------------------------------------------------

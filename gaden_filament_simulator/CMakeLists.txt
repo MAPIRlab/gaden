@@ -19,7 +19,6 @@ ament_auto_add_executable(filament_simulator src/filament_simulator.cpp)
 
 #profiling
 # find_package(Tracy)
-# target_link_libraries(filament_simulator Tracy::TracyClient)
 # target_compile_definitions(filament_simulator PUBLIC TRACY_ENABLE)
 
 install(
@@ -27,3 +26,4 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 ament_package()
+

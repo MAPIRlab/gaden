@@ -34,9 +34,6 @@
 #include "gaden/internal/Time.hpp"
 #include <gaden_common/Visualization.hpp>
 
-#ifdef TRACY_ENABLE
-#include <tracy/Tracy.hpp>
-#endif
 
 using namespace gaden;
 
@@ -45,13 +42,6 @@ using namespace gaden;
 //==============================//
 int main(int argc, char** argv)
 {
-#ifdef TRACY_ENABLE
-    GADEN_WARN("Profiling is enabled. Waiting for connection with tracy server...");
-    while (!TracyIsConnected)
-        ;
-    GADEN_INFO("Server ready, let's go.");
-#endif
-
     // Init ROS-NODE
     rclcpp::init(argc, argv);
 
