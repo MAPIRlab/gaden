@@ -34,7 +34,6 @@
 #include "gaden/internal/Time.hpp"
 #include <gaden_common/Visualization.hpp>
 
-
 using namespace gaden;
 
 //==============================//
@@ -47,7 +46,7 @@ int main(int argc, char** argv)
 
     // Create simulator obj and initialize it
     auto sim = std::make_shared<FilamentSimulator>();
-    
+
     gaden::Utils::Time::Stopwatch stopwatch;
     sim->Run();
     if (rclcpp::ok())

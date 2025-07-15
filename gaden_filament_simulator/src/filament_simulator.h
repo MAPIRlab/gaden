@@ -35,7 +35,6 @@ private:
     std::optional<gaden::RunningSimulation> sim;
 
     rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr rotorPositionSub;
-
     rclcpp::Publisher<Marker>::SharedPtr gasPublisher;
     rclcpp::Publisher<MarkerArray>::SharedPtr sourcePublisher;
 };

@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 project(gaden_common)
 
-set(PROFILING ON)
-
 find_package(ament_cmake REQUIRED)
 find_package(fmt REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -32,9 +30,13 @@ ament_export_include_directories(
     third_party/DDA/third_party/glm
 )
 
+get_target_property(GADEN_DEFS gaden COMPILE_DEFINITIONS)
 ament_export_definitions(GADEN_ROS=1)
-if(${PROFILING})
+if(GADEN_DEFS MATCHES "PROFILING")
     ament_export_definitions(TRACY_ENABLE)
+endif()
+if(GADEN_DEFS MATCHES "GPU_ACCELERATION")
+    ament_export_definitions(GPU_ACCELERATION=1)
 endif()
 
 # Install libraries / include dirs
