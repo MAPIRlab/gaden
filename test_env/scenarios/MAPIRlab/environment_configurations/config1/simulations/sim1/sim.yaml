@@ -14,7 +14,7 @@ numFilaments_sec: 10
 expectedNumIterations: 600
 saveResults: true
 saveDeltaTime: 0.5
-preCalculateConcentrations: false
+preCalculateConcentrations: true
 windLooping:
   loop: false
   from: 0

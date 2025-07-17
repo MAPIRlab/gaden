@@ -32,7 +32,7 @@ ament_export_include_directories(
 
 get_target_property(GADEN_DEFS gaden COMPILE_DEFINITIONS)
 ament_export_definitions(GADEN_ROS=1)
-if(GADEN_DEFS MATCHES "PROFILING")
+if(GADEN_DEFS MATCHES "TRACY_ENABLE")
     ament_export_definitions(TRACY_ENABLE)
 endif()
 if(GADEN_DEFS MATCHES "GPU_ACCELERATION")

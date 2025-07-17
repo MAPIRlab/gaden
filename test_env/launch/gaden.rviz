@@ -44,7 +44,7 @@ Visualization Manager:
       Enabled: true
       Name: Filaments
       Namespaces:
-        {}
+        "": true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -57,7 +57,7 @@ Visualization Manager:
       Enabled: true
       Name: GasDistribution
       Namespaces:
-        Gas_Dispersion: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -84,12 +84,6 @@ Visualization Manager:
       Name: Environment_CAD
       Namespaces:
         part_0: true
-        part_1: true
-        part_2: true
-        part_3: true
-        part_4: true
-        part_5: true
-        part_6: true
       Topic:
         Depth: 5
         Durability Policy: Transient Local
@@ -344,16 +338,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 12.769888877868652
+      Distance: 14.68342399597168
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 5.032149314880371
-        Y: 6.13698148727417
-        Z: 0.42886969447135925
+        X: 4.817111492156982
+        Y: 1.7775311470031738
+        Z: -1.7379428148269653
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

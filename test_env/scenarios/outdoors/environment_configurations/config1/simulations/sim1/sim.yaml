@@ -1,6 +1,6 @@
 source:
   sourceType: point
-  position: [0, 0, 1.35]
+  position: [-12.55, 0, 1.35]
   gasType: 0
 deltaTime: 0.1
 windIterationDeltaTime: 1
@@ -14,7 +14,7 @@ numFilaments_sec: 10
 expectedNumIterations: 600
 saveResults: true
 saveDeltaTime: 0.5
-preCalculateConcentrations: false
+preCalculateConcentrations: true
 windLooping:
   loop: true
   from: 0
