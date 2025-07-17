@@ -28,6 +28,7 @@ ament_export_include_directories(
     include
     third_party/DDA/include
     third_party/DDA/third_party/glm
+    third_party/libbsc
 )
 
 get_target_property(GADEN_DEFS gaden COMPILE_DEFINITIONS)
@@ -60,6 +61,11 @@ install(
 
 install(
     DIRECTORY third_party/gaden_core/third_party/DDA
+    DESTINATION third_party
+)
+
+install(
+    DIRECTORY third_party/gaden_core/third_party/libbsc
     DESTINATION third_party
 )
 
