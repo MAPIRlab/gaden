@@ -31,7 +31,7 @@ private:
     gaden::PlaybackSceneMetadata playbackMetadata;
     std::optional<gaden::Scene> Scene;
 
-    gaden::EnvironmentConfiguration environmentConfig;
+    std::shared_ptr<gaden::EnvironmentConfiguration> environmentConfig;
     std::optional<gaden::EnvironmentConfigMetadata> gadenProject;
 
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr sourceMarkerPub;

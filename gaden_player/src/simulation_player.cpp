@@ -86,6 +86,8 @@ void Player::run()
         GADEN_CHECK_RESULT(gadenProject->ReadDirectory());
     }
 
+    environmentConfig = std::make_shared<gaden::EnvironmentConfiguration>();
+
     // Read Node Parameters
     if (gadenProject)
         loadGadenProject();
@@ -174,7 +176,7 @@ void Player::loadNodeParameters()
 
     // Initial iteration
     std::filesystem::path occupancyFile = declare_parameter<std::string>("occupancyFile", "");
-    GADEN_CHECK_RESULT(environmentConfig.environment.ReadFromFile(occupancyFile));
+    GADEN_CHECK_RESULT(environmentConfig->environment.ReadFromFile(occupancyFile));
 
     // Loop
     playbackMetadata.loop.loop = declare_parameter<bool>("allow_looping", false);
@@ -187,11 +189,11 @@ void Player::loadGadenProject()
     std::string playbackID = declare_parameter<std::string>("playbackID", "");
     try
     {
-        playbackMetadata = gadenProject->scenes.at(playbackID);
+        playbackMetadata = gadenProject->GetPlaybackScene(playbackID);
         playbackMetadata.gasDisplayColors.resize(playbackMetadata.gasDisplayColors.size());
 
         std::filesystem::path occupancyFile = gadenProject->rootDirectory / "OccupancyGrid3D.csv";
-        GADEN_CHECK_RESULT(environmentConfig.environment.ReadFromFile(occupancyFile));
+        GADEN_CHECK_RESULT(environmentConfig->environment.ReadFromFile(occupancyFile));
     }
     catch (std::exception const& e)
     {
@@ -228,7 +230,7 @@ void Player::initSimulations()
         GADEN_TERMINATE;
     }
 
-    environmentConfig.windSequence.Initialize(windFiles, environmentConfig.environment.numCells(), {});
+    environmentConfig->windSequence.Initialize(windFiles, environmentConfig->environment.numCells(), {});
     Scene.emplace(playbackMetadata, environmentConfig);
 }
 
@@ -315,7 +317,7 @@ size_t Player::FillMarkerArray(std::vector<geometry_msgs::msg::Point>& points, s
 size_t Player::FillMarkerArrayConcentrations(std::vector<geometry_msgs::msg::Point>& points, const std::shared_ptr<gaden::Simulation> sim)
 {
     size_t count = 0;
-    auto const& env = sim->config.environment;
+    auto const& env = sim->config->environment;
 
 #pragma omp parallel for
     for (size_t i = 0; i < env.numCells(); i++)

@@ -61,9 +61,7 @@ void FilamentSimulator::Run()
     float maxSimTime = getParameter("sim_time", 300.f);
 
     RunningSimulation::Parameters params;
-    EnvironmentConfiguration envConfig;
-    std::vector<std::filesystem::path> windFiles;
-    std::filesystem::path environmentFile;
+    std::shared_ptr<EnvironmentConfiguration> envConfig;
 
     std::filesystem::path projectPath = GadenUtils::getParam<std::string>(shared_from_this(), "projectPath", "");
     if (std::filesystem::exists(projectPath))
@@ -71,8 +69,12 @@ void FilamentSimulator::Run()
         gadenProject.emplace(projectPath);
         GADEN_CHECK_RESULT(gadenProject->ReadDirectory());
         params = gadenProject->simulations.at(getParameter<std::string>("simulationID", "sim"));
-        windFiles = GetWindFilePaths(projectPath / "wind");
-        environmentFile = projectPath / "OccupancyGrid3D.csv";
+        envConfig = EnvironmentConfiguration::ReadDirectory(projectPath);
+        if (!envConfig)
+        {
+            GADEN_ERROR("Could not read environment configuration from '{}'", projectPath);
+            GADEN_TERMINATE;
+        }
     }
 
     // if we don't have a gaden project directory (using old configurations) read the info from ros parameters
@@ -109,6 +111,8 @@ void FilamentSimulator::Run()
 
         gaden::paths::TryCreateDirectory(params.saveDataDirectory);
 
+        std::vector<std::filesystem::path> windFiles;
+        std::filesystem::path environmentFile;
         std::string wind_data = getParameter<std::string>("wind_data", "");
         windFiles = GetWindFilePaths(wind_data);
 
@@ -122,17 +126,17 @@ void FilamentSimulator::Run()
         }
 
         environmentFile = getParameter<std::string>("occupancy3D_data", "");
-    }
 
-    GADEN_CHECK_RESULT(envConfig.environment.ReadFromFile(environmentFile));
-    envConfig.windSequence.Initialize(windFiles, envConfig.environment.numCells(), params.windLoop);
+        GADEN_CHECK_RESULT(envConfig->environment.ReadFromFile(environmentFile));
+        envConfig->windSequence.Initialize(windFiles, envConfig->environment.numCells(), params.windLoop);
+    }
 
     sim.emplace(params, envConfig);
     sim->gasDisplayColor = {.r = 0, .g = 0, .b = 1, .a = 1}; // do we want to bother reading this as a parameter?
 
     // old launch files require the wind data to be copied inside the results folder
     if (!gadenProject)
-        envConfig.windSequence.WriteToFiles(params.saveDataDirectory / "wind", "wind_iteration");
+        envConfig->windSequence.WriteToFiles(params.saveDataDirectory / "wind", "wind_iteration");
 
     // Start the simulation
     //--------------------------
@@ -161,8 +165,8 @@ void FilamentSimulator::AddAirflowDisturbance(const geometry_msgs::msg::PointSta
     Vector3 dronePosition(rotorPosition->point.x, rotorPosition->point.y, rotorPosition->point.z);
     gaden::Airflow::QuadrotorDisturbanceFarField::ModifyField(
         dronePosition,
-        sim->localAirflowDisturbances,
-        sim->config.environment,
+        sim->config->localAirflowDisturbances,
+        sim->config->environment,
         0.12, 0.23, 0.07,
         sim->GetParameters().pressure,
         sim->GetParameters().temperature);
