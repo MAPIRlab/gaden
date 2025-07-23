@@ -68,7 +68,7 @@ void FilamentSimulator::Run()
     {
         gadenProject.emplace(projectPath);
         GADEN_CHECK_RESULT(gadenProject->ReadDirectory());
-        params = gadenProject->simulations.at(getParameter<std::string>("simulationID", "sim"));
+        params = gadenProject->GetSimulationParams(getParameter<std::string>("simulationID", "sim"));
         envConfig = EnvironmentConfiguration::ReadDirectory(projectPath);
         if (!envConfig)
         {
@@ -128,7 +128,7 @@ void FilamentSimulator::Run()
         environmentFile = getParameter<std::string>("occupancy3D_data", "");
 
         GADEN_CHECK_RESULT(envConfig->environment.ReadFromFile(environmentFile));
-        envConfig->windSequence.Initialize(windFiles, envConfig->environment.numCells(), params.windLoop);
+        envConfig->windSequence.Initialize(windFiles, envConfig->environment.numCells(), params.windLoop ? *params.windLoop : LoopConfig{});
     }
 
     sim.emplace(params, envConfig);
