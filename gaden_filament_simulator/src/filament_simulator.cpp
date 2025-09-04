@@ -127,6 +127,7 @@ void FilamentSimulator::Run()
 
         environmentFile = getParameter<std::string>("occupancy3D_data", "");
 
+        envConfig = std::make_shared<gaden::EnvironmentConfiguration>();
         GADEN_CHECK_RESULT(envConfig->environment.ReadFromFile(environmentFile));
         envConfig->windSequence.Initialize(windFiles, envConfig->environment.numCells(), params.windLoop ? *params.windLoop : LoopConfig{});
     }
