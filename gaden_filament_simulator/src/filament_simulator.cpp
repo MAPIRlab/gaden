@@ -141,7 +141,8 @@ void FilamentSimulator::Run()
 
     // Start the simulation
     //--------------------------
-    float runRate = getParameter("runRate", 0.0); // 0 means as fast as possible
+    bool limitRate = getParameter("limitRate", false);
+    float runRate = limitRate ? getParameter("runRate", 10.0) : 10.0;
     rclcpp::Rate rate(runRate);
     while (rclcpp::ok() && sim->GetCurrentTime() < maxSimTime)
     {
@@ -149,11 +150,9 @@ void FilamentSimulator::Run()
         const auto& filaments = sim->GetFilaments();
         publishMarkers(filaments);
 
-        if (runRate > 0)
-        {
-            rclcpp::spin_some(shared_from_this());
+        rclcpp::spin_some(shared_from_this());
+        if (limitRate)
             rate.sleep();
-        }
     }
     sim = std::nullopt;
 }
