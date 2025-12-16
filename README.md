@@ -6,7 +6,8 @@ GADEN is a simulation framework designed for mobile robotics systems and gas sen
 
 Moreover, it integrates the simulation of different environmental sensors, such as metal oxide gas sensors, photo-ionization detectors, T-DLAS or anemometers, as well as it is fully integrated with ROS and the navigation stack, making testing and validation much easier.
 
-A demonstration video can be seen at the [MAPIRlab channel on YouTube](https://www.youtube.com/watch?v=ZPGtk8KLtiE&ab_channel=MAPIRUMA).
+## Video showcase
+[![Video showcase](https://img.youtube.com/vi/2i3_pyV-MYU/hqdefault.jpg)](https://youtu.be/2i3_pyV-MYU)
 
 You can cite Gaden in your work using the following .bib:
 
