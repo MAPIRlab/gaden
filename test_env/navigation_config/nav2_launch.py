@@ -23,6 +23,8 @@ def launch_setup(context, *args, **kwargs):
         my_dir,
         "scenarios",
         LaunchConfiguration("scenario").perform(context),
+        "environment_configurations",
+        LaunchConfiguration("configuration").perform(context),
         "occupancy.yaml",
     )
     namespace = LaunchConfiguration("namespace").perform(context)
@@ -118,6 +120,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument("namespace", default_value="PioneerP3DX"),
             DeclareLaunchArgument("scenario", default_value="Exp_C"),  # required
+            DeclareLaunchArgument("configuration", default_value="config1"),  # required
             DeclareLaunchArgument(
                 "nav_params_yaml",
                 default_value=os.path.join(

@@ -1,0 +1,11 @@
+models:
+  - ../../cad_models/10x6_central_obstacle.stl
+  - ../../cad_models/10x6_walls.stl
+outlets_models:
+  - "!color [0.89, 0.27, 0.27, 1.00]"
+  - ../../cad_models/10x6_door_left.stl
+  - ../../cad_models/10x6_door_right.stl
+unprocessed_wind_files: ../../wind_simulations/1ms/wind_at_cell_centers
+empty_point: [1.35, 2.05, 0]
+cell_size: 0.1
+uniformWind: false

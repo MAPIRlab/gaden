@@ -1,5 +1,18 @@
-## 2.6.3
+## 3.0.0
+Big changes! You can see a summary of the current state of the project in the [Gaden-RT paper](https://www.sciencedirect.com/science/article/pii/S2352711025003541). Not everything discussed in the paper has happened since the last version (some of the changes have been around for a while), but quite a few things are new.
+
+### Major changes
+- Completely changed repository structure! Gaden is now organized around a standalone library, [gaden_core](https://github.com/MAPIRlab/gaden_core), with this set of packages serving solely as a ROS interface. The functionality of these packages remains the same, for compatibility.
+- New structure for gaden projects! As can be seen in the `test_env` examples, there is now a "gaden project" file type, which tells the library where to find the files that describe environment configurations, wind data, etc. The configuration of each specific aspect of the project is now done through ROS-free `yaml` files, which should be much easier to work with than the old way of cramming all the parameters in the launch files. However, the gaden ROS nodes still understand the old launch files, so you don't need to reconfigure old projects.
+- New GUI! The new [gaden_gui](https://github.com/MAPIRlab/gaden_gui) frontend allows you to easily set up new projects or modify existing ones, as well as running the simulations with immediate visual feedback. This frontend can be installed on its own, but it can also be accessed through ROS with `ros2 run gaden_common gaden_gui`.
+- GPU acceleration! We brought back the old pre-computed dense concentration maps as a possible output from gaden, as there are applications (e.g. machine learning) where this dense information is desirable. However, due to how much computation these require, we have also added (optional) GPU acceleration for the computation of these dense maps through OpenCL and boost::compute. This feature can be toggled on and off in the `CMakeLists.txt` of the `gaden_core` library.
+- Source shapes! You can now specify the source shape, using boxes, spheres, cylinders and lines (on top of the classic adimensional point).
+
 ### Minor changes
+- Reduced outgoing message queue size for simulated sensors.
+
+## 2.6.3
+### Bug Fixes
 - Fixed a problem where the preprocessing launch file in `test_env` would throw an error if `coppelia_ros2_pkg` could not be found, even when `generateCoppeliaScene` was set to `False`.
 
 ## 2.6.2
@@ -8,7 +21,7 @@
 - Added optional `gas_display_color_{i}` param to player node to control the color of the gas markers.
 
 ## 2.6.1
-# Bug Fixes
+### Bug Fixes
 - Fixed a bug with file parsing in previous commit
 
 ## 2.6.0

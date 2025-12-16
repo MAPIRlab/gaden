@@ -1,0 +1,12 @@
+models:
+  - ../../cad_models/MAPIRlab_tables.stl
+  - ../../cad_models/MAPIRlab_walls.stl
+  - ../../cad_models/MAPIRlab_wardrobes.stl
+outlets_models:
+  - "!color [0.87, 0.27, 0.27, 1.00]"
+  - ../../cad_models/MAPIRlab_doors.stl
+  - ../../cad_models/MAPIRlab_windows.stl
+unprocessed_wind_files: ../../wind_simulations/W1/wind_at_cell_centers
+empty_point: [4.35, 0, 0]
+cell_size: 0.1
+uniformWind: false

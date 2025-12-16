@@ -1,7 +1,7 @@
 import os
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument,SetLaunchConfiguration,IncludeLaunchDescription,SetEnvironmentVariable,OpaqueFunction,GroupAction
+from launch.actions import DeclareLaunchArgument, SetLaunchConfiguration, IncludeLaunchDescription, SetEnvironmentVariable, OpaqueFunction, GroupAction
 from launch.launch_description_sources import FrontendLaunchDescriptionSource, PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
@@ -9,19 +9,25 @@ from ament_index_python.packages import get_package_share_directory
 from launch.frontend.parse_substitution import parse_substitution
 import xacro
 
-#===========================
+# ===========================
+
+
 def launch_arguments():
     return [
-        DeclareLaunchArgument("scenario", default_value="Exp_C"),
+        DeclareLaunchArgument("scenario", default_value="10x6_central_obstacle"),
+        DeclareLaunchArgument("configuration", default_value="config1"),
         DeclareLaunchArgument("simulation", default_value="sim1"),
         DeclareLaunchArgument("namespace", default_value="PioneerP3DX"),
-        DeclareLaunchArgument("robot_simulator", default_value="BasicSim"), # supported [BasicSim, Coppelia]
     ]
-#==========================
+# ==========================
+
 
 def launch_setup(context, *args, **kwargs):
     share_dir = get_package_share_directory("test_env")
     namespace = LaunchConfiguration("namespace").perform(context)
+    scenario = LaunchConfiguration("scenario").perform(context)
+    simulation = LaunchConfiguration("simulation").perform(context)
+    configuration = LaunchConfiguration("configuration").perform(context)
 
     # robot description for state_publisher
     robot_desc = xacro.process_file(
@@ -37,45 +43,19 @@ def launch_setup(context, *args, **kwargs):
             parameters=[{"use_sim_time": True, "robot_description": robot_desc}],
         ),
     ]
-    
-    robot_simulator = []
-    simulator_mode = str(LaunchConfiguration("robot_simulator").perform(context))
-    if  simulator_mode == "Coppelia":
-        robot_simulator = [
-            IncludeLaunchDescription(
-                FrontendLaunchDescriptionSource(
-                    os.path.join(
-                        get_package_share_directory("coppelia_ros2_pkg"),
-                        "launch/coppeliaSim.launch",
-                    )
-                ),
-                launch_arguments={
-                    "coppelia_scene_path": PathJoinSubstitution(
-                        [
-                            get_package_share_directory("test_env"),
-                            "scenarios",
-                            LaunchConfiguration("scenario").perform(context),
-                            "coppeliaScene.ttt",
-                        ]
-                    ),
-                    "coppelia_headless": "True",
-                    "autoplay": "True",
-                }.items(),
-            )
-        ]
-    elif simulator_mode == "BasicSim":
-        robot_simulator = [
-            Node(
-                package="basic_sim",
-                executable="basic_sim",
-                prefix = "xterm -hold -e",
-                parameters=[
-                    {"deltaTime": 0.1},
-                    {"speed": 1.0},
-                    {"worldFile": os.path.join(share_dir, "scenarios", LaunchConfiguration("scenario").perform(context), "BasicSimScene.yaml")}
-                    ],
-            )
-        ]
+
+    robot_simulator = [
+        Node(
+            package="basic_sim",
+            executable="basic_sim",
+            prefix="xterm -hold -e",
+            parameters=[
+                {"deltaTime": 0.03},
+                {"speed": 1.0},
+                {"worldFile": os.path.join(share_dir, "scenarios", scenario, "environment_configurations", configuration, "BasicSimScene.yaml")}
+            ],
+        )
+    ]
 
     gaden_player = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -89,8 +69,9 @@ def launch_setup(context, *args, **kwargs):
         ),
         launch_arguments={
             "use_rviz": "True",
-            "scenario": LaunchConfiguration("scenario").perform(context),
-            "simulation": LaunchConfiguration("simulation").perform(context)
+            "scenario": scenario,
+            "configuration": configuration,
+            "simulation": simulation
         }.items(),
     )
 
@@ -110,17 +91,16 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
-
     anemometer = [
         Node(
             package="simulated_anemometer",
             executable="simulated_anemometer",
             name="fake_anemometer",
             parameters=[
-                {"sensor_frame" : parse_substitution("$(var namespace)_anemometer_frame") },
-                {"fixed_frame" : "map"},
-                {"noise_std" : 0.3},
-                {"use_map_ref_system" : False},
+                {"sensor_frame": parse_substitution("$(var namespace)_anemometer_frame")},
+                {"fixed_frame": "map"},
+                {"noise_std": 0.3},
+                {"use_map_ref_system": False},
                 {'use_sim_time': True},
             ]
         ),
@@ -128,7 +108,7 @@ def launch_setup(context, *args, **kwargs):
             package='tf2_ros',
             executable='static_transform_publisher',
             name='anemometer_tf_pub',
-            arguments = ['0', '0', '0.5', '1.0', '0.0', '0', '0', parse_substitution('$(var namespace)_base_link'), parse_substitution('$(var namespace)_anemometer_frame')],
+            arguments=['0', '0', '0.5', '1.0', '0.0', '0', '0', parse_substitution('$(var namespace)_base_link'), parse_substitution('$(var namespace)_anemometer_frame')],
             parameters=[{'use_sim_time': True}]
         ),
     ]
@@ -139,10 +119,10 @@ def launch_setup(context, *args, **kwargs):
             executable="simulated_gas_sensor",
             name="fake_pid",
             parameters=[
-                {"sensor_model" : 30 },
-                {"sensor_frame" : parse_substitution("$(var namespace)_pid_frame") },
-                {"fixed_frame" : "map"},
-                {"noise_std" : 20.1},
+                {"sensor_model": 30},
+                {"sensor_frame": parse_substitution("$(var namespace)_pid_frame")},
+                {"fixed_frame": "map"},
+                {"noise_std": 20.1},
                 {'use_sim_time': True},
             ]
         ),
@@ -150,22 +130,48 @@ def launch_setup(context, *args, **kwargs):
             package='tf2_ros',
             executable='static_transform_publisher',
             name='pid_tf_pub',
-            arguments = ['0', '0', '0.5', '1.0', '0.0', '0', '0', parse_substitution('$(var namespace)_base_link'), parse_substitution('$(var namespace)_pid_frame')],
+            arguments=['0', '0', '0.5', '1.0', '0.0', '0', '0', parse_substitution('$(var namespace)_base_link'), parse_substitution('$(var namespace)_pid_frame')],
+            parameters=[{'use_sim_time': True}]
+        ),
+    ]
+
+    TDLAS = [
+        Node(
+            package="simulated_tdlas",
+            executable="simulated_tdlas",
+            name="simulated_tdlas",
+            parameters=[
+                {"sensor_model": 30},
+                {"sensor_frame": parse_substitution("$(var namespace)_pid_frame")},
+                {"fixed_frame": "map"},
+                {"noise_std": 20.1},
+                {'use_sim_time': True},
+                {'verbose': True},
+            ]
+        ),
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='pid_tf_pub',
+            arguments=['0', '0', '0.75', '1.0', '0.0', '0', '0', 
+                       parse_substitution('$(var namespace)_base_link'), 
+                       parse_substitution('tdlas_frame')],
             parameters=[{'use_sim_time': True}]
         ),
     ]
 
     namespaced_actions = [PushRosNamespace(namespace)]
     namespaced_actions.extend(visualization_nodes)
-    
+
     other_actions = [gaden_player]
     other_actions.extend(robot_simulator)
     other_actions.extend(anemometer)
     other_actions.extend(PID)
     other_actions.append(nav2_nodes)
-    return [GroupAction(actions=namespaced_actions), 
+    other_actions.extend(TDLAS)
+    return [GroupAction(actions=namespaced_actions),
             GroupAction(actions=other_actions)
-        ]
+            ]
 
 
 def generate_launch_description():
@@ -185,8 +191,8 @@ def generate_launch_description():
             )],
         ),
     ]
-    
+
     launch_description.extend(launch_arguments())
     launch_description.append(OpaqueFunction(function=launch_setup))
-    
-    return  LaunchDescription(launch_description)
+
+    return LaunchDescription(launch_description)

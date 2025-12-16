@@ -1,0 +1,10 @@
+models:
+  - ../../cad_models/10x6_walls.stl
+outlets_models:
+  - "!color [0.86, 0.19, 0.19, 1.00]"
+  - ../../cad_models/10x6_door_left.stl
+  - ../../cad_models/10x6_door_right.stl
+unprocessed_wind_files: ../../wind_simulations/dynamic/wind_at_cell_centers
+empty_point: [0.5, 0.95, 0]
+cell_size: 0.1
+uniformWind: false

@@ -7,33 +7,20 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${CMAKE_CXX_FLAGS}")
 
 
-set(CMAKE_CXX_STANDARD 17)
 
+set(CMAKE_CXX_STANDARD 20)
 
-
+# Ament dependencies
+find_package(ament_cmake_auto REQUIRED)
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(visualization_msgs REQUIRED)
-find_package(gaden_msgs REQUIRED)
-find_package(gaden_common REQUIRED)
+ament_auto_find_build_dependencies()
+find_package(OpenMP REQUIRED)
 
 include_directories(include)
 
-add_executable(environment src/environment.cpp)
+ament_auto_add_executable(environment src/environment.cpp)
 
-
-
-ament_target_dependencies(environment
-    rclcpp
-    std_msgs
-    visualization_msgs
-    geometry_msgs
-    gaden_common
-    gaden_msgs
-) 
-
+target_link_libraries(environment OpenMP::OpenMP_CXX)
   
 install(
   TARGETS environment

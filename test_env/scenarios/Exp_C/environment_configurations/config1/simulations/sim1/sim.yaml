@@ -1,0 +1,23 @@
+source:
+  sourceType: cylinder
+  radius: 0.4
+  height: 1.45
+  position: [0.95, 8.4, 1.7]
+  gasType: 0
+deltaTime: 0.1
+windIterationDeltaTime: 1
+temperature: 298
+pressure: 1
+filamentPPMcenter: 20
+filamentInitialSigma: 10
+filamentGrowthGamma: 10
+filamentNoise_std: 0.02
+numFilaments_sec: 10
+expectedNumIterations: 600
+saveResults: true
+saveDeltaTime: 0.5
+preCalculateConcentrations: false
+windLooping:
+  loop: false
+  from: 0
+  to: 0

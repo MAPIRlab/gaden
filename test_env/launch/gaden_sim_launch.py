@@ -16,14 +16,8 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterFile
 from ament_index_python.packages import get_package_share_directory
 
-# Internal gaden utilities
-import sys
-sys.path.append(get_package_share_directory('gaden_common'))
-from gaden_internal_py.utils import read_sim_yaml
 
-
-
-#===========================
+# ===========================
 def launch_arguments():
     return [
         DeclareLaunchArgument(
@@ -32,12 +26,17 @@ def launch_arguments():
             description="scenario to simulate",
         ),
         DeclareLaunchArgument(
+            "configuration",
+            default_value=["config1"],
+            description="name of the configuration",
+        ),
+        DeclareLaunchArgument(
             "simulation",
             default_value=["sim1"],
-            description="name of the simulation yaml file",
+            description="name of the simulation",
         ),
     ]
-#==========================
+# ==========================
 
 
 def launch_setup(context, *args, **kwargs):
@@ -45,19 +44,17 @@ def launch_setup(context, *args, **kwargs):
     pkg_dir = LaunchConfiguration("pkg_dir").perform(context)
 
     params_yaml_file = os.path.join(
-        pkg_dir, "scenarios", scenario, "params", "gaden_params.yaml"
+        pkg_dir, "ros_params", "gaden_params.yaml"
     )
-    
-    read_sim_yaml(context)
-    
+
     return [
         Node(
-                package='rviz2',
-                executable='rviz2',
-                name='rviz2',
-                output='screen',
-                arguments=['-d' + os.path.join(pkg_dir, 'launch', 'gaden.rviz')]
-            ),
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            output='screen',
+            arguments=['-d' + os.path.join(pkg_dir, 'launch', 'gaden.rviz')]
+        ),
 
         # gaden_environment (for RVIZ visualization)
         Node(
@@ -66,7 +63,7 @@ def launch_setup(context, *args, **kwargs):
             name='gaden_environment',
             output='screen',
             parameters=[ParameterFile(params_yaml_file, allow_substs=True)]
-            ),
+        ),
 
         # gaden_filament_simulator (The core)
         Node(
@@ -74,8 +71,11 @@ def launch_setup(context, *args, **kwargs):
             executable='filament_simulator',
             name='gaden_filament_simulator',
             output='screen',
-            parameters=[ParameterFile(params_yaml_file, allow_substs=True)]
-            )
+            parameters=[ParameterFile(params_yaml_file, allow_substs=True),
+                        {"sim_time": 300.0},
+                        {"runRate": 0.0}
+                        ]
+        )
     ]
 
 
@@ -90,9 +90,10 @@ def generate_launch_description():
             name="pkg_dir",
             value=[get_package_share_directory("test_env")],
         ),
+        SetLaunchConfiguration(name="playback", value="none"),
     ]
-    
+
     launch_description.extend(launch_arguments())
     launch_description.append(OpaqueFunction(function=launch_setup))
-    
-    return  LaunchDescription(launch_description)
+
+    return LaunchDescription(launch_description)

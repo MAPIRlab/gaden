@@ -8,10 +8,16 @@
 
   <!-- One license tag required, multiple allowed, one license per tag -->
   <license>LGPLv3</license>
-
-
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>rclcpp</depend>
+  <depend>std_msgs</depend> 
+  <depend>visualization_msgs</depend> 
+
+  <!--Optional dependency (only if you are compiling the GUI), but it must be listed here for compilation ordering-->
+  <!--Also, if you *are* compiling the GUI, but don't have this installed, it will be downloaded from git automatically-->
+  <depend>ament_imgui</depend> 
+  
   <export>
     <build_type>ament_cmake</build_type>
   </export>

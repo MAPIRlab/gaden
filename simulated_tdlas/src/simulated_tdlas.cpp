@@ -1,4 +1,5 @@
 #include "simulated_tdlas.h"
+#include "gaden/internal/MathUtils.hpp"
 #include <tf2_ros/buffer_interface.h>
 using namespace std::chrono_literals;
 
@@ -12,7 +13,8 @@ int main(int argc, char** argv)
     return 0;
 }
 
-TDLAS::TDLAS() : rclcpp::Node("Simulated_tdlas")
+TDLAS::TDLAS()
+    : rclcpp::Node("Simulated_tdlas")
 {
     m_tfBuffer = std::make_unique<tf2_ros::Buffer>(get_clock());
     m_tfListener = std::make_unique<tf2_ros::TransformListener>(*m_tfBuffer);
@@ -62,7 +64,6 @@ void TDLAS::run()
 
 void TDLAS::getEnvironment()
 {
-
     gaden_msgs::srv::Occupancy::Response::SharedPtr response{nullptr};
     {
         auto client = create_client<gaden_msgs::srv::Occupancy>("/gaden_environment/occupancyMap3D");
@@ -89,50 +90,40 @@ void TDLAS::getEnvironment()
     }
 
     double resoultionRatio = response->resolution / m_rayMarchResolution;
-    int num_cells_x = response->num_cells_x * resoultionRatio;
-    int num_cells_y = response->num_cells_y * resoultionRatio;
-    int num_cells_z = response->num_cells_z * resoultionRatio;
+    m_mapDimensions.x = response->num_cells_x * resoultionRatio;
+    m_mapDimensions.y = response->num_cells_y * resoultionRatio;
+    m_mapDimensions.z = response->num_cells_z * resoultionRatio;
 
     m_mapOrigin.x = response->origin.x;
     m_mapOrigin.y = response->origin.y;
     m_mapOrigin.z = response->origin.z;
 
-    m_map.resize(num_cells_x, std::vector<std::vector<bool>>(num_cells_y, std::vector<bool>(num_cells_z)));
+    m_map.resize(m_mapDimensions.x * m_mapDimensions.y * m_mapDimensions.z);
 
-    auto cellFree = [&response, resoultionRatio](int argI, int argJ, int argK)
+    auto cellFree = [&response, resoultionRatio, this](int argI, int argJ, int argK)
     {
         int nx = response->num_cells_x;
         int ny = response->num_cells_y;
         bool cellIsFree = true;
         for (int i = argI / resoultionRatio; i < (argI + 1) / resoultionRatio; i++)
-        {
             for (int j = argJ / resoultionRatio; j < (argJ + 1) / resoultionRatio; j++)
-            {
                 for (int k = argK / resoultionRatio; k < (argK + 1) / resoultionRatio; k++)
                 {
-                    int value = response->occupancy[i + j * nx + k * nx * ny];
+                    int value = response->occupancy[gaden::indexFrom3D({i, j, k}, {m_mapDimensions})];
                     cellIsFree = cellIsFree && value == 0;
                 }
-            }
-        }
+
         return cellIsFree;
     };
 
-    for (int i = 0; i < m_map.size(); i++)
-    {
-        for (int j = 0; j < m_map[0].size(); j++)
-        {
-            for (int k = 0; k < m_map[0][0].size(); k++)
-            {
-                m_map[i][j][k] = cellFree(i, j, k);
-            }
-        }
-    }
+    for (int i = 0; i < m_mapDimensions.x; i++)
+        for (int j = 0; j < m_mapDimensions.y; j++)
+            for (int k = 0; k < m_mapDimensions.z; k++)
+                m_map[gaden::indexFrom3D({i, j, k}, {m_mapDimensions})] = cellFree(i, j, k);
 }
 
 void TDLAS::updatePoseInFixedFrame()
 {
-
     tf2::Stamped<tf2::Transform> poseInSensorFrame(tf2::Transform(tf2::Quaternion::getIdentity(), {0, 0, 0}), tf2_ros::fromRclcpp(now()),
                                                    m_sensor_frame);
     geometry_msgs::msg::TransformStamped poseInSensorFrame_msg = tf2::toMsg(poseInSensorFrame);
@@ -155,7 +146,10 @@ double TDLAS::takeMeasurement()
 
     gaden::Vector3 rayDirection = m_poseInFixedFrame.forward();
 
-    static auto identity = [](const bool& b) { return b; };
+    static auto identity = [](const bool& b)
+    {
+        return b;
+    };
 
     static auto doesNotCollideWithReflector = [this](const glm::vec3& position)
     {
@@ -165,9 +159,9 @@ double TDLAS::takeMeasurement()
         return glm::distance(position, projectedCenter) > m_reflectorRobot.radius;
     };
 
-    static DDA::_3D::Map<bool> DDAMap {m_map, m_mapOrigin, m_rayMarchResolution};
-    DDA::_3D::RayMarchInfo rayData = DDA::_3D::marchRay<bool>(rayOrigin, rayDirection, m_maxRayDistance, DDAMap,
-                                                              identity, doesNotCollideWithReflector);
+    static DDA::_3D::Map<uint8_t> DDAMap{m_map, m_mapOrigin, m_rayMarchResolution, m_mapDimensions};
+    DDA::_3D::RayMarchInfo rayData = DDA::_3D::marchRay<uint8_t>(rayOrigin, rayDirection, m_maxRayDistance, DDAMap,
+                                                                 identity, doesNotCollideWithReflector);
 
     // record endpoint for the rviz marker
     if (rayData.lengthInCell.size() != 0)
@@ -194,8 +188,7 @@ double TDLAS::takeMeasurement()
         {
             for (int g = 0; g < response->gas_type.size(); g++)
             {
-                // TODO add a hashmap that maps gas type to strength of sensor response for other gases
-                if (response->gas_type[g] == "methane")
+                // if (response->gas_type[g] == "methane")
                 {
                     totalMeasured += response->positions[i].concentration[g] * rayData.lengthInCell[i].second;
                 }

@@ -8,7 +8,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${CMAKE_CXX_FLAGS}")
 
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 
 find_package(ament_cmake REQUIRED)
@@ -28,7 +28,7 @@ find_package(gaden_environment REQUIRED)
 
 
 include_directories(
-	include 
+	src 
 )
 
 set(SOURCES_FILES 

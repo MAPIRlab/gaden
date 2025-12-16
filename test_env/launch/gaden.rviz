@@ -4,10 +4,10 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Environment_CAD1
-        - /Map1
+        - /Environment_CAD1/Topic1
         - /Map1/Topic1
         - /RobotModel1/Description Topic1
+        - /MarkerArray1
       Splitter Ratio: 0.6309859156608582
     Tree Height: 429
   - Class: rviz_common/Selection
@@ -32,7 +32,7 @@ Visualization Manager:
       Enabled: true
       Name: Source
       Namespaces:
-        gas_source_visualization: true
+        Gas_Dispersion: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -44,7 +44,7 @@ Visualization Manager:
       Enabled: true
       Name: Filaments
       Namespaces:
-        {}
+        "": true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -84,10 +84,9 @@ Visualization Manager:
       Name: Environment_CAD
       Namespaces:
         part_0: true
-        part_1: true
       Topic:
         Depth: 5
-        Durability Policy: Volatile
+        Durability Policy: Transient Local
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /environment_cad_visualization
@@ -232,56 +231,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        PioneerP3DX_base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_body:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_green_button:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_head:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_hokuyo_front:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_left_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_neck:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_red_button:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_right_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        PioneerP3DX_screen:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -302,6 +251,46 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /WindSensor_display
+      Value: true
+    - Alpha: 1
+      Class: rviz_default_plugins/PointStamped
+      Color: 204; 41; 204
+      Enabled: true
+      History Length: 1
+      Name: PointStamped
+      Radius: 0.20000000298023224
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /gaden/rotorPosition
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Marker
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /tdlas/arrow
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: MarkerArray
+      Namespaces:
+        Gas_Dispersion: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /source_visualization
       Value: true
   Enabled: true
   Global Options:
@@ -349,25 +338,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 19.894922256469727
+      Distance: 14.68342399597168
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 5.388160705566406
-        Y: 3.7608048915863037
-        Z: -0.7481930255889893
+        X: 4.817111492156982
+        Y: 1.7775311470031738
+        Z: -1.7379428148269653
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4797964096069336
+      Pitch: 1.1097967624664307
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.700453281402588
+      Yaw: 4.69545316696167
     Saved: ~
 Window Geometry:
   Displays:

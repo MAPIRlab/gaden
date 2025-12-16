@@ -16,11 +16,6 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterFile
 from ament_index_python.packages import get_package_share_directory
 
-# Internal gaden utilities
-import sys
-sys.path.append(get_package_share_directory('gaden_common'))
-from gaden_internal_py.utils import read_sim_yaml
-
 
 
 #===========================
@@ -28,33 +23,25 @@ def launch_arguments():
     return [
         DeclareLaunchArgument(
             "scenario",
-            default_value=["10x6_empty_room"],
+            default_value=["10x6_central_obstacle"],
             description="scenario to preprocess",
         ),
         DeclareLaunchArgument(
-            "simulation",
-            default_value=["sim1"],
-            description="name of the simulation yaml file",
-        ),
-        DeclareLaunchArgument(
-            "generateCoppeliaScene",
-            default_value=["False"],
-            description="(bool) whether to generate a coppelia scene from this environment. See the tutorial for requirements",
-        ),
+            "configuration",
+            default_value=["config1"],
+            description="name of the configuration yaml file",
+        ), 
     ]
 #==========================
 
 
 def launch_setup(context, *args, **kwargs):
     scenario = LaunchConfiguration("scenario").perform(context)
-    generateCoppeliaScene = LaunchConfiguration("generateCoppeliaScene").perform(context) == "True"
     pkg_dir = LaunchConfiguration("pkg_dir").perform(context)
 
     params_yaml_file = os.path.join(
-        pkg_dir, "scenarios", scenario, "params", "preproc_params.yaml"
+        pkg_dir, "ros_params", "gaden_params.yaml"
     )
-    
-    read_sim_yaml(context)
     
 
     ## NODES
@@ -66,35 +53,10 @@ def launch_setup(context, *args, **kwargs):
             prefix="",
             parameters=[
                 ParameterFile(params_yaml_file, allow_substs=True),
-                {"generateCoppeliaScene": generateCoppeliaScene},
             ],
         )
     returnList = [preprocessing]
 
-    if generateCoppeliaScene:
-        coppelia = IncludeLaunchDescription(
-                    FrontendLaunchDescriptionSource(
-                        os.path.join(
-                            get_package_share_directory("coppelia_ros2_pkg"),
-                            "launch/coppeliaSim.launch",
-                        )
-                    ),
-                    launch_arguments={
-                        "coppelia_scene_path": PathJoinSubstitution(
-                            [
-                                pkg_dir,
-                                "navigation_config",
-                                "resources",
-                                "default_coppelia_scene.ttt",
-                            ]
-                        ),
-                        "coppelia_headless": "True",
-                        "autoplay": "False",
-                    }.items(),
-                )
-    
-    
-        returnList.append(coppelia)
 
     return returnList
 
@@ -110,6 +72,8 @@ def generate_launch_description():
             name="pkg_dir",
             value=[get_package_share_directory("test_env")],
         ),
+        SetLaunchConfiguration(name="simulation", value="none"),
+        SetLaunchConfiguration(name="playback", value="none"),
     ]
     
     launch_description.extend(launch_arguments())
