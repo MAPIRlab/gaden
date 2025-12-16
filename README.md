@@ -34,9 +34,6 @@ You can cite Gaden in your work using the following .bib:
 }
 ```
 
-## Supported ROS versions
-Gaden 2 (this branch) supports only Humble, for now. You will likely run into compilation issues when using different versions. When a new ROS LTS is released we will probably migrate the project to it.
-
 ## Installation
 Move to your colcon workspace and run
 
