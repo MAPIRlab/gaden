@@ -1,3 +1,6 @@
+## Important!
+From 3.0 onwards, the main changelog is inside the gaden_core library. Information about the new versions will only appear here if there are ROS-specific changes.
+
 ## 3.0.0
 Big changes! You can see a summary of the current state of the project in the [Gaden-RT paper](https://www.sciencedirect.com/science/article/pii/S2352711025003541). Not everything discussed in the paper has happened since the last version (some of the changes have been around for a while), but quite a few things are new.
 
