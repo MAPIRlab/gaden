@@ -6,6 +6,8 @@ GADEN is a simulation framework designed for mobile robotics systems and gas sen
 
 Moreover, it integrates the simulation of different environmental sensors, such as metal oxide gas sensors, photo-ionization detectors, T-DLAS or anemometers, as well as it is fully integrated with ROS and the navigation stack, making testing and validation much easier.
 
+If you do not want to use ROS, gaden is available as a [standalone library](https://github.com/MAPIRlab/gaden_core) and a [graphical desktop application](https://github.com/MAPIRlab/gaden_gui).
+
 ## Video showcase
 [![Video showcase](https://img.youtube.com/vi/2i3_pyV-MYU/hqdefault.jpg)](https://youtu.be/2i3_pyV-MYU)
 
@@ -24,14 +26,14 @@ You can cite Gaden in your work using the following .bib:
 }
 
 @article{monroyGADEN3DGas2017,
-  title = {{{GADEN}}: {{A 3D}} Gas Dispersion Simulator for Mobile Robot Olfaction in Realistic Environments},
-  author = {Monroy, Javier and {Hernandez-Bennetts}, Victor and Fan, Han and Lilienthal, Achim and {Gonzalez-Jimenez}, Javier},
-  year = {2017},
-  journal = {Sensors (Switzerland)},
-  volume = {17},
-  number = {7},
-  pages = {1--16},
-  doi = {10.3390/s17071479},
+     title = {{{GADEN}}: {{A 3D}} Gas Dispersion Simulator for Mobile Robot Olfaction in Realistic Environments},
+    author = {Monroy, Javier and {Hernandez-Bennetts}, Victor and Fan, Han and Lilienthal, Achim and {Gonzalez-Jimenez}, Javier},
+      year = {2017},
+   journal = {Sensors (Switzerland)},
+    volume = {17},
+    number = {7},
+     pages = {1--16},
+       doi = {10.3390/s17071479},
 }
 ```
 
