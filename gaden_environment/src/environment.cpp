@@ -35,11 +35,7 @@ void Environment::run()
     fixed_frame = getParameter<std::string>("fixed_frame", "map");
 
     std::filesystem::path projectPath = getParameter<std::string>("projectPath", "");
-    if (std::filesystem::exists(projectPath))
-    {
-        gadenProject.emplace(projectPath);
-        GADEN_CHECK_RESULT(gadenProject->ReadDirectory());
-    }
+    GadenUtils::LoadProject(projectPath, gadenProject);
 
     if (!gadenProject)
         loadNodeParameters();
