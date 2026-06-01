@@ -80,11 +80,7 @@ void Player::run()
 {
     // if there is a gaden project directory, we will just parse those files instead of reading everything from ROS params
     std::filesystem::path projectPath = declare_parameter<std::string>("projectPath", "");
-    if (std::filesystem::exists(projectPath))
-    {
-        gadenProject.emplace(projectPath);
-        GADEN_CHECK_RESULT(gadenProject->ReadDirectory());
-    }
+    GadenUtils::LoadProject(projectPath, gadenProject);
 
     environmentConfig = std::make_shared<gaden::EnvironmentConfiguration>();
 

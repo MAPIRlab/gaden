@@ -64,10 +64,10 @@ void FilamentSimulator::Run()
     std::shared_ptr<EnvironmentConfiguration> envConfig;
 
     std::filesystem::path projectPath = GadenUtils::getParam<std::string>(shared_from_this(), "projectPath", "");
-    if (std::filesystem::exists(projectPath))
+    GadenUtils::LoadProject(projectPath, gadenProject);
+
+    if (gadenProject)
     {
-        gadenProject.emplace(projectPath);
-        GADEN_CHECK_RESULT(gadenProject->ReadDirectory());
         params = gadenProject->GetSimulationParams(getParameter<std::string>("simulationID", "sim"));
         envConfig = EnvironmentConfiguration::ReadDirectory(projectPath);
         if (!envConfig)

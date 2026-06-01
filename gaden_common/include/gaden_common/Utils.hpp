@@ -1,13 +1,31 @@
 #pragma once
+#include "gaden/EnvironmentConfigMetadata.hpp"
 #include "gaden/core/Logging.hpp"
 #include <filesystem>
 #include <fmt/format.h>
-#include <rclcpp/rclcpp.hpp>
 #include <gaden/datatypes/Color.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
 
 namespace GadenUtils
 {
+    inline void LoadProject(const std::filesystem::path& projectPath, std::optional<gaden::EnvironmentConfigMetadata>& gadenProject)
+    {
+        if (projectPath != "")
+        {
+            if (std::filesystem::exists(projectPath))
+            {
+                gadenProject.emplace(projectPath);
+                GADEN_CHECK_RESULT(gadenProject->ReadDirectory());
+            }
+            else
+            {
+                GADEN_ERROR("Project path does not exist: {}", projectPath);
+                GADEN_TERMINATE;
+            }
+        }
+    }
+    
     inline void OldProjectWarning()
     {
         GADEN_WARN("\n"
