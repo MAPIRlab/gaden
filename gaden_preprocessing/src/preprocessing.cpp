@@ -21,11 +21,7 @@ void Gaden_preprocessing::Run()
 {
     // if there is a gaden project directory, we will just parse those files instead of reading everything from ROS params
     std::filesystem::path projectPath = GadenUtils::getParam<std::string>(shared_from_this(), "projectPath", "");
-    if (std::filesystem::exists(projectPath))
-    {
-        gadenProject.emplace(projectPath);
-        GADEN_CHECK_RESULT(gadenProject->ReadDirectory());
-    }
+    GadenUtils::LoadProject(projectPath, gadenProject);
 
     // These variables can be passed through ROS parameters (as always) or read from the gaden project files (new)
     //--------------------------------------------------------
@@ -65,7 +61,6 @@ void Gaden_preprocessing::Run()
 
     // generate output
     GADEN_INFO_COLOR(fmt::terminal_color::blue, "Writing output to folder '{}'", outputFolder);
-
 
     // this is needed for compatibility with old launch files, which do not respect the structure of gaden projects
     // in those, store the wind data back into the folder with the unprocessed files
@@ -142,9 +137,7 @@ WindSequence Gaden_preprocessing::GetWindSequenceROSParams(const gaden::Environm
     else
     {
         std::vector<std::filesystem::path> paths = GadenUtils::GetWindFiles([](std::string const& path, size_t idx)
-                                                                            {
-                                                                                return fmt::format("{}_{}.csv", path, idx);
-                                                                            },
+                                                                            { return fmt::format("{}_{}.csv", path, idx); },
                                                                             windFileName);
         return Preprocessing::ParseOpenFoamVectorCloud(paths, env, {});
     }

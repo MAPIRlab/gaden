@@ -1,6 +1,6 @@
 #This file is only to set up code analysis for all gaden packages at the same time. Not used for actual building!
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.11)
 project(gaden)
 
 
