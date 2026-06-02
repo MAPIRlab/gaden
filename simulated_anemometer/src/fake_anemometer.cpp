@@ -134,8 +134,8 @@ void SimulatedAnemometer::run()
                 u = (float)response->u[0];
                 v = (float)response->v[0];
                 w = (float)response->w[0];
-
-                double wind_speed = u * u + v * v; // ignore the w component, because the anemometer is only 2D
+                
+                double wind_speed = std::hypot(u, v); // ignore the w component, because the anemometer is only 2D
                 double wind_direction;
 
                 if (!use_map_ref_system)
@@ -199,7 +199,7 @@ void SimulatedAnemometer::run()
                 wind_point.pose.position.y = 0.0;
                 wind_point.pose.position.z = 0.0;
                 wind_point.pose.orientation = tf2_ros::createQuaternionMsgFromYaw(wind_direction_with_noise);
-                wind_point.scale.x = 2*sqrt(pow(u,2)+pow(v,2));	  //arrow lenght
+                wind_point.scale.x = 2*wind_speed;	  //arrow lenght
                 wind_point.scale.y = 0.1;	  //arrow width
                 wind_point.scale.z = 0.1;	  //arrow height
                 wind_point.color.r = 0.0;
@@ -229,7 +229,7 @@ void SimulatedAnemometer::run()
 
                 tf2::Quaternion arrowOrientation(tf2::Vector3(0, 0, 1), wind_direction + M_PI);
                 wind_point_inv.pose.orientation = tf2::toMsg(arrowOrientation);
-                wind_point_inv.scale.x = 2 * std::sqrt(u * u + v * v); // arrow lenght
+                wind_point_inv.scale.x = 2 * wind_speed; // arrow lenght
                 wind_point_inv.scale.y = 0.1;                          // arrow width
                 wind_point_inv.scale.z = 0.1;                          // arrow height
                 wind_point_inv.color.r = 0.0;
