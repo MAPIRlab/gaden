@@ -16,7 +16,7 @@
 
   <!--Optional dependency (only if you are compiling the GUI), but it must be listed here for compilation ordering-->
   <!--Also, if you *are* compiling the GUI, but don't have this installed, it will be downloaded from git automatically-->
-  <depend>ament_imgui</depend> 
+  <!-- <depend>ament_imgui</depend>  -->
   
   <export>
     <build_type>ament_cmake</build_type>
