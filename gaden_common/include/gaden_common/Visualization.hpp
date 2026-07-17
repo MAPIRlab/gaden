@@ -11,7 +11,6 @@
 
 namespace GadenUtils
 {
-    // creates and maintains its own (static) list of publishers
     inline visualization_msgs::msg::Marker MarkerSourcePosition(rclcpp::Node* node, gaden::Simulation const& sim)
     {
         visualization_msgs::msg::Marker sourceMarker;
@@ -26,15 +25,15 @@ namespace GadenUtils
             sourceMarker.pose.position.z = sim.simulationMetadata.source->sourcePosition.z;
 
             sourceMarker.color = GadenUtils::toRosColor(sim.gasDisplayColor);
-            sourceMarker.color.a = 0.6;
+            sourceMarker.color.a = 0.8;
 
             std::string sourceType = sim.simulationMetadata.source->Type();
             if (sourceType == "point")
             {
-                sourceMarker.type = visualization_msgs::msg::Marker::CUBE;
-                sourceMarker.scale.x = 0.1;
-                sourceMarker.scale.y = 0.1;
-                sourceMarker.scale.z = 0.1;
+                sourceMarker.type = visualization_msgs::msg::Marker::SPHERE;
+                sourceMarker.scale.x = 0.15;
+                sourceMarker.scale.y = 0.15;
+                sourceMarker.scale.z = 0.15;
             }
             else if (sourceType == "box")
             {
